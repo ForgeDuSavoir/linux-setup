@@ -1,0 +1,36 @@
+# Secrets / private files
+*.private
+*.secret
+.env
+.env.*
+!*.env.example
+secrets/
+
+# SSH / keys
+*.pem
+*.key
+
+# Python
+__pycache__/
+*.pyc
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
+
+# Logs
+*.log
+
+# OS / editors
+.DS_Store
+Thumbs.db
+
+# Local testing
+test/
+sandbox/
+
+# Generated files
+build/
+dist/

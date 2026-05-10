@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=FreshRSS
+Comment=FreshRSS WebApp
+Exec=firefox --no-remote --new-window --profile __PROFILE_PATH__ __FRESHRSS_URL__
+Terminal=false
+Type=Application
+Icon=freshrss
+Categories=Network;News;

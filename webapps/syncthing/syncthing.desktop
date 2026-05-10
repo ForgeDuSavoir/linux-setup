@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Syncthing
+Comment=Syncthing Web Interface
+Exec=__BRAVE_COMMAND__ --user-data-dir="__PROFILE_PATH__" --app="http://127.0.0.1:8384" --class=syncthing --profile-directory=syncthing
+Icon=syncthing
+Terminal=false
+Categories=Network;FileTransfer;
+StartupNotify=true
+StartupWMClass=brave-127.0.0.1__-syncthing
