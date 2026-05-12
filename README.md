@@ -145,6 +145,7 @@ Clone the repository:
 ```bash
 git clone git@github.com:ForgeDuSavoir/linux-setup.git
 cd linux-setup
+chmod +x ./install.sh
 ```
 
 Run the main installer:
