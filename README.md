@@ -143,7 +143,7 @@ Package managers currently used:
 Clone the repository:
 
 ```bash
-git clone git@github.com:YOUR_USERNAME/linux-setup.git
+git clone git@github.com:ForgeDuSavoir/linux-setup.git
 cd linux-setup
 ```
 
