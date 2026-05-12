@@ -15,6 +15,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 "$SCRIPT_DIR/productivity/install_productivity_apps.sh"
 "$SCRIPT_DIR/programming/install_programming_apps.sh"
 "$SCRIPT_DIR/security/install_security_apps.sh"
+"$SCRIPT_DIR/theming/install_theming.sh"
+"$SCRIPT_DIR/optionals/install_optionals.sh"
 
 echo
 echo "✓ All application categories installed successfully."
