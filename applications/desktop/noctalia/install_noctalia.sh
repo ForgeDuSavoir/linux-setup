@@ -2,18 +2,13 @@
 
 set -euo pipefail
 
-APP_NAME="OBS Studio"
-PACKAGE_NAME="obs-studio"
-APP_COMMAND="obs"
-PACKAGE_MANAGER="pacman"
-INSTALL_COMMAND='sudo pacman -S --needed --noconfirm obs-studio obs-vkcapture'
+APP_NAME="Noctalia Shell"
+PACKAGE_NAME="noctalia-shell noctalia-qs cava matugen"
+PACKAGE_CHECK="noctalia-shell"
+PACKAGE_MANAGER="paru"
+INSTALL_COMMAND="paru -S --needed --noconfirm ${PACKAGE_NAME}"
 
 echo "==> Installing ${APP_NAME}..."
-
-if [[ -n "${APP_COMMAND}" ]] && command -v "$APP_COMMAND" >/dev/null 2>&1; then
-    echo "✓ ${APP_NAME} is already installed."
-    exit 0
-fi
 
 if [[ -z "${PACKAGE_MANAGER}" ]]; then
     echo "✗ PACKAGE_MANAGER is not set."
@@ -24,6 +19,14 @@ if ! command -v "$PACKAGE_MANAGER" >/dev/null 2>&1; then
     echo "✗ ${PACKAGE_MANAGER} is required to install ${APP_NAME}."
     echo "Install ${PACKAGE_MANAGER} first, then run this script again."
     exit 1
+fi
+
+# Check via package manager
+if [[ -n "${PACKAGE_CHECK}" ]]; then
+    if "${PACKAGE_MANAGER}" -Q "${PACKAGE_CHECK}" >/dev/null 2>&1; then
+        echo "✓ ${APP_NAME} is already installed."
+        exit 0
+    fi
 fi
 
 if [[ -z "${INSTALL_COMMAND}" ]]; then

@@ -2,11 +2,11 @@
 
 set -euo pipefail
 
-APP_NAME="OBS Studio"
-PACKAGE_NAME="obs-studio"
-APP_COMMAND="obs"
+APP_NAME="LSP Plugins LV2"
+PACKAGE_NAME="lsp-plugins-lv2"
+APP_COMMAND=""
 PACKAGE_MANAGER="pacman"
-INSTALL_COMMAND='sudo pacman -S --needed --noconfirm obs-studio obs-vkcapture'
+INSTALL_COMMAND='sudo pacman -S --needed --noconfirm lsp-plugins-lv2'
 
 echo "==> Installing ${APP_NAME}..."
 

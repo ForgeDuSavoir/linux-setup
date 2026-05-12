@@ -2,18 +2,12 @@
 
 set -euo pipefail
 
-APP_NAME="OBS Studio"
-PACKAGE_NAME="obs-studio"
-APP_COMMAND="obs"
+APP_NAME="Bluetooth Support"
+PACKAGE_NAME="bluez bluez-utils blueman"
 PACKAGE_MANAGER="pacman"
-INSTALL_COMMAND='sudo pacman -S --needed --noconfirm obs-studio obs-vkcapture'
+INSTALL_COMMAND="sudo pacman -S --needed ${PACKAGE_NAME}"
 
 echo "==> Installing ${APP_NAME}..."
-
-if [[ -n "${APP_COMMAND}" ]] && command -v "$APP_COMMAND" >/dev/null 2>&1; then
-    echo "✓ ${APP_NAME} is already installed."
-    exit 0
-fi
 
 if [[ -z "${PACKAGE_MANAGER}" ]]; then
     echo "✗ PACKAGE_MANAGER is not set."
@@ -26,11 +20,29 @@ if ! command -v "$PACKAGE_MANAGER" >/dev/null 2>&1; then
     exit 1
 fi
 
+ALL_INSTALLED=true
+
+for package in ${PACKAGE_NAME}; do
+    if ! pacman -Q "${package}" >/dev/null 2>&1; then
+        ALL_INSTALLED=false
+        break
+    fi
+done
+
+if [[ "${ALL_INSTALLED}" == true ]]; then
+    echo "✓ ${APP_NAME} is already installed."
+    exit 0
+fi
+
 if [[ -z "${INSTALL_COMMAND}" ]]; then
     echo "✗ INSTALL_COMMAND is not set."
     exit 1
 fi
 
 eval "$INSTALL_COMMAND"
+
+echo "==> Enabling Bluetooth service..."
+
+sudo systemctl enable --now bluetooth.service
 
 echo "✓ ${APP_NAME} installed successfully."

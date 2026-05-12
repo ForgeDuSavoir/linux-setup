@@ -27,9 +27,17 @@ sudo pacman -S --needed --noconfirm \
     mangohud \
     lib32-mangohud \
     xdg-desktop-portal \
-    xdg-desktop-portal-gtk \
-    qt5-wayland \
-    qt6-wayland
+    protonplus \
+    wine \
+    winetricks \
+    protontricks \
+    lutris \
+    goverlay \
+    heroic-games-launcher-bin \
+    prismlauncher \
+    jdk21-openjdk \
+    gamescope \
+    vkBasalt
 
 echo "==> Checking Steam user data directory..."
 

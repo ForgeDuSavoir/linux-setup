@@ -2,11 +2,11 @@
 
 set -euo pipefail
 
-APP_NAME="OBS Studio"
-PACKAGE_NAME="obs-studio"
-APP_COMMAND="obs"
+APP_NAME="xdg-user-dirs"
+PACKAGE_NAME="xdg-user-dirs"
+APP_COMMAND="xdg-user-dirs-update"
 PACKAGE_MANAGER="pacman"
-INSTALL_COMMAND='sudo pacman -S --needed --noconfirm obs-studio obs-vkcapture'
+INSTALL_COMMAND="sudo pacman -S --needed ${PACKAGE_NAME}"
 
 echo "==> Installing ${APP_NAME}..."
 
@@ -32,5 +32,6 @@ if [[ -z "${INSTALL_COMMAND}" ]]; then
 fi
 
 eval "$INSTALL_COMMAND"
+xdg-user-dirs-update
 
 echo "✓ ${APP_NAME} installed successfully."

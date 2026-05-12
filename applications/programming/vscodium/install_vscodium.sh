@@ -2,11 +2,11 @@
 
 set -euo pipefail
 
-APP_NAME="OBS Studio"
-PACKAGE_NAME="obs-studio"
-APP_COMMAND="obs"
+APP_NAME="VSCodium"
+PACKAGE_NAME="vscodium"
+APP_COMMAND="codium"
 PACKAGE_MANAGER="pacman"
-INSTALL_COMMAND='sudo pacman -S --needed --noconfirm obs-studio obs-vkcapture'
+INSTALL_COMMAND="sudo pacman -S --needed ${PACKAGE_NAME}"
 
 echo "==> Installing ${APP_NAME}..."
 

@@ -2,11 +2,11 @@
 
 set -euo pipefail
 
-APP_NAME="LSP Plugins"
-PACKAGE_NAME="lsp-plugins"
-APP_COMMAND=""
+APP_NAME="Qalculate!"
+PACKAGE_NAME="qalculate-gtk"
+APP_COMMAND="qalculate-gtk"
 PACKAGE_MANAGER="pacman"
-INSTALL_COMMAND='sudo pacman -S --needed --noconfirm lsp-plugins'
+INSTALL_COMMAND="sudo pacman -S --needed ${PACKAGE_NAME}"
 
 echo "==> Installing ${APP_NAME}..."
 

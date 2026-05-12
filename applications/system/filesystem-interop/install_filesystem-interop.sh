@@ -2,18 +2,12 @@
 
 set -euo pipefail
 
-APP_NAME="DroidCam OBS Plugin"
-PACKAGE_NAME="droidcam-obs-plugin-bin"
-APP_COMMAND=""
-PACKAGE_MANAGER="paru"
-INSTALL_COMMAND='paru -S --needed --noconfirm droidcam-obs-plugin-bin'
+APP_NAME="Filesystem Interop"
+PACKAGE_NAME="gvfs gvfs-afc gvfs-mtp gvfs-smb ntfs-3g dosfstools exfatprogs"
+PACKAGE_MANAGER="pacman"
+INSTALL_COMMAND="sudo pacman -S --needed ${PACKAGE_NAME}"
 
 echo "==> Installing ${APP_NAME}..."
-
-if [[ -n "${APP_COMMAND}" ]] && command -v "$APP_COMMAND" >/dev/null 2>&1; then
-    echo "✓ ${APP_NAME} is already installed."
-    exit 0
-fi
 
 if [[ -z "${PACKAGE_MANAGER}" ]]; then
     echo "✗ PACKAGE_MANAGER is not set."
@@ -24,6 +18,20 @@ if ! command -v "$PACKAGE_MANAGER" >/dev/null 2>&1; then
     echo "✗ ${PACKAGE_MANAGER} is required to install ${APP_NAME}."
     echo "Install ${PACKAGE_MANAGER} first, then run this script again."
     exit 1
+fi
+
+ALL_INSTALLED=true
+
+for package in ${PACKAGE_NAME}; do
+    if ! pacman -Q "${package}" >/dev/null 2>&1; then
+        ALL_INSTALLED=false
+        break
+    fi
+done
+
+if [[ "${ALL_INSTALLED}" == true ]]; then
+    echo "✓ ${APP_NAME} is already installed."
+    exit 0
 fi
 
 if [[ -z "${INSTALL_COMMAND}" ]]; then

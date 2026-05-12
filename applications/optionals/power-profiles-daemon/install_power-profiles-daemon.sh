@@ -2,11 +2,11 @@
 
 set -euo pipefail
 
-APP_NAME="OBS Studio"
-PACKAGE_NAME="obs-studio"
-APP_COMMAND="obs"
+APP_NAME="power-profiles-daemon"
+PACKAGE_NAME="power-profiles-daemon"
+APP_COMMAND="powerprofilesctl"
 PACKAGE_MANAGER="pacman"
-INSTALL_COMMAND='sudo pacman -S --needed --noconfirm obs-studio obs-vkcapture'
+INSTALL_COMMAND="sudo pacman -S --needed ${PACKAGE_NAME}"
 
 echo "==> Installing ${APP_NAME}..."
 
@@ -32,5 +32,6 @@ if [[ -z "${INSTALL_COMMAND}" ]]; then
 fi
 
 eval "$INSTALL_COMMAND"
+sudo systemctl enable power-profiles-daemon
 
 echo "✓ ${APP_NAME} installed successfully."

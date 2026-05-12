@@ -2,18 +2,11 @@
 
 set -euo pipefail
 
-APP_NAME="OBS Studio"
-PACKAGE_NAME="obs-studio"
-APP_COMMAND="obs"
+APP_NAME="build tools"
 PACKAGE_MANAGER="pacman"
-INSTALL_COMMAND='sudo pacman -S --needed --noconfirm obs-studio obs-vkcapture'
+INSTALL_COMMAND="sudo pacman -S --needed --noconfirm base-devel cmake meson ninja pkgconf"
 
 echo "==> Installing ${APP_NAME}..."
-
-if [[ -n "${APP_COMMAND}" ]] && command -v "$APP_COMMAND" >/dev/null 2>&1; then
-    echo "✓ ${APP_NAME} is already installed."
-    exit 0
-fi
 
 if [[ -z "${PACKAGE_MANAGER}" ]]; then
     echo "✗ PACKAGE_MANAGER is not set."
