@@ -33,4 +33,9 @@ fi
 
 eval "$INSTALL_COMMAND"
 
+echo "==> Setting Thunar as default file manager..."
+
+xdg-mime default thunar.desktop inode/directory
+xdg-mime default thunar.desktop application/x-gnome-saved-search
+
 echo "✓ ${APP_NAME} installed successfully."
