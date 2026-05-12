@@ -14,7 +14,8 @@ The project is currently focused on:
 
 * Arch Linux / CachyOS
 * Wayland
-* Niri
+* Hyprland
+* Noctalia Shell
 * content creation workflow
 * development tools
 * productivity tooling
@@ -50,7 +51,7 @@ Each application has its own dedicated installation script.
 Example:
 
 ```text
-applications/media/obs/install_obs.sh
+packages/media/obs/install_obs.sh
 ```
 
 This allows:
@@ -126,8 +127,8 @@ ZEROTIER_NETWORK_ID=
 
 Mainly designed for:
 
-* Arch Linux
 * CachyOS
+* Hyprland
 
 Package managers currently used:
 
@@ -144,13 +145,13 @@ Clone the repository:
 
 ```bash
 git clone git@github.com:ForgeDuSavoir/linux-setup.git
-cd linux-setup
-chmod +x ./install.sh
 ```
 
 Run the main installer:
 
 ```bash
+cd linux-setup
+chmod +x ./install.sh
 ./install.sh
 ```
 
@@ -162,16 +163,15 @@ The repository currently manages:
 
 * desktop applications
 * webapps
-* fonts
+* theme
+* hyprland configuration
+* noctalia configuration
 * Linux services
 * personal workflow tooling
 
 It may later expand toward:
 
 * dotfiles
-* Niri configuration
-* Waybar configuration
-* shell configuration
 * Docker/self-hosted tooling
 * automation workflows
 
