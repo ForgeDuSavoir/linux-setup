@@ -6,7 +6,7 @@ APP_NAME="qt6ct"
 PACKAGE_NAME="qt6ct"
 APP_COMMAND="qt6ct"
 PACKAGE_MANAGER="pacman"
-INSTALL_COMMAND="sudo pacman -S --needed ${PACKAGE_NAME}"
+INSTALL_COMMAND="sudo pacman -S --needed --noconfirm ${PACKAGE_NAME}"
 
 echo "==> Installing ${APP_NAME}..."
 

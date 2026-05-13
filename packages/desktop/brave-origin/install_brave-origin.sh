@@ -4,7 +4,7 @@ set -euo pipefail
 
 APP_NAME="Brave Origin"
 PACKAGE_NAME="brave-origin-beta-bin"
-APP_COMMAND="brave-origin"
+APP_COMMAND="brave-origin-beta"
 PACKAGE_MANAGER="paru"
 INSTALL_COMMAND="paru -S --noconfirm ${PACKAGE_NAME}"
 

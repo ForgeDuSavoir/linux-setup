@@ -33,6 +33,4 @@ fi
 
 eval "$INSTALL_COMMAND"
 
-auto-editor --help
-
 echo "✓ ${APP_NAME} installed successfully."

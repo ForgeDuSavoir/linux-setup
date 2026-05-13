@@ -35,4 +35,24 @@ scrcpy \
 ```
 
 ## linux-setup repo
-- test master script in Niri
+### To do
+- commit push
+
+### Thing's that are not good yet
+#### Mousepad
+- By default, text files open with Micro instead of Mousepad
+- Mousepad has no colored text for .md
+#### Noctalia
+- Noctalia plugins don't have their settings
+- Can't pick a wallpaper
+- Personnal themes not downloaded
+- Keybinds plugin is not working
+- Clipboard history plugin is not working
+#### Thunar
+- Can't click in path to jump to folder
+- Can't "expand/collapse" folders in lsit view
+#### Other
+- KDENLIVE PROJECT !!!
+- Volume and brightness keys
+- "About Xfce" app in launcher ??
+- Kwallet opens when openning brave

@@ -3,9 +3,9 @@
 set -euo pipefail
 
 APP_NAME="Themes"
-PACKAGE_NAME="adw-gtk-theme papirus-icon-theme noto-fonts-emoji bibata-cursor-theme"
-PACKAGE_MANAGER="pacman"
-INSTALL_COMMAND="sudo pacman -S --needed ${PACKAGE_NAME}"
+PACKAGE_NAME="adw-gtk-theme papirus-icon-theme noto-fonts-emoji bibata-cursor-theme-bin"
+PACKAGE_MANAGER="paru"
+INSTALL_COMMAND="paru -S --needed --noconfirm ${PACKAGE_NAME}"
 
 echo "==> Installing ${APP_NAME}..."
 

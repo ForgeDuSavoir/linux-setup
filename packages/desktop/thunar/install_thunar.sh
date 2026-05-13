@@ -6,7 +6,7 @@ APP_NAME="Thunar"
 PACKAGE_NAME="thunar thunar-volman thunar-archive-plugin thunar-shares-plugin thunar-media-tags-plugin thunar-vcs-plugin tumbler ffmpegthumbnailer file-roller unrar unzip 7zip"
 APP_COMMAND="thunar"
 PACKAGE_MANAGER="pacman"
-INSTALL_COMMAND="sudo pacman -S --needed ${PACKAGE_NAME}"
+INSTALL_COMMAND="sudo pacman -S --needed --noconfirm ${PACKAGE_NAME}"
 
 echo "==> Installing ${APP_NAME}..."
 

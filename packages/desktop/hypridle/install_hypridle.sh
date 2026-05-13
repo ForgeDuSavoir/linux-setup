@@ -6,7 +6,7 @@ APP_NAME="hypridle"
 PACKAGE_NAME="hypridle"
 APP_COMMAND="hypridle"
 PACKAGE_MANAGER="pacman"
-INSTALL_COMMAND="sudo pacman -S --needed ${PACKAGE_NAME}"
+INSTALL_COMMAND="sudo pacman -S --needed --noconfirm ${PACKAGE_NAME}"
 
 echo "==> Installing ${APP_NAME}..."
 

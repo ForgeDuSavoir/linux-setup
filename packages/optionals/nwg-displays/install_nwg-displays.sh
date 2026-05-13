@@ -6,7 +6,7 @@ APP_NAME="nwg-displays"
 PACKAGE_NAME="nwg-displays"
 APP_COMMAND="nwg-displays"
 PACKAGE_MANAGER="pacman"
-INSTALL_COMMAND="sudo pacman -S --needed ${PACKAGE_NAME}"
+INSTALL_COMMAND="sudo pacman -S --needed --noconfirm ${PACKAGE_NAME}"
 
 echo "==> Installing ${APP_NAME}..."
 

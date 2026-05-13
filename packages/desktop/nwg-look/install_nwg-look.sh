@@ -6,7 +6,7 @@ APP_NAME="nwg-look"
 PACKAGE_NAME="nwg-look"
 APP_COMMAND="nwg-look"
 PACKAGE_MANAGER="pacman"
-INSTALL_COMMAND="sudo pacman -S --needed ${PACKAGE_NAME}"
+INSTALL_COMMAND="sudo pacman -S --needed --noconfirm ${PACKAGE_NAME}"
 
 echo "==> Installing ${APP_NAME}..."
 

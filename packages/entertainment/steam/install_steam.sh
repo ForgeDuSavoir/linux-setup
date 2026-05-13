@@ -36,8 +36,7 @@ sudo pacman -S --needed --noconfirm \
     heroic-games-launcher-bin \
     prismlauncher \
     jdk21-openjdk \
-    gamescope \
-    vkBasalt
+    gamescope
 
 echo "==> Checking Steam user data directory..."
 

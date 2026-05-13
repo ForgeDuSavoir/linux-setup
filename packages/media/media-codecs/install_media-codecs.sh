@@ -5,7 +5,7 @@ set -euo pipefail
 APP_NAME="GStreamer Codecs"
 PACKAGE_NAME="gst-plugins-good gst-plugins-ugly gst-libav"
 PACKAGE_MANAGER="pacman"
-INSTALL_COMMAND="sudo pacman -S --needed ${PACKAGE_NAME}"
+INSTALL_COMMAND="sudo pacman -S --needed --noconfirm ${PACKAGE_NAME}"
 
 echo "==> Installing ${APP_NAME}..."
 
