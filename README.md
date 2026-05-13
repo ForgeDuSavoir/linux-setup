@@ -144,7 +144,7 @@ Package managers currently used:
 Clone the repository:
 
 ```bash
-git clone git@github.com:ForgeDuSavoir/linux-setup.git
+git clone https://github.com/ForgeDuSavoir/linux-setup.git
 ```
 
 Run the main installer:
