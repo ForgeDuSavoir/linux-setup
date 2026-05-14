@@ -18,12 +18,26 @@ if [[ ! -f "$PRIVATE_HOSTS_FILE" ]]; then
     exit 1
 fi
 
-sudo sed -i "/$MARKER_START/,/$MARKER_END/d" /etc/hosts
+CURRENT_HOSTS="$(mktemp)"
+NEW_HOSTS="$(mktemp)"
+
+trap 'rm -f "$CURRENT_HOSTS" "$NEW_HOSTS"' EXIT
+
+sudo cp /etc/hosts "$CURRENT_HOSTS"
+
+sed "/$MARKER_START/,/$MARKER_END/d" "$CURRENT_HOSTS" > "$NEW_HOSTS"
 
 {
     echo "$MARKER_START"
     cat "$PRIVATE_HOSTS_FILE"
     echo "$MARKER_END"
-} | sudo tee -a /etc/hosts >/dev/null
+} >> "$NEW_HOSTS"
+
+if cmp -s "$CURRENT_HOSTS" "$NEW_HOSTS"; then
+    echo "✓ /etc/hosts is already up to date."
+    exit 0
+fi
+
+sudo cp "$NEW_HOSTS" /etc/hosts
 
 echo "✓ /etc/hosts configured successfully."

@@ -32,5 +32,6 @@ if [[ -z "${INSTALL_COMMAND}" ]]; then
 fi
 
 eval "$INSTALL_COMMAND"
+pipx ensurepath
 
 echo "✓ ${APP_NAME} installed successfully."

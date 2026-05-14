@@ -18,4 +18,8 @@ echo "==> Installing configs..."
 bash "${REPO_DIR}/configs/install_configs.sh"
 
 echo ""
+echo "==> Installing user custom scripts..."
+bash "${REPO_DIR}/scripts/install_scripts.sh"
+
+echo ""
 echo "✓ linux-setup installation completed successfully."

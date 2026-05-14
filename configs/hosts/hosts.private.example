@@ -3,3 +3,5 @@
 
 # Example:
 # 192.168.1.10 my-server.local
+
+# Leave empty if you don't need to add hosts

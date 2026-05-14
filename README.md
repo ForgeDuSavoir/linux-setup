@@ -130,13 +130,6 @@ Mainly designed for:
 * CachyOS
 * Hyprland
 
-Package managers currently used:
-
-* pacman
-* paru
-* flatpak
-* pipx
-
 ---
 
 # Installation
@@ -145,12 +138,24 @@ Clone the repository:
 
 ```bash
 git clone https://github.com/ForgeDuSavoir/linux-setup.git
+cd linux-setup
+```
+
+Create your environment and private keys :
+
+```bash
+cp ./configs/hosts/hosts.private.example ./configs/hosts/hosts.private
+nano ./configs/hosts/hosts.private
+```
+
+```bash
+cp ./configs/zerotier/.env.example ./configs/zerotier/.env
+nano ./configs/zerotier/.env
 ```
 
 Run the main installer:
 
 ```bash
-cd linux-setup
 chmod +x ./install.sh
 ./install.sh
 ```

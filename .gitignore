@@ -9,6 +9,8 @@ secrets/
 # SSH / keys
 *.pem
 *.key
+id_ed25519
+id_ed25519.pub
 
 # Python
 __pycache__/

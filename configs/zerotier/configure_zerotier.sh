@@ -39,12 +39,32 @@ echo "==> Ensuring zerotier-one service is running..."
 
 sudo systemctl enable --now zerotier-one.service
 
-echo "==> Joining ZeroTier network..."
+echo "==> Checking ZeroTier network..."
 
-sudo zerotier-cli join "$ZEROTIER_NETWORK_ID"
+if sudo zerotier-cli listnetworks | grep -q "$ZEROTIER_NETWORK_ID"; then
+    echo "✓ Already joined ZeroTier network."
+else
+    echo "==> Joining ZeroTier network..."
+    sudo zerotier-cli join "$ZEROTIER_NETWORK_ID"
+
+    echo
+    echo "==> Action required:"
+    echo "Go to https://www.zerotier.com/"
+    echo "Then:"
+    echo "  1. Log in"
+    echo "  2. Open your network"
+    echo "  3. Find the unknown/new device"
+    echo "  4. Check 'Authorized'"
+    echo "  5. Set a name and description"
+    echo "  6. Save"
+    echo
+    read -r -p "Press Enter once this device has been authorized in ZeroTier Central..."
+fi
+
+echo
+echo "Current networks:"
+sudo zerotier-cli listnetworks
 
 echo
 echo "✓ ${APP_NAME} configured successfully."
 echo
-echo "Current networks:"
-zerotier-cli listnetworks

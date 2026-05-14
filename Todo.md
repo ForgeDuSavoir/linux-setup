@@ -43,10 +43,9 @@ scrcpy \
 - By default, text files open with Micro instead of Mousepad
 - Mousepad has no colored text for .md
 #### Noctalia
-- Can't pick a wallpaper
+- Personnal themes not downloaded
 - Theme not applied -> maybe add noctalia-colors.conf from hyprland.conf
 - Noctalia plugins don't have their settings
-- Personnal themes not downloaded
 - Keybinds plugin is not working
 - Clipboard history plugin is not working
 #### Thunar
