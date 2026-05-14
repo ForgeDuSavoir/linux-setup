@@ -2,9 +2,9 @@
 
 set -euo pipefail
 
-APP_NAME="Thunar"
-PACKAGE_NAME="thunar thunar-volman thunar-archive-plugin thunar-shares-plugin thunar-media-tags-plugin thunar-vcs-plugin tumbler ffmpegthumbnailer file-roller xfconf unrar unzip 7zip"
-APP_COMMAND="thunar"
+APP_NAME="wev"
+PACKAGE_NAME="wev"
+APP_COMMAND="wev"
 PACKAGE_MANAGER="pacman"
 INSTALL_COMMAND="sudo pacman -S --needed --noconfirm ${PACKAGE_NAME}"
 

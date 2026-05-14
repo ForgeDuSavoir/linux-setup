@@ -11,7 +11,10 @@
     - Gmail pro
     - Google Agenda perso
     - Google Agenda pro
-
+- Keybindings
+- Import firefox settings
+- Import Keepass settings
+- Check all fn shortcut keys
 
 
 ### Take a screenshot
@@ -40,14 +43,14 @@ scrcpy \
 - Personnal themes not downloaded
 - Theme not applied -> maybe add noctalia-colors.conf from hyprland.conf
 - Noctalia plugins don't have their settings
-- Keybinds plugin is not working -> by changing plugins settings (see issue above)
+- Keybinds plugin is not working -> fixed by changing plugins settings (see issue above)
 - Clipboard history plugin is not working -> install cliphist ?
-- Desktop toolkit plugin
-#### Thunar
-- Can't click in path to jump to folder
-- Can't "expand/collapse" folders in list view
+- Desktop toolkit plugin not working
 #### Other
-- Volume and brightness keys
-- "About Xfce" app in launcher ?? -> I think it s because my login screen is Xfce ?
+- Default terminal not set
+- Steam startup popup not displaying
+- "About Xfce" app in launcher ?? -> I think it's because my login screen is Xfce ?
 - Kwallet opens when openning brave or other apps
-- KDENLIVE PROJECT !!!
+- Animations are good but a bit too slowed
+- Trackpad gestures are a bit rough
+- Steam (and steam notifications) does not scale correctly (XWayland?)

@@ -10,6 +10,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 "$SCRIPT_DIR/noctalia/install_noctalia_config.sh"
 "$SCRIPT_DIR/starship/install_starship_config.sh"
 "$SCRIPT_DIR/theme/apply_theme.sh"
+"$SCRIPT_DIR/thunar/configure_thunar.sh"
 "$SCRIPT_DIR/zerotier/configure_zerotier.sh"
 
 echo

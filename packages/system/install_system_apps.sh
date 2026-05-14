@@ -15,4 +15,5 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 "$SCRIPT_DIR/gnome-disks/install_gnome-disks.sh"
 "$SCRIPT_DIR/filesystem-interop/install_filesystem-interop.sh"
 "$SCRIPT_DIR/bluetooth/install_bluetooth.sh"
+"$SCRIPT_DIR/wev/install_wev.sh"
 
