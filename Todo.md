@@ -43,8 +43,9 @@ scrcpy \
 - By default, text files open with Micro instead of Mousepad
 - Mousepad has no colored text for .md
 #### Noctalia
-- Noctalia plugins don't have their settings
 - Can't pick a wallpaper
+- Theme not applied -> maybe add noctalia-colors.conf from hyprland.conf
+- Noctalia plugins don't have their settings
 - Personnal themes not downloaded
 - Keybinds plugin is not working
 - Clipboard history plugin is not working
@@ -52,7 +53,7 @@ scrcpy \
 - Can't click in path to jump to folder
 - Can't "expand/collapse" folders in lsit view
 #### Other
-- KDENLIVE PROJECT !!!
 - Volume and brightness keys
-- "About Xfce" app in launcher ??
-- Kwallet opens when openning brave
+- "About Xfce" app in launcher ?? -> I think it s because my login screen is Xfce
+- Kwallet opens when openning brave or other apps
+- KDENLIVE PROJECT !!!
