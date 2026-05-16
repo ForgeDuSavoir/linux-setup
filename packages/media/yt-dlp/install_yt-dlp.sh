@@ -2,11 +2,11 @@
 
 set -euo pipefail
 
-APP_NAME="v4l2loopback"
-PACKAGE_NAME="v4l2loopback-dkms v4l-utils"
-APP_COMMAND=""
+APP_NAME="yt-dlp"
+PACKAGE_NAME="yt-dlp"
+APP_COMMAND="yt-dlp"
 PACKAGE_MANAGER="pacman"
-INSTALL_COMMAND='sudo pacman -S --needed --noconfirm ${PACKAGE_NAME}'
+INSTALL_COMMAND="sudo pacman -S --needed --noconfirm ${PACKAGE_NAME}"
 
 echo "==> Installing ${APP_NAME}..."
 

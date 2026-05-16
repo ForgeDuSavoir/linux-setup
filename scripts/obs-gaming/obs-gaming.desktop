@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=OBS - Gaming
+Comment=Launch OBS for recording games
+Exec=__HOME_DIR__/.local/bin/obs-gaming
+Icon=obs
+Terminal=false
+Type=Application
+Categories=Video;AudioVideo;
+StartupNotify=true
