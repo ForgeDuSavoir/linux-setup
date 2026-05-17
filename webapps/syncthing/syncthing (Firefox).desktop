@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Syncthing
+Comment=Syncthing Web Interface
+Exec=firefox --no-remote --profile "__PROFILE_PATH__" --new-window "http://127.0.0.1:8384"
+Icon=syncthing
+Terminal=false
+Categories=Network;FileTransfer;
+StartupNotify=true
+StartupWMClass=firefox

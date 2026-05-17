@@ -12,15 +12,25 @@ ENV_FILE="$SCRIPT_DIR/.env"
 
 DESKTOP_DIR="$HOME/.local/share/applications"
 ICON_DIR="$HOME/.local/share/icons/hicolor/scalable/apps"
+BIN_DIR="$HOME/.local/bin"
+
 PROFILE_PATH="$HOME/.local/share/webapps/${WEBAPP_NAME}/firefox-profile"
 
 DESKTOP_FILE_NAME="${WEBAPP_NAME}.desktop"
 ICON_FILE_NAME="${WEBAPP_NAME}.svg"
 
+RUN_SCRIPT_SOURCE="$SCRIPT_DIR/run_freshrss.sh"
+RUN_SCRIPT_TARGET="$BIN_DIR/run_freshrss"
+
 echo "==> Installing ${APP_NAME}..."
 
 if ! command -v firefox >/dev/null 2>&1; then
     echo "✗ Firefox is not installed."
+    exit 1
+fi
+
+if ! command -v jq >/dev/null 2>&1; then
+    echo "✗ jq is not installed."
     exit 1
 fi
 
@@ -44,16 +54,26 @@ fi
 
 mkdir -p "$DESKTOP_DIR"
 mkdir -p "$ICON_DIR"
+mkdir -p "$BIN_DIR"
 
 echo "==> Creating isolated Firefox profile..."
 
 "$WEBAPPS_DIR/create_firefox_profile.sh" "$WEBAPP_NAME"
 
-echo "==> Installing desktop entry..."
+echo "==> Installing run script..."
 
 sed \
     -e "s|__PROFILE_PATH__|$PROFILE_PATH|g" \
     -e "s|__FRESHRSS_URL__|$FRESHRSS_URL|g" \
+    "$RUN_SCRIPT_SOURCE" \
+    > "$RUN_SCRIPT_TARGET"
+
+chmod +x "$RUN_SCRIPT_TARGET"
+
+echo "==> Installing desktop entry..."
+
+sed \
+    -e "s|__RUN_SCRIPT_PATH__|$RUN_SCRIPT_TARGET|g" \
     "$SCRIPT_DIR/freshrss.desktop" \
     > "$DESKTOP_DIR/$DESKTOP_FILE_NAME"
 

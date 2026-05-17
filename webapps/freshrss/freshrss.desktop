@@ -1,7 +1,7 @@
 [Desktop Entry]
 Name=FreshRSS
 Comment=FreshRSS WebApp
-Exec=firefox --no-remote --new-window --profile __PROFILE_PATH__ __FRESHRSS_URL__
+Exec=__RUN_SCRIPT_PATH__
 Terminal=false
 Type=Application
 Icon=freshrss

@@ -2,7 +2,7 @@
 Name=OBS - Forge du Savoir
 Comment=Launch OBS with Android camera
 Exec=__HOME_DIR__/.local/bin/obs-fds
-Icon=obs
+Icon=com.obsproject.Studio
 Terminal=false
 Type=Application
 Categories=Video;AudioVideo;
