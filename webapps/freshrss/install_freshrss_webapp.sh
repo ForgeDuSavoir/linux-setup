@@ -83,4 +83,17 @@ cp "$SCRIPT_DIR/${WEBAPP_NAME}.svg" "$ICON_DIR/$ICON_FILE_NAME"
 
 update-desktop-database "$DESKTOP_DIR" || true
 
+echo "==> Applying Firefox profile preferences..."
+
+cat > "$PROFILE_PATH/user.js" <<'EOF'
+user_pref("browser.startup.page", 3);
+EOF
+
+echo "==> Installing Firefox addons..."
+
+mkdir -p "$PROFILE_PATH/extensions"
+
+cp -r "$SCRIPT_DIR/extensions/." \
+      "$PROFILE_PATH/extensions/"
+
 echo "✓ ${APP_NAME} installed successfully."
