@@ -3,7 +3,7 @@ Version=1.0
 Type=Application
 Name=__APP_NAME__
 Comment=__APP_COMMENT__
-Exec=__BROWSER_COMMAND__ --user-data-dir="__PROFILE_PATH__" --app="__WEBAPP_URL__" --class=__WEBAPP_NAME__ --profile-directory=__WEBAPP_NAME__
+Exec=__BROWSER_COMMAND__ --user-data-dir="__PROFILE_PATH__" --profile-directory=Default --password-store=basic --app="__WEBAPP_URL__" --class=__WEBAPP_NAME__
 Icon=__WEBAPP_NAME__
 Terminal=false
 Categories=__CATEGORIES__
