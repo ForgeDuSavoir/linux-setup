@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=__APP_NAME__
+Comment=__APP_COMMENT__
+Exec=__FIREFOX_COMMAND__
+Icon=__WEBAPP_NAME__
+Terminal=false
+Categories=__CATEGORIES__
+StartupNotify=true
+StartupWMClass=firefox

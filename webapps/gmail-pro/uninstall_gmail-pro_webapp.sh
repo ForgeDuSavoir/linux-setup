@@ -2,8 +2,8 @@
 
 set -euo pipefail
 
-WEBAPP_NAME="syncthing"
-APP_NAME="Syncthing WebApp"
+WEBAPP_NAME="gmail-pro"
+APP_NAME="Gmail (Professional)"
 
 DESKTOP_FILE="$HOME/.local/share/applications/${WEBAPP_NAME}.desktop"
 ICON_FILE="$HOME/.local/share/icons/hicolor/scalable/apps/${WEBAPP_NAME}.svg"

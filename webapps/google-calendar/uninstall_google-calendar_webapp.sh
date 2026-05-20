@@ -2,8 +2,8 @@
 
 set -euo pipefail
 
-WEBAPP_NAME="syncthing"
-APP_NAME="Syncthing WebApp"
+WEBAPP_NAME="google-calendar"
+APP_NAME="Google Calendar"
 
 DESKTOP_FILE="$HOME/.local/share/applications/${WEBAPP_NAME}.desktop"
 ICON_FILE="$HOME/.local/share/icons/hicolor/scalable/apps/${WEBAPP_NAME}.svg"
