@@ -12,6 +12,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 "$SCRIPT_DIR/theme/apply_theme.sh"
 "$SCRIPT_DIR/thunar/configure_thunar.sh"
 "$SCRIPT_DIR/zerotier/configure_zerotier.sh"
+"$SCRIPT_DIR/snapper/configure_snapper.sh"
+"$SCRIPT_DIR/topgrade/configure_topgrade.sh"
 
 echo
 echo "✓ All configurations installed successfully."

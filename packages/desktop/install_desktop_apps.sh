@@ -5,6 +5,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 "$SCRIPT_DIR/brave-origin/install_brave-origin.sh"
+"$SCRIPT_DIR/chromium/install_chromium.sh"
 "$SCRIPT_DIR/easyeffects/install_easyeffects.sh"
 "$SCRIPT_DIR/grim/install_grim.sh"
 "$SCRIPT_DIR/hypridle/install_hypridle.sh"
