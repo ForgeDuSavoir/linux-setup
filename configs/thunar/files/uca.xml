@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<actions>
+<action>
+	<icon>utilities-terminal</icon>
+	<name>Open Terminal Here</name>
+	<submenu></submenu>
+	<unique-id>1778749279495841-1</unique-id>
+	<command>exo-open --working-directory %f --launch TerminalEmulator</command>
+	<description>Example for a custom action</description>
+	<range></range>
+	<patterns>*</patterns>
+	<startup-notify/>
+	<directories/>
+</action>
+<action>
+	<icon>com.github.torikulhabib.mindi.mp4</icon>
+	<name>Concat mp4</name>
+	<submenu></submenu>
+	<unique-id>1779962885996697-1</unique-id>
+	<command>alacritty -e bash -lc &apos;concat-mp4 &quot;$1&quot;; echo; read -rp &quot;Press Enter to close...&quot;&apos; _ %f</command>
+	<description>Merge all .mp4 files from this folder into a single file.</description>
+	<range>1</range>
+	<patterns>*</patterns>
+	<directories/>
+</action>
+</actions>

@@ -224,7 +224,12 @@
         "type2": 3
     },
     "modules": {
-        "scripts-tool": [],
+        "scripts-tool": [
+            {
+                "path": "/usr/share/obs/obs-plugins/frontend-tools/scripts/custom/obs-post-record-gaming.lua",
+                "settings": {}
+            }
+        ],
         "output-timer": {
             "streamTimerHours": 0,
             "streamTimerMinutes": 0,

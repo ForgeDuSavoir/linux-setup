@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-SCRIPT_NAME="obs-fds"
+SCRIPT_NAME="run-obs-fds"
 
 BIN_FILE="${HOME}/.local/bin/${SCRIPT_NAME}"
 DESKTOP_FILE="${HOME}/.local/share/applications/${SCRIPT_NAME}.desktop"

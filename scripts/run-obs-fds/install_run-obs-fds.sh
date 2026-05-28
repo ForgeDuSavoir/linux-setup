@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-SCRIPT_NAME="obs-gaming"
+SCRIPT_NAME="run-obs-fds"
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 

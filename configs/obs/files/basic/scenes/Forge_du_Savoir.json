@@ -635,14 +635,19 @@
     "saved_projectors": [],
     "preview_locked": false,
     "scaling_enabled": false,
-    "scaling_level": 3,
+    "scaling_level": 0,
     "scaling_off_x": 0.0,
     "scaling_off_y": 0.0,
     "virtual-camera": {
         "type2": 3
     },
     "modules": {
-        "scripts-tool": [],
+        "scripts-tool": [
+            {
+                "path": "/usr/share/obs/obs-plugins/frontend-tools/scripts/custom/obs-post-record.lua",
+                "settings": {}
+            }
+        ],
         "output-timer": {
             "streamTimerHours": 0,
             "streamTimerMinutes": 0,
