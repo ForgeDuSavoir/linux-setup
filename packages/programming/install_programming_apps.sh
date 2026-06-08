@@ -9,4 +9,5 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 "$SCRIPT_DIR/scrcpy/install_scrcpy.sh"
 "$SCRIPT_DIR/build-tools/install_build-tools.sh"
 "$SCRIPT_DIR/vscodium/install_vscodium.sh"
+"$SCRIPT_DIR/zed/install_zed.sh"
 
