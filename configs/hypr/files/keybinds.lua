@@ -18,7 +18,6 @@ hl.bind(mainMod .. " + B", hl.dsp.exec_cmd(browser))
 
 -- Noctalia
 
-
 hl.bind(mainMod .. " + D", hl.dsp.exec_cmd(noctalia .. " launcher toggle"))
 hl.bind(mainMod .. " + L", hl.dsp.exec_cmd(noctalia .. " lockScreen lock"))
 hl.bind(mainMod .. " + T", hl.dsp.exec_cmd(noctalia .. " settings toggle"))
@@ -70,7 +69,12 @@ hl.bind(mainMod .. " + X", hl.dsp.exec_cmd("hyprctl dispatch resizewindow"))
 
 -- Screen Capture
 
-hl.bind("PRINT", hl.dsp.exec_cmd([[grim -g "$(slurp)" - | satty --filename - --output-filename ~/Pictures/Screenshots/Screenshot-$(date '+%Y%m%d-%H:%M:%S').png]]))
+-- Region screenshot
+hl.bind("PRINT", hl.dsp.exec_cmd([[bash -lc 'mkdir -p "$HOME/Pictures"; grim -g "$(slurp)" - | satty --filename - --output-filename "$HOME/Pictures/Screenshot-$(date "+%Y%m%d-%H%M%S").png"']]))
+-- Active window screenshot
+hl.bind("SHIFT + PRINT", hl.dsp.exec_cmd([[bash -lc 'mkdir -p "$HOME/Pictures"; geom="$(hyprctl activewindow -j | jq -r '"'"'"\(.at[0]),\(.at[1]) \(.size[0])x\(.size[1])"'"'"')"; grim -g "$geom" - | satty --filename - --output-filename "$HOME/Pictures/Screenshot-$(date "+%Y%m%d-%H%M%S").png"']]))
+-- Fullscreen screenshot
+hl.bind("CTRL + PRINT", hl.dsp.exec_cmd([[bash -lc 'mkdir -p "$HOME/Pictures"; grim - | satty --filename - --output-filename "$HOME/Pictures/Screenshot-$(date "+%Y%m%d-%H%M%S").png"']]))
 
 -- Layouts
 
