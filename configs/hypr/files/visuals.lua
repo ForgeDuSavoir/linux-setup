@@ -28,7 +28,7 @@ hl.config({
         allow_tearing = false,
 
         -- layout = "lua:quarter-scroller",
-        layout = "scrolling",
+        layout = "lua:fit-scroller",
     },
 
     decoration = {

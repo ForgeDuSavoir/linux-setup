@@ -41,7 +41,9 @@ require("startup")
 -----------------------
 
 require("layouts/quarter-scroller/init")
+require("layouts/fit-scroller/init")
 require("visuals")
+
 
 ----------------
 ----  MISC  ----
@@ -53,7 +55,6 @@ hl.config({
         disable_hyprland_logo   = true, -- If true disables the random hyprland logo / anime girl background. :(
     },
 })
-
 
 ---------------
 ---- INPUT ----

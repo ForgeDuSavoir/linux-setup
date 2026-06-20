@@ -13,7 +13,7 @@ local noctalia = "qs -c noctalia-shell ipc call"
 
 hl.bind(mainMod .. " + RETURN", hl.dsp.exec_cmd(terminal))
 hl.bind(mainMod .. " + E", hl.dsp.exec_cmd(explorer))
-hl.bind(mainMod .. " + C", hl.dsp.exec_cmd(editor))
+hl.bind(mainMod .. " + V", hl.dsp.exec_cmd(editor))
 hl.bind(mainMod .. " + B", hl.dsp.exec_cmd(browser))
 
 -- Noctalia
@@ -24,6 +24,7 @@ hl.bind(mainMod .. " + T", hl.dsp.exec_cmd(noctalia .. " settings toggle"))
 hl.bind(mainMod .. " + O", hl.dsp.exec_cmd(noctalia .. " controlCenter toggle"))
 hl.bind(mainMod .. " + H", hl.dsp.exec_cmd(noctalia .. " plugin:keybind-cheatsheet toggle"))
 hl.bind(mainMod .. " + K", hl.dsp.exec_cmd(noctalia .. " plugin:hyprland-keybinds toggle"))
+
 
 -- Window Management
 
@@ -39,6 +40,15 @@ hl.bind(mainMod .. " + RIGHT", hl.dsp.focus({ direction = "right" }))
 hl.bind(mainMod .. " + UP", hl.dsp.focus({ direction = "up" }))
 hl.bind(mainMod .. " + DOWN", hl.dsp.focus({ direction = "down" }))
 
+hl.bind(mainMod .. " + Z", hl.dsp.layout("focus previous"))
+hl.bind(mainMod .. " + X", hl.dsp.layout("focus next"))
+
+hl.bind(mainMod .. " + SHIFT + Z", hl.dsp.layout("move previous"))
+hl.bind(mainMod .. " + SHIFT + X", hl.dsp.layout("move next"))
+
+hl.bind(mainMod .. " + C", hl.dsp.layout("toggle dimension"))
+
+
 -- hl.bind(mainMod .. " + LEFT", hl.dsp.exec_cmd([[hyprctl dispatch "movefocus l" && hyprctl eval 'hl.dispatch(hl.dsp.layout("follow"))']]))
 -- hl.bind(mainMod .. " + RIGHT", hl.dsp.exec_cmd([[hyprctl dispatch "movefocus r" && hyprctl eval 'hl.dispatch(hl.dsp.layout("follow"))']]))
 -- hl.bind(mainMod .. " + UP", hl.dsp.exec_cmd([[hyprctl dispatch "movefocus u" && hyprctl eval 'hl.dispatch(hl.dsp.layout("follow"))']]))
@@ -46,10 +56,10 @@ hl.bind(mainMod .. " + DOWN", hl.dsp.focus({ direction = "down" }))
 
 hl.bind("ALT + TAB", hl.dsp.exec_cmd("hyprctl dispatch cyclenext"))
 
-hl.bind(mainMod .. " + SHIFT + RIGHT", hl.dsp.window.resize({ x = 30, y = 0 }))
-hl.bind(mainMod .. " + SHIFT + LEFT", hl.dsp.window.resize({ x = -30, y = 0 }))
-hl.bind(mainMod .. " + SHIFT + UP", hl.dsp.window.resize({ x = 0, y = -30 }))
-hl.bind(mainMod .. " + SHIFT + DOWN", hl.dsp.window.resize({ x = 0, y = 30 }))
+--hl.bind(mainMod .. " + SHIFT + RIGHT", hl.dsp.window.resize({ x = 30, y = 0 }))
+--hl.bind(mainMod .. " + SHIFT + LEFT", hl.dsp.window.resize({ x = -30, y = 0 }))
+--hl.bind(mainMod .. " + SHIFT + UP", hl.dsp.window.resize({ x = 0, y = -30 }))
+--hl.bind(mainMod .. " + SHIFT + DOWN", hl.dsp.window.resize({ x = 0, y = 30 }))
 
 local moveActiveWindow = [[
 grep -q "true" <<< "$(hyprctl activewindow -j | jq -r .floating)" \
@@ -61,11 +71,12 @@ hl.bind(mainMod .. " + SHIFT + CONTROL + RIGHT", hl.dsp.exec_cmd(moveActiveWindo
 hl.bind(mainMod .. " + SHIFT + CONTROL + UP", hl.dsp.exec_cmd(moveActiveWindow .. " 0 -30 || hyprctl dispatch movewindow u"))
 hl.bind(mainMod .. " + SHIFT + CONTROL + DOWN", hl.dsp.exec_cmd(moveActiveWindow .. " 0 30 || hyprctl dispatch movewindow d"))
 
+
 hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag(), { mouse = true })
 hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true })
 
-hl.bind(mainMod .. " + Z", hl.dsp.exec_cmd("hyprctl dispatch movewindow"))
-hl.bind(mainMod .. " + X", hl.dsp.exec_cmd("hyprctl dispatch resizewindow"))
+--hl.bind(mainMod .. " + Z", hl.dsp.exec_cmd("hyprctl dispatch movewindow"))
+--hl.bind(mainMod .. " + X", hl.dsp.exec_cmd("hyprctl dispatch resizewindow"))
 
 -- Screen Capture
 
@@ -79,14 +90,11 @@ hl.bind("CTRL + PRINT", hl.dsp.exec_cmd([[bash -lc 'mkdir -p "$HOME/Pictures"; g
 -- Layouts
 
 hl.bind(mainMod .. " + Y", hl.dsp.exec_cmd([[hyprctl eval 'hl.config({ general = { layout = "scrolling" } })']]))
-hl.bind(mainMod .. " + U", hl.dsp.exec_cmd([[hyprctl eval 'hl.config({ general = { layout = "dwindle" } })']]))
-hl.bind(mainMod .. " + I", hl.dsp.exec_cmd([[hyprctl eval 'hl.config({ general = { layout = "lua:quarter-scroller" } })']]))
+hl.bind(mainMod .. " + U", hl.dsp.exec_cmd([[hyprctl eval 'hl.config({ general = { layout = "lua:fit-scroller" } })']]))
 
 hl.bind(mainMod .. " + Backslash", hl.dsp.layout("toggle_expand"))
 hl.bind(mainMod .. " + BRACKETRIGHT", hl.dsp.layout("next"))
 hl.bind(mainMod .. " + BRACKETLEFT", hl.dsp.layout("prev"))
-
-
 
 -- Workspaces
 
