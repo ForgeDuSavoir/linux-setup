@@ -40,7 +40,6 @@ require("startup")
 ---- LOOK AND FEEL ----
 -----------------------
 
-require("layouts/quarter-scroller/init")
 require("layouts/fit-scroller/init")
 require("visuals")
 

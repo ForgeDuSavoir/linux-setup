@@ -17,6 +17,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 "$SCRIPT_DIR/security/install_security_apps.sh"
 "$SCRIPT_DIR/theming/install_theming.sh"
 "$SCRIPT_DIR/optionals/install_optionals.sh"
+"$SCRIPT_DIR/programming/github-cli/install_github-cli.sh"
 
 echo
 echo "✓ All application categories installed successfully."
