@@ -32,4 +32,6 @@ if [[ -d "${TARGET_DIR}/Scripts" ]]; then
     find "${TARGET_DIR}/Scripts" -type f -exec chmod +x {} \;
 fi
 
+bash "${SCRIPT_DIR}/install_fit-scroller_layout.sh"
+
 echo "✓ ${CONFIG_NAME} config installed successfully."

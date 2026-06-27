@@ -40,7 +40,7 @@ require("startup")
 ---- LOOK AND FEEL ----
 -----------------------
 
-require("layouts/fit-scroller/init")
+dofile(os.getenv("HOME") .. "/.config/hypr/layouts/fit-scroller/init.lua")
 require("visuals")
 
 
