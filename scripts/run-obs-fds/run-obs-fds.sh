@@ -2,29 +2,44 @@
 
 set -euo pipefail
 
-echo "==> Starting virtual camera..."
+find_c922_device() {
+    v4l2-ctl --list-devices | awk '
+        /^C922 Pro Stream Webcam/ { found = 1; next }
+        found && /^\t\/dev\/video/ { print $1; exit }
+        found && /^[^[:space:]]/ { found = 0 }
+    '
+}
 
-if ! lsmod | grep -q v4l2loopback; then
-    sudo modprobe v4l2loopback \
-        devices=1 \
-        video_nr=10 \
-        card_label="AndroidCam" \
-        exclusive_caps=1
+if ! command -v v4l2-ctl >/dev/null 2>&1; then
+    echo "✗ v4l2-ctl is required to configure the Logitech webcam."
+    echo "  Install v4l-utils first."
+    exit 1
 fi
 
-echo "==> Starting scrcpy camera..."
+WEBCAM_DEVICE="${WEBCAM_DEVICE:-$(find_c922_device)}"
 
-pkill -f "scrcpy.*--video-source=camera" || true
+if [[ -z "${WEBCAM_DEVICE}" ]]; then
+    echo "✗ Logitech C922 Pro Stream Webcam not found."
+    echo "  Connect the webcam or set WEBCAM_DEVICE=/dev/videoX."
+    exit 1
+fi
 
-scrcpy \
-    --video-source=camera \
-    --camera-facing=back \
-    --no-audio \
-    --v4l2-sink=/dev/video10 \
-    --no-playback \
-    >/dev/null 2>&1 &
+echo "==> Configuring Logitech C922 webcam (${WEBCAM_DEVICE})..."
 
-sleep 2
+v4l2-ctl -d "${WEBCAM_DEVICE}" -c auto_exposure=1
+v4l2-ctl -d "${WEBCAM_DEVICE}" -c exposure_dynamic_framerate=0
+v4l2-ctl -d "${WEBCAM_DEVICE}" -c exposure_time_absolute=220
+v4l2-ctl -d "${WEBCAM_DEVICE}" -c gain=35
+v4l2-ctl -d "${WEBCAM_DEVICE}" -c white_balance_automatic=0
+v4l2-ctl -d "${WEBCAM_DEVICE}" -c white_balance_temperature=4700
+v4l2-ctl -d "${WEBCAM_DEVICE}" -c focus_automatic_continuous=0
+v4l2-ctl -d "${WEBCAM_DEVICE}" -c focus_absolute=0
+v4l2-ctl -d "${WEBCAM_DEVICE}" -c brightness=132
+v4l2-ctl -d "${WEBCAM_DEVICE}" -c contrast=115
+v4l2-ctl -d "${WEBCAM_DEVICE}" -c saturation=135
+v4l2-ctl -d "${WEBCAM_DEVICE}" -c sharpness=140
+v4l2-ctl -d "${WEBCAM_DEVICE}" -c backlight_compensation=0
+v4l2-ctl -d "${WEBCAM_DEVICE}" -c power_line_frequency=1
 
 echo "==> Launching OBS..."
 

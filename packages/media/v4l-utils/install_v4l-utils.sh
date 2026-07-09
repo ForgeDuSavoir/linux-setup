@@ -2,11 +2,11 @@
 
 set -euo pipefail
 
-APP_NAME="v4l2loopback"
-PACKAGE_NAME="v4l2loopback-dkms"
-APP_COMMAND=""
+APP_NAME="v4l-utils"
+PACKAGE_NAME="v4l-utils"
+APP_COMMAND="v4l2-ctl"
 PACKAGE_MANAGER="pacman"
-INSTALL_COMMAND='sudo pacman -S --needed --noconfirm ${PACKAGE_NAME}'
+INSTALL_COMMAND='sudo pacman -S --needed --noconfirm v4l-utils'
 
 echo "==> Installing ${APP_NAME}..."
 

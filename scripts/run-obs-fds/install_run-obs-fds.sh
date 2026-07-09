@@ -2,11 +2,11 @@
 
 set -euo pipefail
 
-SCRIPT_NAME="run-obs-fds"
+SCRIPT_NAME="obs-fds"
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 
-SOURCE_SCRIPT="${SCRIPT_DIR}/${SCRIPT_NAME}.sh"
+SOURCE_SCRIPT="${SCRIPT_DIR}/run-obs-fds.sh"
 SOURCE_DESKTOP="${SCRIPT_DIR}/${SCRIPT_NAME}.desktop"
 
 BIN_DIR="${HOME}/.local/bin"
