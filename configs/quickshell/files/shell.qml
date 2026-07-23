@@ -12,6 +12,8 @@ import QtQuick
 Scope {
     id: root
 
+    NotificationService {}
+
     property bool launcherVisible: false
     property bool controlCenterVisible: false
     property bool keybindsVisible: false

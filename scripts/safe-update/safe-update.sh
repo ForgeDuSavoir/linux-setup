@@ -28,12 +28,24 @@ notify() {
     fi
 }
 
+stop_sudo_keepalive() {
+    kill "$SUDO_KEEPALIVE_PID" 2>/dev/null || true
+    wait "$SUDO_KEEPALIVE_PID" 2>/dev/null || true
+}
+
 echo "==> Safe system update"
 echo "Log: $LOG_FILE"
 
 echo "==> Requesting sudo access..."
 sudo -v
 echo "✓ Sudo access granted."
+
+while true; do
+    sudo -n -v
+    sleep 60
+done 2>/dev/null &
+SUDO_KEEPALIVE_PID=$!
+trap stop_sudo_keepalive EXIT
 
 notify "Safe update" "Creating Btrfs snapshot..."
 

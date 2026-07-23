@@ -19,8 +19,12 @@ cat > "${CONFIG_FILE}" <<'EOF'
 assume_yes = true
 disable = [
     "firmware",
-    "config_update"
+    "config_update",
+    "pi"
 ]
+
+[npm]
+use_sudo = true
 EOF
 
 echo "✓ Topgrade configured successfully:"
