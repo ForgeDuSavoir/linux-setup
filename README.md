@@ -15,7 +15,7 @@ The project is currently focused on:
 * Arch Linux / CachyOS
 * Wayland
 * Hyprland
-* Noctalia Shell
+* Quickshell
 * content creation workflow
 * development tools
 * productivity tooling
@@ -170,7 +170,7 @@ The repository currently manages:
 * webapps
 * theme
 * hyprland configuration
-* noctalia configuration
+* quickshell configuration
 * Linux services
 * personal workflow tooling
 

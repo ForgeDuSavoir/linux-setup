@@ -7,8 +7,6 @@ local editor = "mousepad"
 local explorer = "thunar"
 local browser = "firefox"
 
-local noctalia = "qs -c noctalia-shell ipc call"
-
 -- Applications
 
 hl.bind(mainMod .. " + RETURN", hl.dsp.exec_cmd(terminal))
@@ -16,14 +14,12 @@ hl.bind(mainMod .. " + E", hl.dsp.exec_cmd(explorer))
 hl.bind(mainMod .. " + V", hl.dsp.exec_cmd(editor))
 hl.bind(mainMod .. " + B", hl.dsp.exec_cmd(browser))
 
--- Noctalia
+-- Shell
 
-hl.bind(mainMod .. " + D", hl.dsp.exec_cmd(noctalia .. " launcher toggle"))
-hl.bind(mainMod .. " + L", hl.dsp.exec_cmd(noctalia .. " lockScreen lock"))
-hl.bind(mainMod .. " + T", hl.dsp.exec_cmd(noctalia .. " settings toggle"))
-hl.bind(mainMod .. " + O", hl.dsp.exec_cmd(noctalia .. " controlCenter toggle"))
-hl.bind(mainMod .. " + H", hl.dsp.exec_cmd(noctalia .. " plugin:keybind-cheatsheet toggle"))
-hl.bind(mainMod .. " + K", hl.dsp.exec_cmd(noctalia .. " plugin:hyprland-keybinds toggle"))
+hl.bind(mainMod .. " + D", hl.dsp.exec_cmd("quickshell ipc call launcher toggle"))
+hl.bind(mainMod .. " + L", hl.dsp.exec_cmd("hyprlock"))
+hl.bind(mainMod .. " + O", hl.dsp.exec_cmd("quickshell ipc call controlCenter toggle"))
+hl.bind(mainMod .. " + H", hl.dsp.exec_cmd("quickshell ipc call keybinds toggle"))
 
 
 -- Window Management
@@ -127,12 +123,12 @@ hl.bind("XF86AudioPlay", hl.dsp.exec_cmd("playerctl play-pause"), { locked = tru
 hl.bind("XF86AudioNext", hl.dsp.exec_cmd("playerctl next"), { locked = true })
 hl.bind("XF86AudioPrev", hl.dsp.exec_cmd("playerctl previous"), { locked = true })
 
-hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+"), { locked = true, repeating = true })
-hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"), { locked = true, repeating = true })
-hl.bind("XF86AudioMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"), { locked = true, repeating = true })
+hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+; quickshell ipc call osd volume"), { locked = true, repeating = true })
+hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-; quickshell ipc call osd volume"), { locked = true, repeating = true })
+hl.bind("XF86AudioMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle; quickshell ipc call osd volume"), { locked = true, repeating = true })
 
-hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("brightnessctl set +5%"), { locked = true, repeating = true })
-hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("brightnessctl set 5%-"), { locked = true, repeating = true })
+hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("brightnessctl set +5%; quickshell ipc call osd brightness"), { locked = true, repeating = true })
+hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("brightnessctl set 5%-; quickshell ipc call osd brightness"), { locked = true, repeating = true })
 
 -- Other
 

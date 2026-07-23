@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Pi
+Comment=AI coding assistant
+Exec=sh -lc "~/.local/bin/pi-launcher"
+TryExec=pi
+Terminal=false
+Categories=Development;
+Keywords=AI;Coding;Assistant;
+StartupNotify=true

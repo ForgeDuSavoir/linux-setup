@@ -11,4 +11,4 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 "$SCRIPT_DIR/vscodium/install_vscodium.sh"
 "$SCRIPT_DIR/zed/install_zed.sh"
 "$SCRIPT_DIR/codex-cli/install_codex-cli.sh"
-
+"$SCRIPT_DIR/pi/install_pi.sh"

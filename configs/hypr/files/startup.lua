@@ -20,7 +20,7 @@ hl.env("ELECTRON_OZONE_PLATFORM_HINT", "wayland")
 -- Startup applications
 
 hl.on("hyprland.start", function () 
-    hl.exec_cmd("qs -c noctalia-shell")
+    hl.exec_cmd("quickshell")
     hl.exec_cmd("hypridle")
     hl.exec_cmd("hyprpaper")
     -- hl.exec_cmd("hyprpolkitagent")
