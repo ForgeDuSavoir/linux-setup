@@ -23,3 +23,4 @@ bash "${REPO_DIR}/scripts/install_scripts.sh"
 
 echo ""
 echo "✓ linux-setup installation completed successfully."
+echo "⚠ A restart is required for systemd-logind to apply the lid-switch configuration."

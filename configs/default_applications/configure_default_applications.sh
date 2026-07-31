@@ -68,8 +68,8 @@ echo "==> Setting shell environment variables..."
 
 if command -v fish >/dev/null 2>&1; then
     fish -c 'set -Ux TERMINAL alacritty'
-    fish -c 'set -Ux EDITOR mousepad'
-    fish -c 'set -Ux VISUAL mousepad'
+    fish -c 'set -Ux EDITOR nvim'
+    fish -c 'set -Ux VISUAL nvim'
 else
     echo "⚠ Fish is not installed, skipping universal variables."
 fi

@@ -1,0 +1,5 @@
+{
+  "app.tools.expand": "ctrl+shift+o",
+  "app.tree.filter.cycleForward": "ctrl+alt+o",
+  "app.tree.filter.cycleBackward": "ctrl+shift+alt+o"
+}
