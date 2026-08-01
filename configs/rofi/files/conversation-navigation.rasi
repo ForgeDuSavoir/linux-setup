@@ -1,0 +1,67 @@
+configuration {
+    kb-accept-custom: "";
+    kb-accept-custom-alt: "";
+    kb-accept-alt: "";
+}
+
+* {
+    font: "monospace 13";
+    background: #151922;
+    background-color: @background;
+    background-alt: #202633;
+    foreground: #f0f0f0;
+    foreground-muted: #9aa5b5;
+    selected: #283142;
+    border: #2b3342;
+}
+
+window {
+    width: 68%;
+    height: 72%;
+    location: center;
+    anchor: center;
+    background-color: @background;
+    border: 1px;
+    border-color: @border;
+    border-radius: 8px;
+}
+
+mainbox {
+    padding: 12px;
+}
+
+inputbar {
+    padding: 9px;
+    background-color: @background-alt;
+    border-radius: 6px;
+    margin: 0 0 8px 0;
+}
+
+prompt {
+    text-color: @foreground-muted;
+}
+
+entry {
+    text-color: @foreground;
+}
+
+listview {
+    lines: 18;
+    spacing: 2px;
+    scrollbar: true;
+}
+
+element {
+    padding: 5px 9px;
+    border-radius: 5px;
+    text-color: @foreground;
+}
+
+element selected.normal {
+    background-color: @selected;
+}
+
+element-text {
+    background-color: inherit;
+    text-color: inherit;
+}

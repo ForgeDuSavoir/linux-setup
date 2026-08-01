@@ -1,7 +1,7 @@
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
-import { mkdtemp, writeFile } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -143,10 +143,26 @@ function extractUris(value: unknown): string[] {
 	return [];
 }
 
-function toolPathElement(path: unknown, cwd: string, provenance: LinkElement["provenance"]): LinkElement | undefined {
+function toolPathElement(
+	path: unknown,
+	cwd: string,
+	provenance: LinkElement["provenance"],
+	timestamp: number,
+): LinkElement | undefined {
 	if (typeof path !== "string" || path.length === 0) return undefined;
 	const uri = localPathToUri(path.replace(/^@/, ""), cwd, false);
-	return uri ? createLink(uri, path, provenance, Date.now()) : undefined;
+	return uri ? createLink(uri, path, provenance, timestamp) : undefined;
+}
+
+function latestAssistantTimestamp(ctx: ExtensionContext): number {
+	const entries = ctx.sessionManager.getBranch();
+	for (let index = entries.length - 1; index >= 0; index--) {
+		const entry = entries[index];
+		if (entry.type !== "message") continue;
+		const message = entry.message as AssistantMessage;
+		if (message.role === "assistant") return timestampOf(message);
+	}
+	return Date.now();
 }
 
 export default function (pi: ExtensionAPI) {
@@ -171,13 +187,16 @@ export default function (pi: ExtensionAPI) {
 	const restore = (ctx: ExtensionContext) => {
 		if (restored) return;
 		restored = true;
-		for (const entry of ctx.sessionManager.getBranch()) {
-			if (entry.type === "custom" && entry.customType === ENTRY_TYPE) {
-				const stored = entry.data as Partial<StoredElement> | undefined;
-				if (stored?.version === 1 && stored.element && typeof stored.element === "object") {
-					add(stored.element as ConversationElement, undefined, false);
-				}
+		const branch = ctx.sessionManager.getBranch();
+		const storedElements: ConversationElement[] = [];
+		for (const entry of branch) {
+			if (entry.type !== "custom" || entry.customType !== ENTRY_TYPE) continue;
+			const stored = entry.data as Partial<StoredElement> | undefined;
+			if (stored?.version === 1 && stored.element && typeof stored.element === "object") {
+				storedElements.push(stored.element as ConversationElement);
 			}
+		}
+		for (const entry of branch) {
 			if (entry.type !== "message") continue;
 			const message = entry.message as AssistantMessage;
 			if (message.role !== "assistant") continue;
@@ -192,9 +211,12 @@ export default function (pi: ExtensionAPI) {
 				const args = block.arguments as { path?: unknown } | undefined;
 				const provenance = block.name === "read" ? "read" : block.name === "edit" || block.name === "write" ? "modified" : undefined;
 				if (!provenance) continue;
-				const element = toolPathElement(args?.path, ctx.cwd, provenance);
+				const element = toolPathElement(args?.path, ctx.cwd, provenance, timestamp);
 				if (element) add(element, undefined, false);
 			}
+		}
+		for (const element of storedElements) {
+			if (!elements.has(element.id)) add(element, undefined, false);
 		}
 	};
 
@@ -205,14 +227,15 @@ export default function (pi: ExtensionAPI) {
 	});
 
 	pi.on("tool_call", (event, ctx) => {
+		const timestamp = latestAssistantTimestamp(ctx);
 		const provenance = event.toolName === "read" ? "read" : event.toolName === "edit" || event.toolName === "write" ? "modified" : undefined;
 		if (provenance) {
 			const path = (event.input as { path?: unknown }).path;
-			const element = toolPathElement(path, ctx.cwd, provenance);
+			const element = toolPathElement(path, ctx.cwd, provenance, timestamp);
 			if (element) add(element, ctx);
 		}
 		for (const uri of extractUris(event.input)) {
-			const element = createLink(uri, uri, "cited", Date.now());
+			const element = createLink(uri, uri, "cited", timestamp);
 			if (element) add(element, ctx);
 		}
 	});
@@ -239,9 +262,14 @@ export default function (pi: ExtensionAPI) {
 			const directory = await mkdtemp(join(tmpdir(), "pi-conversation-navigation-"));
 			const manifest = join(directory, "manifest.json");
 			await writeFile(manifest, JSON.stringify({ version: 1, elements: [...elements.values()] }), { mode: 0o600 });
-			const child = spawn("launch-terminal-command", [ctx.cwd, "pi-conversation-select", manifest], {
+			const child = spawn("pi-conversation-select", [manifest], {
+				cwd: ctx.cwd,
 				detached: true,
 				stdio: "ignore",
+			});
+			child.on("error", async (error) => {
+				await rm(directory, { recursive: true, force: true });
+				ctx.ui.notify(`Impossible d’ouvrir Rofi : ${error.message}`, "error");
 			});
 			child.unref();
 		},
