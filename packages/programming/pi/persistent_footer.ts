@@ -140,6 +140,7 @@ export default function (pi: ExtensionAPI) {
 						keyHint("app.thinking.cycle", "changer le niveau de réflexion"),
 						rawKeyHint("Ctrl+P / Ctrl+Shift+P", "changer de modèle"),
 						keyHint("app.model.select", "choisir un modèle"),
+						rawKeyHint("Ctrl+Alt+L", "ouvrir un lien ou copier un extrait"),
 						keyHint("app.tools.expand", "développer les sorties d’outils"),
 						keyHint("app.thinking.toggle", "développer la réflexion"),
 						keyHint("app.editor.external", "ouvrir l’éditeur externe"),

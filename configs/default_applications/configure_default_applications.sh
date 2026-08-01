@@ -5,8 +5,22 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 TERMINAL_LAUNCHER_SOURCE="${SCRIPT_DIR}/launch_terminal_command.sh"
 TERMINAL_LAUNCHER_TARGET="${HOME}/.local/bin/launch-terminal-command"
+NEOVIM_LAUNCHER_SOURCE="${SCRIPT_DIR}/open_neovim.sh"
+NEOVIM_LAUNCHER_TARGET="${HOME}/.local/bin/agora-open-neovim"
+NEOVIM_DESKTOP_SOURCE="${SCRIPT_DIR}/agora-neovim.desktop"
+NEOVIM_DESKTOP_TARGET="${HOME}/.local/share/applications/agora-neovim.desktop"
 
 echo "==> Configuring default applications..."
+
+if [[ ! -f "${NEOVIM_LAUNCHER_SOURCE}" || ! -f "${NEOVIM_DESKTOP_SOURCE}" ]]; then
+    echo "✗ Neovim desktop launcher source files are missing." >&2
+    exit 1
+fi
+
+mkdir -p "${HOME}/.local/bin" "${HOME}/.local/share/applications"
+install -m 0755 "${NEOVIM_LAUNCHER_SOURCE}" "${NEOVIM_LAUNCHER_TARGET}"
+install -m 0644 "${NEOVIM_DESKTOP_SOURCE}" "${NEOVIM_DESKTOP_TARGET}"
+update-desktop-database "${HOME}/.local/share/applications" >/dev/null 2>&1 || true
 
 echo "==> Setting Firefox as default browser..."
 
@@ -23,12 +37,10 @@ if command -v gio >/dev/null 2>&1; then
     gio mime inode/directory thunar.desktop || true
 fi
 
-echo "==> Setting Mousepad as default text editor..."
+echo "==> Setting Neovim as default plain-text and Markdown editor..."
 
-xdg-mime default org.xfce.mousepad.desktop text/plain
-xdg-mime default org.xfce.mousepad.desktop application/x-shellscript
-xdg-mime default org.xfce.mousepad.desktop application/json
-xdg-mime default org.xfce.mousepad.desktop text/markdown
+xdg-mime default agora-neovim.desktop text/plain
+xdg-mime default agora-neovim.desktop text/markdown
 
 echo "==> Installing default terminal launcher..."
 
@@ -131,9 +143,5 @@ AUDIO_MIME_TYPES=(
 for mime in "${AUDIO_MIME_TYPES[@]}"; do
     xdg-mime default vlc.desktop "$mime"
 done
-
-echo "==> Setting Obsidian as default Markdown editor..."
-
-xdg-mime default obsidian.desktop text/markdown
 
 echo "✓ Default applications configured successfully."
