@@ -14,7 +14,6 @@ Scope {
 
     NotificationService {}
 
-    property bool launcherVisible: false
     property bool controlCenterVisible: false
     property bool keybindsVisible: false
     property bool networkManagerVisible: false
@@ -44,9 +43,10 @@ Scope {
     ]
     readonly property var keybindRows: [
         ["SUPER+Enter", "Terminal"],
-        ["SUPER+E", "Files"],
+        ["SUPER+E", "Yazi home"],
+        ["SUPER+P", "Projects"],
+        ["SUPER+D", "Applications"],
         ["SUPER+B", "Browser"],
-        ["SUPER+D", "Launcher"],
         ["SUPER+O", "Control center"],
         ["SUPER+H", "Keybinds"],
         ["SUPER+L", "Lock screen"],
@@ -249,22 +249,6 @@ Scope {
         }
         stderr: StdioCollector {
             id: networkActionError
-        }
-    }
-
-    IpcHandler {
-        target: "launcher"
-
-        function toggle(): void {
-            root.launcherVisible = !root.launcherVisible;
-        }
-
-        function show(): void {
-            root.launcherVisible = true;
-        }
-
-        function hide(): void {
-            root.launcherVisible = false;
         }
     }
 
@@ -601,38 +585,10 @@ Scope {
                         }
                     }
 
-                    Rectangle {
-                        width: 64
-                        height: 24
-
-                        anchors {
-                            left: parent.left
-                            leftMargin: 8
-                            verticalCenter: parent.verticalCenter
-                        }
-
-                        radius: 4
-                        color: appMouseArea.containsMouse ? "#2a3140" : "#1b202a"
-
-                        Text {
-                            anchors.centerIn: parent
-                            color: "#e7e7e7"
-                            font.pixelSize: 13
-                            text: "Apps"
-                        }
-
-                        MouseArea {
-                            id: appMouseArea
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            onClicked: root.launcherVisible = !root.launcherVisible
-                        }
-                    }
-
                     Text {
                         anchors {
                             left: parent.left
-                            leftMargin: 84
+                            leftMargin: 12
                             verticalCenter: parent.verticalCenter
                         }
 
@@ -734,180 +690,6 @@ Scope {
                             hoverEnabled: true
                             onClicked: root.controlCenterVisible = !root.controlCenterVisible
                         }
-                    }
-                }
-            }
-        }
-    }
-
-    FloatingWindow {
-        id: launcher
-
-        visible: root.launcherVisible
-        implicitWidth: 520
-        implicitHeight: 620
-        color: "transparent"
-
-        Rectangle {
-            anchors.fill: parent
-            radius: 8
-            color: "#151922"
-            border.color: "#2b3342"
-            border.width: 1
-
-            TextInput {
-                id: search
-
-                anchors {
-                    top: parent.top
-                    left: parent.left
-                    right: parent.right
-                    margins: 14
-                }
-
-                height: 40
-                focus: root.launcherVisible
-                color: "#f0f0f0"
-                selectionColor: "#3d5a80"
-                selectedTextColor: "#ffffff"
-                font.pixelSize: 16
-                clip: true
-
-                Keys.onEscapePressed: root.launcherVisible = false
-                Keys.onDownPressed: event => {
-                    if (appList.count > 0) {
-                        appList.currentIndex = Math.min(appList.currentIndex + 1, appList.count - 1);
-                        appList.positionViewAtIndex(appList.currentIndex, ListView.Contain);
-                    }
-                    event.accepted = true;
-                }
-                Keys.onUpPressed: event => {
-                    if (appList.count > 0) {
-                        appList.currentIndex = Math.max(appList.currentIndex - 1, 0);
-                        appList.positionViewAtIndex(appList.currentIndex, ListView.Contain);
-                    }
-                    event.accepted = true;
-                }
-                Keys.onReturnPressed: event => {
-                    appList.executeCurrent();
-                    event.accepted = true;
-                }
-                Keys.onEnterPressed: event => {
-                    appList.executeCurrent();
-                    event.accepted = true;
-                }
-                onTextChanged: appList.currentIndex = appList.count > 0 ? 0 : -1
-
-                Rectangle {
-                    anchors.fill: parent
-                    anchors.margins: -8
-                    z: -1
-                    radius: 6
-                    color: "#202633"
-                    border.color: "#343d4f"
-                    border.width: 1
-                }
-
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    color: "#7f8999"
-                    font.pixelSize: 16
-                    text: "Search applications"
-                    visible: search.text.length === 0
-                }
-            }
-
-            ListView {
-                id: appList
-
-                function executeCurrent() {
-                    if (currentItem)
-                        currentItem.executeApplication();
-                }
-
-                anchors {
-                    top: search.bottom
-                    left: parent.left
-                    right: parent.right
-                    bottom: parent.bottom
-                    topMargin: 18
-                    leftMargin: 10
-                    rightMargin: 10
-                    bottomMargin: 10
-                }
-
-                clip: true
-                spacing: 4
-                currentIndex: count > 0 ? 0 : -1
-                onCountChanged: currentIndex = count > 0 ? 0 : -1
-                model: ScriptModel {
-                    values: DesktopEntries.applications.values.filter(application => {
-                        const query = search.text.toLowerCase();
-                        const searchableText = ((application.name || "") + " "
-                            + (application.comment || "") + " "
-                            + application.id).toLowerCase();
-                        return query.length === 0 || searchableText.indexOf(query) !== -1;
-                    })
-                }
-
-                delegate: Rectangle {
-                    required property var modelData
-                    required property int index
-
-                    property string appName: modelData.name || ""
-                    property string appComment: modelData.comment || ""
-
-                    function executeApplication() {
-                        modelData.execute();
-                        root.launcherVisible = false;
-                        search.text = "";
-                    }
-
-                    width: appList.width
-                    height: 48
-                    radius: 6
-                    color: appList.currentIndex === index || entryMouseArea.containsMouse ? "#283142" : "transparent"
-                    clip: true
-
-                    Text {
-                        anchors {
-                            left: parent.left
-                            leftMargin: 12
-                            right: parent.right
-                            rightMargin: 12
-                            top: parent.top
-                            topMargin: 7
-                        }
-
-                        color: "#f0f0f0"
-                        font.pixelSize: 14
-                        elide: Text.ElideRight
-                        text: appName
-                    }
-
-                    Text {
-                        anchors {
-                            left: parent.left
-                            leftMargin: 12
-                            right: parent.right
-                            rightMargin: 12
-                            bottom: parent.bottom
-                            bottomMargin: 7
-                        }
-
-                        color: "#9aa5b5"
-                        font.pixelSize: 12
-                        elide: Text.ElideRight
-                        text: appComment
-                        visible: appComment.length > 0
-                    }
-
-                    MouseArea {
-                        id: entryMouseArea
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        onEntered: appList.currentIndex = index
-                        onClicked: executeApplication()
                     }
                 }
             }

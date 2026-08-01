@@ -4,19 +4,19 @@ local mainMod = "SUPER"
 
 local terminal = "alacritty"
 local editor = "mousepad"
-local explorer = "thunar"
 local browser = "firefox"
 
 -- Applications
 
 hl.bind(mainMod .. " + RETURN", hl.dsp.exec_cmd(terminal))
-hl.bind(mainMod .. " + E", hl.dsp.exec_cmd(explorer))
+hl.bind(mainMod .. " + E", hl.dsp.exec_cmd([[bash -lc 'exec "$HOME/.local/bin/launch-terminal-command" "$HOME" yazi']]))
+hl.bind(mainMod .. " + P", hl.dsp.exec_cmd([[bash -lc 'exec "$HOME/.local/bin/agora-project-launcher"']]))
 hl.bind(mainMod .. " + V", hl.dsp.exec_cmd(editor))
 hl.bind(mainMod .. " + B", hl.dsp.exec_cmd(browser))
 
 -- Shell
 
-hl.bind(mainMod .. " + D", hl.dsp.exec_cmd("quickshell ipc call launcher toggle"))
+hl.bind(mainMod .. " + D", hl.dsp.exec_cmd([[bash -lc 'exec rofi -show drun -theme "$HOME/.config/rofi/project-launcher.rasi" -display-drun ""']]))
 hl.bind(mainMod .. " + L", hl.dsp.exec_cmd("hyprlock"))
 hl.bind(mainMod .. " + O", hl.dsp.exec_cmd("quickshell ipc call controlCenter toggle"))
 hl.bind(mainMod .. " + H", hl.dsp.exec_cmd("quickshell ipc call keybinds toggle"))

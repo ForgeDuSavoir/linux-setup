@@ -2,6 +2,10 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+TERMINAL_LAUNCHER_SOURCE="${SCRIPT_DIR}/launch_terminal_command.sh"
+TERMINAL_LAUNCHER_TARGET="${HOME}/.local/bin/launch-terminal-command"
+
 echo "==> Configuring default applications..."
 
 echo "==> Setting Firefox as default browser..."
@@ -26,11 +30,19 @@ xdg-mime default org.xfce.mousepad.desktop application/x-shellscript
 xdg-mime default org.xfce.mousepad.desktop application/json
 xdg-mime default org.xfce.mousepad.desktop text/markdown
 
+echo "==> Installing default terminal launcher..."
+
+if [[ ! -f "${TERMINAL_LAUNCHER_SOURCE}" ]]; then
+    echo "✗ Default terminal launcher source is missing: ${TERMINAL_LAUNCHER_SOURCE}"
+    exit 1
+fi
+
+mkdir -p "${HOME}/.local/bin"
+install -m 0755 "${TERMINAL_LAUNCHER_SOURCE}" "${TERMINAL_LAUNCHER_TARGET}"
+
 echo "==> Setting Alacritty as default terminal..."
 
 if command -v alacritty >/dev/null 2>&1; then
-    mkdir -p "${HOME}/.local/bin"
-
     cat > "${HOME}/.local/bin/x-terminal-emulator" <<'EOF'
 #!/usr/bin/env bash
 exec alacritty "$@"
