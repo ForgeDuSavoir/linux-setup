@@ -2,11 +2,11 @@
 
 set -euo pipefail
 
-APP_NAME="rembg"
-PACKAGE_NAME="rembg"
-APP_COMMAND="rembg"
-PACKAGE_MANAGER="pipx"
-INSTALL_COMMAND='pipx install "rembg[cpu,cli]"'
+APP_NAME="Baobab"
+PACKAGE_NAME="baobab"
+APP_COMMAND="baobab"
+PACKAGE_MANAGER="pacman"
+INSTALL_COMMAND="sudo pacman -S --needed --noconfirm ${PACKAGE_NAME}"
 
 echo "==> Installing ${APP_NAME}..."
 
