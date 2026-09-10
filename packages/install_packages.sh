@@ -6,6 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 "$SCRIPT_DIR/system/install_system_apps.sh"
 
+"$SCRIPT_DIR/ai/install_ai_apps.sh"
 "$SCRIPT_DIR/desktop/install_desktop_apps.sh"
 "$SCRIPT_DIR/communication/install_communication_apps.sh"
 "$SCRIPT_DIR/entertainment/install_entertainment_apps.sh"
