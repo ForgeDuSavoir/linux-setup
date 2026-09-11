@@ -9,6 +9,24 @@ Scope {
     id: root
 
     readonly property int popupWidth: 380
+    readonly property int historyLimit: 100
+    property var history: []
+
+    function addToHistory(notification) {
+        const entry = {
+            timestamp: Date.now(),
+            appName: notification.appName,
+            summary: notification.summary,
+            body: notification.body,
+            urgency: notification.urgency
+        };
+
+        history = [entry].concat(history).slice(0, historyLimit);
+    }
+
+    function clearHistory() {
+        history = [];
+    }
 
     function accentColor(urgency) {
         if (urgency === NotificationUrgency.Critical)
@@ -28,6 +46,7 @@ Scope {
         imageSupported: true
 
         onNotification: notification => {
+            root.addToHistory(notification);
             notification.tracked = true;
         }
     }

@@ -14,6 +14,9 @@ hl.bind(mainMod .. " + P", hl.dsp.exec_cmd([[bash -lc 'exec "$HOME/.local/bin/ag
 hl.bind(mainMod .. " + V", hl.dsp.exec_cmd(editor))
 hl.bind(mainMod .. " + B", hl.dsp.exec_cmd(browser))
 
+-- Text tools
+hl.bind(mainMod .. " + SPACE", hl.dsp.exec_cmd([[bash -lc 'exec "$HOME/.local/bin/dictation-toggle"']]))
+
 -- Shell
 
 hl.bind(mainMod .. " + D", hl.dsp.exec_cmd([[bash -lc 'exec rofi -show drun -theme "$HOME/.config/rofi/project-launcher.rasi" -display-drun ""']]))

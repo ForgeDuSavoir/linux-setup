@@ -12,9 +12,12 @@ import QtQuick
 Scope {
     id: root
 
-    NotificationService {}
+    NotificationService {
+        id: notificationService
+    }
 
     property bool controlCenterVisible: false
+    property bool notificationHistoryVisible: false
     property bool keybindsVisible: false
     property bool networkManagerVisible: false
     property bool wifiEnabled: false
@@ -510,6 +513,8 @@ Scope {
 
         delegate: Component {
             PanelWindow {
+                id: barWindow
+
                 required property var modelData
 
                 screen: modelData
@@ -569,7 +574,7 @@ Scope {
                         height: 24
 
                         anchors {
-                            right: power.left
+                            right: notificationButton.left
                             rightMargin: 8
                             verticalCenter: parent.verticalCenter
                         }
@@ -662,6 +667,37 @@ Scope {
                     }
 
                     Rectangle {
+                        id: notificationButton
+
+                        width: 28
+                        height: 24
+
+                        anchors {
+                            right: power.left
+                            rightMargin: 8
+                            verticalCenter: parent.verticalCenter
+                        }
+
+                        radius: 4
+                        color: notificationButtonMouse.containsMouse ? "#2a3140" : "#1b202a"
+
+                        Text {
+                            anchors.centerIn: parent
+                            color: notificationService.history.length > 0 ? "#e7e7e7" : "#7f8999"
+                            font.pixelSize: 14
+                            text: notificationService.history.length > 0 ? "●" : "○"
+                        }
+
+                        MouseArea {
+                            id: notificationButtonMouse
+
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            onClicked: root.notificationHistoryVisible = !root.notificationHistoryVisible
+                        }
+                    }
+
+                    Rectangle {
                         id: power
 
                         width: 64
@@ -689,6 +725,173 @@ Scope {
                             anchors.fill: parent
                             hoverEnabled: true
                             onClicked: root.controlCenterVisible = !root.controlCenterVisible
+                        }
+                    }
+                }
+
+                PopupWindow {
+                    id: notificationHistory
+
+                    visible: root.notificationHistoryVisible
+                    parentWindow: barWindow
+                    relativeX: notificationButton.x + notificationButton.width - width
+                    relativeY: notificationButton.y + notificationButton.height + 6
+                    implicitWidth: 420
+                    implicitHeight: 460
+                    color: "transparent"
+                    grabFocus: true
+                    onClosed: root.notificationHistoryVisible = false
+
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: 8
+                        color: "#151922"
+                        border.color: "#2b3342"
+                        border.width: 1
+
+                        Text {
+                            id: notificationHistoryTitle
+
+                            anchors {
+                                top: parent.top
+                                left: parent.left
+                                margins: 16
+                            }
+
+                            color: "#f0f0f0"
+                            font.pixelSize: 16
+                            text: "Notifications (" + notificationService.history.length + ")"
+                        }
+
+                        Row {
+                            anchors {
+                                top: parent.top
+                                right: parent.right
+                                margins: 10
+                            }
+                            spacing: 8
+
+                            Rectangle {
+                                width: 58
+                                height: 28
+                                radius: 5
+                                color: clearHistoryMouse.containsMouse ? "#2a3140" : "#202633"
+                                visible: notificationService.history.length > 0
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    color: "#b9c0cc"
+                                    font.pixelSize: 12
+                                    text: "Clear"
+                                }
+
+                                MouseArea {
+                                    id: clearHistoryMouse
+
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    onClicked: notificationService.clearHistory()
+                                }
+                            }
+
+                            Rectangle {
+                                width: 28
+                                height: 28
+                                radius: 5
+                                color: closeHistoryMouse.containsMouse ? "#3a2530" : "#202633"
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    color: closeHistoryMouse.containsMouse ? "#d66b6b" : "#b9c0cc"
+                                    font.pixelSize: 16
+                                    text: "×"
+                                }
+
+                                MouseArea {
+                                    id: closeHistoryMouse
+
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    onClicked: root.notificationHistoryVisible = false
+                                }
+                            }
+                        }
+
+                        Text {
+                            anchors.centerIn: parent
+                            visible: notificationService.history.length === 0
+                            color: "#7f8999"
+                            font.pixelSize: 13
+                            text: "No notifications"
+                        }
+
+                        ListView {
+                            anchors {
+                                top: notificationHistoryTitle.bottom
+                                left: parent.left
+                                right: parent.right
+                                bottom: parent.bottom
+                                topMargin: 14
+                                leftMargin: 12
+                                rightMargin: 12
+                                bottomMargin: 12
+                            }
+
+                            clip: true
+                            spacing: 6
+                            model: notificationService.history
+
+                            delegate: Rectangle {
+                                required property var modelData
+
+                                width: ListView.view.width
+                                implicitHeight: notificationContent.implicitHeight + 18
+                                radius: 6
+                                color: "#202633"
+
+                                Column {
+                                    id: notificationContent
+
+                                    anchors {
+                                        left: parent.left
+                                        right: parent.right
+                                        top: parent.top
+                                        margins: 9
+                                    }
+                                    spacing: 3
+
+                                    Text {
+                                        width: parent.width
+                                        color: "#8f99a8"
+                                        font.pixelSize: 11
+                                        elide: Text.ElideRight
+                                        text: modelData.appName + " · " + new Date(modelData.timestamp).toLocaleTimeString(Qt.locale(), "HH:mm")
+                                    }
+
+                                    Text {
+                                        width: parent.width
+                                        color: "#f0f0f0"
+                                        font {
+                                            pixelSize: 13
+                                            bold: true
+                                        }
+                                        wrapMode: Text.Wrap
+                                        text: modelData.summary
+                                    }
+
+                                    Text {
+                                        width: parent.width
+                                        visible: modelData.body !== ""
+                                        color: "#b9c0cc"
+                                        font.pixelSize: 12
+                                        textFormat: Text.StyledText
+                                        wrapMode: Text.Wrap
+                                        maximumLineCount: 4
+                                        elide: Text.ElideRight
+                                        text: modelData.body
+                                    }
+                                }
+                            }
                         }
                     }
                 }

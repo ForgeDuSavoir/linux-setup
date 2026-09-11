@@ -16,5 +16,6 @@ bash "${SCRIPT_DIR}/run-obs-gaming/install_run-obs-gaming.sh"
 
 bash "${SCRIPT_DIR}/concat-mp4/install_concat-mp4.sh"
 bash "${SCRIPT_DIR}/pre-edit/install_pre-edit.sh"
+bash "${SCRIPT_DIR}/text-tools/install_text_tools.sh"
 
 echo "✓ Custom scripts installed successfully."
