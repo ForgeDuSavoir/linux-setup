@@ -1,0 +1,4 @@
+[mgr]
+prepend_keymap = [
+    { on = "<C-t>", run = 'shell -- setsid -f "$TERMINAL"', desc = "Open terminal in current directory" },
+]

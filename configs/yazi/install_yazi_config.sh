@@ -4,26 +4,32 @@ set -euo pipefail
 
 CONFIG_NAME="Yazi"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
-SOURCE_FILE="${SCRIPT_DIR}/init.lua"
+SOURCE_FILES=(init.lua keymap.toml)
 TARGET_DIR="${HOME}/.config/yazi"
-TARGET_FILE="${TARGET_DIR}/init.lua"
 
 echo "==> Installing ${CONFIG_NAME} config..."
 
-if [[ ! -f "${SOURCE_FILE}" ]]; then
-    echo "✗ Source config not found: ${SOURCE_FILE}"
-    exit 1
-fi
+for source_name in "${SOURCE_FILES[@]}"; do
+    if [[ ! -f "${SCRIPT_DIR}/${source_name}" ]]; then
+        echo "✗ Source config not found: ${SCRIPT_DIR}/${source_name}"
+        exit 1
+    fi
+done
 
 mkdir -p "${TARGET_DIR}"
 
-if [[ -f "${TARGET_FILE}" ]] && ! cmp -s "${SOURCE_FILE}" "${TARGET_FILE}"; then
-    BACKUP_FILE="${TARGET_FILE}.bak.$(date +%Y%m%d-%H%M%S)"
-    echo "==> Existing config found, creating backup:"
-    echo "    ${BACKUP_FILE}"
-    cp "${TARGET_FILE}" "${BACKUP_FILE}"
-fi
+for source_name in "${SOURCE_FILES[@]}"; do
+    source_file="${SCRIPT_DIR}/${source_name}"
+    target_file="${TARGET_DIR}/${source_name}"
 
-cp "${SOURCE_FILE}" "${TARGET_FILE}"
+    if [[ -f "${target_file}" ]] && ! cmp -s "${source_file}" "${target_file}"; then
+        backup_file="${target_file}.bak.$(date +%Y%m%d-%H%M%S)"
+        echo "==> Existing config found, creating backup:"
+        echo "    ${backup_file}"
+        cp "${target_file}" "${backup_file}"
+    fi
+
+    cp "${source_file}" "${target_file}"
+done
 
 echo "✓ ${CONFIG_NAME} config installed successfully."
