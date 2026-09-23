@@ -25,8 +25,6 @@ FOOTER_EXTENSION_FILE="$EXTENSIONS_DIR/persistent_footer.ts"
 SOURCE_FOOTER_EXTENSION_FILE="$SCRIPT_DIR/persistent_footer.ts"
 CONVERSATION_NAVIGATION_EXTENSION_FILE="$EXTENSIONS_DIR/conversation_navigation.ts"
 SOURCE_CONVERSATION_NAVIGATION_EXTENSION_FILE="$SCRIPT_DIR/conversation_navigation.ts"
-CONVERSATION_SELECTOR_FILE="$BIN_DIR/pi-conversation-select"
-SOURCE_CONVERSATION_SELECTOR_FILE="$SCRIPT_DIR/conversation_select.sh"
 LEGACY_HEADER_EXTENSION_FILE="$EXTENSIONS_DIR/persistent_header.ts"
 
 echo "==> Installing ${APP_NAME}..."
@@ -85,11 +83,6 @@ if [[ ! -f "$SOURCE_CONVERSATION_NAVIGATION_EXTENSION_FILE" ]]; then
     exit 1
 fi
 
-if [[ ! -f "$SOURCE_CONVERSATION_SELECTOR_FILE" ]]; then
-    echo "✗ Conversation selector source file is missing: $SOURCE_CONVERSATION_SELECTOR_FILE"
-    exit 1
-fi
-
 if [[ ! -f "$SOURCE_KEYBINDINGS_FILE" ]]; then
     echo "✗ Keybindings source file is missing: $SOURCE_KEYBINDINGS_FILE"
     exit 1
@@ -99,7 +92,6 @@ echo "==> Installing ${APP_NAME} launchers..."
 mkdir -p "$BIN_DIR"
 install -m 0755 "$SOURCE_LAUNCHER_FILE" "$LAUNCHER_FILE"
 install -m 0755 "$SOURCE_EXTERNAL_EDITOR_FILE" "$EXTERNAL_EDITOR_FILE"
-install -m 0755 "$SOURCE_CONVERSATION_SELECTOR_FILE" "$CONVERSATION_SELECTOR_FILE"
 
 echo "==> Installing ${APP_NAME} extensions..."
 mkdir -p "$EXTENSIONS_DIR"
