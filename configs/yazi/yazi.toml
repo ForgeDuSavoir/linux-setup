@@ -1,0 +1,9 @@
+[opener]
+kdenlive = [
+    { run = "kdenlive %s1", desc = "Kdenlive", orphan = true },
+]
+
+[open]
+prepend_rules = [
+    { url = "*.kdenlive", use = "kdenlive" },
+]

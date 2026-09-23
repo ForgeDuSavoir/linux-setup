@@ -4,7 +4,7 @@ set -euo pipefail
 
 CONFIG_NAME="Yazi"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
-SOURCE_FILES=(init.lua keymap.toml)
+SOURCE_FILES=(init.lua keymap.toml yazi.toml)
 TARGET_DIR="${HOME}/.config/yazi"
 
 echo "==> Installing ${CONFIG_NAME} config..."
