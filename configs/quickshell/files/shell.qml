@@ -46,7 +46,9 @@ Scope {
     ]
     readonly property var keybindRows: [
         ["SUPER+Enter", "Terminal"],
-        ["SUPER+E", "Yazi home"],
+        ["SUPER+Y", "Yazi home"],
+        ["SUPER+U", "Scrolling layout"],
+        ["SUPER+I", "Fit Scroller layout"],
         ["SUPER+P", "Projects"],
         ["SUPER+D", "Applications"],
         ["SUPER+B", "Browser"],

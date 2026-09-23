@@ -65,6 +65,7 @@ require("inputs")
 ---- KEYBINDINGS ----
 ---------------------
 
+package.loaded["keybinds"] = nil
 require("keybinds")
 
 --------------------------------

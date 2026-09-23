@@ -1,4 +1,6 @@
 [mgr]
 prepend_keymap = [
+    { on = "q", run = "quit --no-cwd-file", desc = "Quit and close terminal" },
     { on = "<C-t>", run = 'shell -- setsid -f "$TERMINAL"', desc = "Open terminal in current directory" },
+    { on = "<C-S-t>", run = "quit", desc = "Exit to shell in current directory" },
 ]

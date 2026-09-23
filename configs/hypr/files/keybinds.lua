@@ -9,7 +9,7 @@ local browser = "firefox"
 -- Applications
 
 hl.bind(mainMod .. " + RETURN", hl.dsp.exec_cmd(terminal))
-hl.bind(mainMod .. " + E", hl.dsp.exec_cmd([[bash -lc 'exec "$HOME/.local/bin/launch-terminal-command" "$HOME" yazi']]))
+hl.bind(mainMod .. " + Y", hl.dsp.exec_cmd([[bash -lc 'exec "$HOME/.local/bin/launch-terminal-command" "$HOME" launch-yazi']]))
 hl.bind(mainMod .. " + P", hl.dsp.exec_cmd([[bash -lc 'exec "$HOME/.local/bin/agora-project-launcher"']]))
 hl.bind(mainMod .. " + B", hl.dsp.exec_cmd(browser))
 
@@ -88,8 +88,8 @@ hl.bind("CTRL + PRINT", hl.dsp.exec_cmd([[bash -lc 'mkdir -p "$HOME/Pictures"; g
 
 -- Layouts
 
-hl.bind(mainMod .. " + Y", hl.dsp.exec_cmd([[hyprctl eval 'hl.config({ general = { layout = "scrolling" } })']]))
-hl.bind(mainMod .. " + U", hl.dsp.exec_cmd([[hyprctl eval 'hl.config({ general = { layout = "lua:fit-scroller" } })']]))
+hl.bind(mainMod .. " + U", hl.dsp.exec_cmd([[hyprctl eval 'hl.config({ general = { layout = "scrolling" } })']]))
+hl.bind(mainMod .. " + I", hl.dsp.exec_cmd([[hyprctl eval 'hl.config({ general = { layout = "lua:fit-scroller" } })']]))
 
 hl.bind(mainMod .. " + Backslash", hl.dsp.layout("toggle_expand"))
 hl.bind(mainMod .. " + BRACKETRIGHT", hl.dsp.layout("next"))

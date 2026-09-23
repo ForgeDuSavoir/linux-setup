@@ -87,7 +87,7 @@ else
 fi
 
 if [[ "${open_yazi}" == true ]]; then
-    "${default_terminal_launcher}" "${selected_path}" yazi &
+    "${default_terminal_launcher}" "${selected_path}" launch-yazi &
 fi
 
 if [[ "${open_pi}" == true ]]; then
