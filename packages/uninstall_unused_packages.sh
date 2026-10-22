@@ -2,14 +2,13 @@
 
 set -euo pipefail
 
-APP_NAME="Dolphin and Kitty"
+APP_NAME="Dolphin"
 
 echo "==> Uninstalling ${APP_NAME}..."
 
 PACKAGES=(
     dolphin
     dolphin-plugins
-    kitty
 )
 
 INSTALLED_PACKAGES=()

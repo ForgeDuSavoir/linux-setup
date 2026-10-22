@@ -2,7 +2,7 @@
 
 local mainMod = "SUPER"
 
-local terminal = "alacritty"
+local terminal = "kitty"
 local editor = "mousepad"
 local browser = "firefox"
 

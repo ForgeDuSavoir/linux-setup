@@ -7,6 +7,8 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 echo "==> Installing custom scripts..."
 
 bash "${SCRIPT_DIR}/git-push/install_git-push.sh"
+bash "${SCRIPT_DIR}/artcraft-release-sync/install_artcraft-release-sync.sh"
+bash "${SCRIPT_DIR}/artcraft-release-sync/install_artcraft-installer.sh"
 
 bash "${SCRIPT_DIR}/safe-update/install_safe-update.sh"
 bash "${SCRIPT_DIR}/rollback-snapshot/install_rollback-snapshot.sh"

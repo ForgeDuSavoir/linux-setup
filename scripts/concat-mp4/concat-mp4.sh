@@ -14,11 +14,13 @@ if [ ! -d "$DIR" ]; then
   exit 1
 fi
 
+OUTPUT="$DIR/merged.mp4"
+
 # Fichier temporaire pour ffmpeg
 LIST_FILE=$(mktemp)
 
-# Trouve tous les mp4, tri alphabétique
-find "$DIR" -maxdepth 1 -type f -iname "*.mp4" | sort | while read -r file; do
+# Trouve tous les mp4, tri naturel, en excluant le fichier de sortie
+find "$DIR" -maxdepth 1 -type f -iname "*.mp4" ! -path "$OUTPUT" | sort -V | while read -r file; do
   echo "file '$file'" >> "$LIST_FILE"
 done
 
@@ -28,8 +30,6 @@ if [ ! -s "$LIST_FILE" ]; then
   rm "$LIST_FILE"
   exit 1
 fi
-
-OUTPUT="$DIR/merged.mp4"
 
 echo "Concaténation en cours..."
 ffmpeg -f concat -safe 0 -i "$LIST_FILE" -c copy "$OUTPUT"

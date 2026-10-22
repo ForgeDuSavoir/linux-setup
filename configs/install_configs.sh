@@ -6,6 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 "$SCRIPT_DIR/git/configure_git.sh"
 "$SCRIPT_DIR/default_applications/configure_default_applications.sh"
+"$SCRIPT_DIR/kitty/install_kitty_config.sh"
 "$SCRIPT_DIR/hosts/install_hosts.sh"
 "$SCRIPT_DIR/logind/configure_logind.sh"
 "$SCRIPT_DIR/hypr/install_hyprland_config.sh"

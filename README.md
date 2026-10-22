@@ -63,6 +63,15 @@ This allows:
 
 ---
 
+## Development tools
+
+Development tools that must be reproducibly available on the machine are installed through dedicated scripts in `packages/programming/`.
+
+For the Fire Emblem: Fortune’s Weave tool:
+
+- `packages/programming/pnpm/install_pnpm.sh` installs pnpm globally through npm when it is absent. It requires Node.js and npm to be available first and can be run repeatedly without reinstalling pnpm.
+- `packages/programming/tauri/install_tauri_dependencies.sh` installs the Arch Linux/CachyOS system dependencies required to develop Tauri applications. It follows the dependency list published in the [Tauri prerequisites documentation](https://v2.tauri.app/start/prerequisites/) and uses `pacman --needed` so it can be rerun safely.
+
 ## Webapps
 
 Webapps are installed with:

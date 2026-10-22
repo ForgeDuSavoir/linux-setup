@@ -10,7 +10,7 @@ if [[ -n "${TERMINAL:-}" ]]; then
     read -r -a terminal_command <<< "$TERMINAL"
 
     if command -v "${terminal_command[0]}" >/dev/null 2>&1; then
-        exec "${terminal_command[@]}" -e pi
+        exec "${terminal_command[@]}" pi
     fi
 fi
 

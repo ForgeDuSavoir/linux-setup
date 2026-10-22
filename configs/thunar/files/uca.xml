@@ -17,7 +17,7 @@
 	<name>Concat mp4</name>
 	<submenu></submenu>
 	<unique-id>1779962885996697-1</unique-id>
-	<command>alacritty -e bash -lc &apos;concat-mp4 &quot;$1&quot;; echo; read -rp &quot;Press Enter to close...&quot;&apos; _ %f</command>
+	<command>kitty bash -lc &apos;concat-mp4 &quot;$1&quot;; echo; read -rp &quot;Press Enter to close...&quot;&apos; _ %f</command>
 	<description>Merge all .mp4 files from this folder into a single file.</description>
 	<range>1</range>
 	<patterns>*</patterns>

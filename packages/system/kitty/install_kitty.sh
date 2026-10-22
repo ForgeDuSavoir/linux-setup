@@ -2,9 +2,9 @@
 
 set -euo pipefail
 
-APP_NAME="Alacritty"
-PACKAGE_NAME="alacritty"
-APP_COMMAND="alacritty"
+APP_NAME="Kitty"
+PACKAGE_NAME="kitty"
+APP_COMMAND="kitty"
 PACKAGE_MANAGER="pacman"
 INSTALL_COMMAND="sudo pacman -S --needed --noconfirm ${PACKAGE_NAME}"
 

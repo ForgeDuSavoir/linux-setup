@@ -52,46 +52,50 @@ fi
 mkdir -p "${HOME}/.local/bin"
 install -m 0755 "${TERMINAL_LAUNCHER_SOURCE}" "${TERMINAL_LAUNCHER_TARGET}"
 
-echo "==> Setting Alacritty as default terminal..."
+echo "==> Setting Kitty as default terminal..."
 
-if command -v alacritty >/dev/null 2>&1; then
+if command -v kitty >/dev/null 2>&1; then
     cat > "${HOME}/.local/bin/x-terminal-emulator" <<'EOF'
 #!/usr/bin/env bash
-exec alacritty "$@"
+if [[ "${1:-}" == "-e" ]]; then
+    shift
+fi
+exec kitty "$@"
 EOF
 
     chmod +x "${HOME}/.local/bin/x-terminal-emulator"
 
-    echo "==> Configuring Thunar 'Open Terminal Here' with Alacritty..."
+    echo "==> Configuring Thunar 'Open Terminal Here' with Kitty..."
 
     mkdir -p "${HOME}/.local/share/xfce4/helpers"
+    rm -f "${HOME}/.local/share/xfce4/helpers/alacritty.desktop"
 
-    cat > "${HOME}/.local/share/xfce4/helpers/alacritty.desktop" <<'EOF'
+    cat > "${HOME}/.local/share/xfce4/helpers/kitty.desktop" <<'EOF'
 [Desktop Entry]
 NoDisplay=true
 Version=1.0
 Type=X-XFCE-Helper
-Name=Alacritty
+Name=Kitty
 X-XFCE-Category=TerminalEmulator
-X-XFCE-Commands=alacritty
-X-XFCE-CommandsWithParameter=alacritty --working-directory %s
+X-XFCE-Commands=kitty
+X-XFCE-CommandsWithParameter=kitty --directory %s
 EOF
 
     mkdir -p "${HOME}/.config/xfce4"
 
     cat > "${HOME}/.config/xfce4/helpers.rc" <<'EOF'
-TerminalEmulator=alacritty
+TerminalEmulator=kitty
 EOF
 
 
 else
-    echo "⚠ Alacritty is not installed."
+    echo "⚠ Kitty is not installed."
 fi
 
 echo "==> Setting shell environment variables..."
 
 if command -v fish >/dev/null 2>&1; then
-    fish -c 'set -Ux TERMINAL alacritty'
+    fish -c 'set -Ux TERMINAL kitty'
     fish -c 'set -Ux EDITOR nvim'
     fish -c 'set -Ux VISUAL nvim'
 else
