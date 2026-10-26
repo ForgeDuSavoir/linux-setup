@@ -1,0 +1,83 @@
+#!/usr/bin/env python3
+"""Resolve a portable project -> Pi session mapping (no transcript is copied)."""
+
+import json
+import re
+import sys
+import uuid
+from pathlib import Path
+
+
+def fail(message):
+    raise SystemExit(f"filmcraft-ai-session: {message}")
+
+
+def first_user_prompt(file):
+    try:
+        with file.open(encoding="utf-8") as stream:
+            header = json.loads(next(stream))
+            if header.get("type") != "session":
+                return None, None
+            for line in stream:
+                entry = json.loads(line)
+                message = entry.get("message", {}) if entry.get("type") == "message" else {}
+                if message.get("role") != "user":
+                    continue
+                content = message.get("content", [])
+                if isinstance(content, str):
+                    return header, content
+                return header, "".join(part.get("text", "") for part in content if isinstance(part, dict))
+    except (OSError, UnicodeError, ValueError, StopIteration):
+        pass
+    return None, None
+
+
+def main():
+    if len(sys.argv) != 3:
+        fail("Usage: filmcraft-ai-session <project.fcproj> <pi-working-directory>")
+    project = Path(sys.argv[1]).resolve(strict=True)
+    pi_dir = Path(sys.argv[2]).resolve(strict=True)
+    sidecar = project.with_name(f".{project.name}.pi-session")
+    sessions_dir = Path.home() / ".pi/agent/sessions" / (
+        "--" + str(pi_dir).lstrip("/").replace("/", "-").replace("\\", "-").replace(":", "-") + "--"
+    )
+    # Only sessions from the FilmCraft-specific Pi directory may be re-used.
+    sessions = {}
+    for file in sorted(sessions_dir.glob("*.jsonl")):
+        header, prompt = first_user_prompt(file)
+        if header and header.get("cwd") == str(pi_dir):
+            sessions[header.get("id")] = (file, prompt)
+
+    if sidecar.exists():
+        if sidecar.is_symlink() or not sidecar.is_file():
+            fail(f"Unsafe session mapping: {sidecar}")
+        session_id = sidecar.read_text(encoding="utf-8").strip()
+        if not re.fullmatch(r"[a-zA-Z0-9](?:[a-zA-Z0-9._-]*[a-zA-Z0-9])?", session_id) or len(session_id) > 128:
+            fail(f"Invalid session ID in {sidecar}")
+    else:
+        # Upgrade sessions created by the original launcher. Pick the *first*
+        # conversation for this project, not a later, accidental duplicate.
+        session_id = None
+        marker = "projet ouvert : "
+        for candidate_id, (file, prompt) in sessions.items():
+            if marker not in (prompt or ""):
+                continue
+            original = prompt.split(marker, 1)[1].split(". Utilise le skill filmcraft", 1)[0]
+            if original == str(project):
+                session_id = candidate_id
+                break
+        if not session_id:
+            session_id = f"filmcraft-{uuid.uuid4()}"
+        if not re.fullmatch(r"[a-zA-Z0-9](?:[a-zA-Z0-9._-]*[a-zA-Z0-9])?", session_id):
+            fail("Invalid legacy session ID")
+        try:
+            with sidecar.open("x", encoding="utf-8") as output:
+                output.write(session_id + "\n")
+            sidecar.chmod(0o600)
+        except FileExistsError:
+            session_id = sidecar.read_text(encoding="utf-8").strip()
+    print(session_id, "existing" if session_id in sessions else "new")
+
+
+if __name__ == "__main__":
+    main()

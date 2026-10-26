@@ -23,6 +23,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 "$SCRIPT_DIR/snapper/configure_snapper.sh"
 "$SCRIPT_DIR/topgrade/configure_topgrade.sh"
+"$SCRIPT_DIR/pi/install_photocraft_mcp.sh"
+"$SCRIPT_DIR/pi/filmcraft/install_filmcraft_ai.sh"
 
 "$SCRIPT_DIR/obs/configure_obs.sh"
 #"$SCRIPT_DIR/kdenlive/configure_kdenlive.sh" #Not yet working

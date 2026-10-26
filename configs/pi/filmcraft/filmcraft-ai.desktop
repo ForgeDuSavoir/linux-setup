@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=FilmCraft + assistant
+Comment=Ouvrir un projet FilmCraft avec l'assistance Pi
+Exec=@FILMCRAFT_AI_LAUNCHER@ %f
+Icon=ai.storyteller.filmcraft
+Terminal=false
+MimeType=application/x-filmcraft;
+Categories=AudioVideo;Video;
+Keywords=FilmCraft;Pi;Assistant;Montage;
+StartupNotify=true

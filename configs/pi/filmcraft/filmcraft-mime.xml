@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/x-filmcraft">
+    <comment>FilmCraft project</comment>
+    <sub-class-of type="application/json"/>
+    <icon name="ai.storyteller.filmcraft"/>
+    <glob pattern="*.fcproj" weight="100"/>
+    <!-- FilmCraft saves compact JSON starting with the format identifier. Without this
+         magic, the generic JSON detector wins over the .fcproj extension in Thunar. -->
+    <magic priority="90">
+      <match type="string" value="&quot;format&quot;:&quot;filmcraft.project&quot;" offset="0:128"/>
+    </magic>
+  </mime-type>
+</mime-info>
