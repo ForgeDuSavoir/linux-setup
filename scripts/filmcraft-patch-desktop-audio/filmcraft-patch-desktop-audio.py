@@ -9,25 +9,28 @@ Audio 4 = ancien canal erroné, supprimé. Préserve les coupes/source_in.
 
 import json
 import os
+from fractions import Fraction
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import wave
 
 
 def fail(message):
     raise RuntimeError(message)
 
 
-def command(*args, input_text=None):
-    proc = subprocess.run(args, input=input_text, text=True, capture_output=True)
+def command(*args, input_text=None, cwd=None):
+    proc = subprocess.run(args, input=input_text, text=True, capture_output=True, cwd=cwd)
     if proc.returncode:
         fail(f"Commande échouée : {' '.join(map(str, args))}\n{proc.stderr}\n{proc.stdout}")
     return proc.stdout
 
 
 def fc(project, *args, input_text=None):
-    return command("filmcraft-cli", "--project", str(project), *args, input_text=input_text)
+    return command("filmcraft-cli", "--project", str(project), *args,
+                   input_text=input_text, cwd=project.parent)
 
 
 def inspect(project):
@@ -78,20 +81,55 @@ def main():
         if any(c.get("source_channels") != [channel] for c in track["items"]):
             fail(f"Canaux inattendus sur {track['name']} ; patch refusé")
 
+    # FilmCraft exprime sourceOut et duration dans la même base temporelle.
+    # Les deux flux OBS peuvent finir avant la vidéo (horodatages/encodage).
+    settings = sequences[0]["settings"]["frame_rate"]
+    fps = Fraction(settings["num"], settings["den"])
+    ticks_per_frame = Fraction(before["duration"], before["durationFrames"])
+    required_end = max(Fraction(c["sourceOut"], 1) / ticks_per_frame / fps
+                       for c in tracks[2]["items"])
+
     wav = project.with_name(source.stem + "_bureau.wav")
     if wav.exists():
         fail(f"Fichier déjà présent : {wav} (ne sera pas écrasé)")
     tmp_wav = None
+    tmp_padded = None
     tmp_project = None
+    created_wav = False
+    committed = False
     try:
         with tempfile.NamedTemporaryFile(prefix=".filmcraft-bureau-", suffix=".wav", dir=project.parent, delete=False) as f:
             tmp_wav = Path(f.name)
         # 0:a:1 = deuxième flux audio OBS, et NON deuxième canal du premier flux.
+        # Le WAV n'enregistre pas les PTS : matérialiser le décalage OBS initial
+        # en silence pour garder la synchronisation avec la vidéo / le micro.
         command("ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", str(source),
-                "-map", "0:a:1", "-vn", "-c:a", "pcm_s16le", str(tmp_wav))
+                "-map", "0:a:1", "-vn", "-af", "aresample=async=1:first_pts=0",
+                "-c:a", "pcm_s16le", str(tmp_wav))
         if tmp_wav.stat().st_size < 1000:
             fail("Extraction du flux bureau vide")
+        with wave.open(str(tmp_wav), "rb") as extracted:
+            audio_duration = Fraction(extracted.getnframes(), extracted.getframerate())
+            sample_rate = extracted.getframerate()
+        shortage = required_end - audio_duration
+        if shortage > Fraction(1, 5):
+            fail(f"Flux bureau trop court de {float(shortage):.3f} s (> 0,2 s) ; vérifier les pistes OBS")
+        if shortage > 0:
+            # Ajouter du silence uniquement en fin de WAV, sans étirer ni décaler
+            # le son existant. Une image de réserve évite les arrondis de FilmCraft.
+            target = required_end + 1 / fps
+            with tempfile.NamedTemporaryFile(prefix=".filmcraft-pad-", suffix=".wav", dir=project.parent, delete=False) as f:
+                tmp_padded = Path(f.name)
+            command("ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", str(tmp_wav),
+                    "-af", "apad", "-t", f"{float(target):.9f}", "-c:a", "pcm_s16le", str(tmp_padded))
+            with wave.open(str(tmp_padded), "rb") as padded:
+                if Fraction(padded.getnframes(), padded.getframerate()) <= required_end:
+                    fail("Silence final insuffisant pour les dernières coupes")
+            os.replace(tmp_padded, tmp_wav)
+            tmp_padded = None
+            print(f"ℹ️ Bureau plus court que les coupes de {float(shortage):.3f} s ; fin complétée par du silence.")
         os.replace(tmp_wav, wav)
+        created_wav = True
         tmp_wav = None
 
         with tempfile.NamedTemporaryFile(prefix=".filmcraft-patch-", suffix=".fcproj", dir=project.parent, delete=False) as f:
@@ -105,6 +143,14 @@ def main():
         if len(matches) != 1:
             fail(f"Import de {wav.name} non confirmé : {imported}")
         audio_item = matches[0]
+        # L'import exige un fichier existant (chemin absolu), mais le projet
+        # doit conserver le nom relatif du WAV pour survivre au déplacement du dossier.
+        relinked = json.loads(fc(tmp_project, "--save", "exec", "media.relink",
+                           json.dumps({"item": audio_item, "path": wav.name, "relinkOthers": False})))
+        if (len(relinked.get("relinked", [])) != 1
+                or relinked["relinked"][0].get("path") != wav.name
+                or relinked.get("remaining")):
+            fail(f"Liaison relative du WAV non confirmée : {relinked}")
 
         # Un seul processus CLI : désactive la sélection liée pour ne PAS remplacer
         # aussi Audio 1-2 (le micro), puis rétablit cette préférence.
@@ -143,12 +189,16 @@ def main():
         if missing.get("missing"):
             fail("Des médias manquent dans le projet patché")
         check = json.loads(tmp_project.read_text())
+        audio_path = check["project"]["items"][str(audio_item)]["kind"]["Media"]["media"]["File"]["path"]
+        if audio_path != wav.name:
+            fail(f"Chemin du WAV non relatif dans le projet : {audio_path}")
         patched = [it["kind"]["Sequence"] for it in check["project"]["items"].values()
                    if "Sequence" in it["kind"]][0]
         if (len(patched["audio_tracks"]) != 3
                 or any(t["id"] == tracks[3]["id"] for t in patched["audio_tracks"])):
             fail("Audio 4 n'a pas été supprimée")
         os.replace(tmp_project, project)
+        committed = True
         tmp_project = None
         print(f"✅ Son du bureau restauré sur Audio 3 : {len(tracks[2]['items'])} clips ; Audio 4 supprimée.")
         print(f"   WAV : {wav}")
@@ -156,8 +206,12 @@ def main():
     finally:
         if tmp_wav is not None:
             tmp_wav.unlink(missing_ok=True)
+        if tmp_padded is not None:
+            tmp_padded.unlink(missing_ok=True)
         if tmp_project is not None:
             tmp_project.unlink(missing_ok=True)
+        if created_wav and not committed:
+            wav.unlink(missing_ok=True)
 
 
 if __name__ == "__main__":

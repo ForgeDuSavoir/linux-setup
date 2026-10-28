@@ -27,8 +27,7 @@ echo "==> Installing Thunar custom actions..."
 mkdir -p "${TARGET_UCA_DIR}"
 
 if [[ -f "${SOURCE_UCA}" ]]; then
-    cp "${SOURCE_UCA}" "${TARGET_UCA}"
-    echo "✓ Thunar custom actions installed."
+    python3 "${SCRIPT_DIR}/merge_uca.py" "${SOURCE_UCA}" "${TARGET_UCA}" || exit 1
 else
     echo "⚠ No uca.xml found, skipping custom actions."
 fi

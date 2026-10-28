@@ -17,8 +17,19 @@
 	<name>Concat mp4</name>
 	<submenu></submenu>
 	<unique-id>1779962885996697-1</unique-id>
-	<command>kitty bash -lc &apos;concat-mp4 &quot;$1&quot;; echo; read -rp &quot;Press Enter to close...&quot;&apos; _ %f</command>
+	<command>launch-terminal-command %f bash -lc &apos;concat-mp4 &quot;$1&quot;; status=$?; echo; read -rp &quot;Appuyer sur Entrée pour fermer...&quot;; exit &quot;$status&quot;&apos; _ %f</command>
 	<description>Merge all .mp4 files from this folder into a single file.</description>
+	<range>1</range>
+	<patterns>*</patterns>
+	<directories/>
+</action>
+<action>
+	<icon>ai.storyteller.photocraft</icon>
+	<name>Créer une miniature PhotoCraft</name>
+	<submenu></submenu>
+	<unique-id>1793116800000000-1</unique-id>
+	<command>launch-terminal-command %f bash -lc &apos;photocraft-thumbnail &quot;$1&quot;; status=$?; echo; read -rp &quot;Appuyer sur Entrée pour fermer...&quot;; exit &quot;$status&quot;&apos; _ %f</command>
+	<description>Créer miniature.pcraft à partir des deux images du dossier sélectionné.</description>
 	<range>1</range>
 	<patterns>*</patterns>
 	<directories/>

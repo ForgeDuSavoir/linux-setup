@@ -1,0 +1,58 @@
+#!/usr/bin/env python3
+"""Resolve a PhotoCraft document's portable Pi session ID."""
+
+import json
+import os
+import re
+import sys
+import uuid
+from pathlib import Path
+
+
+def fail(message):
+    raise SystemExit(f"photocraft-ai-session: {message}")
+
+
+def main():
+    if len(sys.argv) != 3:
+        fail("Usage: photocraft-ai-session <document.pcraft> <pi-working-directory>")
+    project = Path(sys.argv[1]).resolve(strict=True)
+    pi_dir = Path(sys.argv[2]).resolve(strict=True)
+    sidecar = project.with_name(f".{project.name}.pi-session")
+    sessions_dir = Path.home() / ".pi/agent/sessions" / (
+        "--" + str(pi_dir).lstrip("/").replace("/", "-").replace("\\", "-").replace(":", "-") + "--"
+    )
+    if sidecar.is_symlink():
+        fail(f"Unsafe session mapping: {sidecar}")
+    if sidecar.exists():
+        if not sidecar.is_file():
+            fail(f"Unsafe session mapping: {sidecar}")
+        session_id = sidecar.read_text(encoding="utf-8").strip()
+    else:
+        session_id = f"photocraft-{uuid.uuid4()}"
+        try:
+            fd = os.open(sidecar, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            with os.fdopen(fd, "w", encoding="utf-8") as output:
+                output.write(session_id + "\n")
+        except FileExistsError:
+            session_id = sidecar.read_text(encoding="utf-8").strip()
+
+    if not re.fullmatch(r"[a-zA-Z0-9](?:[a-zA-Z0-9._-]*[a-zA-Z0-9])?", session_id) or len(session_id) > 128:
+        fail(f"Invalid session ID in {sidecar}")
+    # A failed first launch leaves the sidecar but no Pi session: resend the
+    # introductory prompt on the next attempt. Only look in PhotoCraft Pi's cwd.
+    existing = False
+    for file in sessions_dir.glob(f"*_{session_id}.jsonl"):
+        try:
+            with file.open(encoding="utf-8") as stream:
+                header = json.loads(stream.readline())
+            if header.get("type") == "session" and header.get("id") == session_id and header.get("cwd") == str(pi_dir):
+                existing = True
+                break
+        except (OSError, ValueError):
+            continue
+    print(session_id, "existing" if existing else "new")
+
+
+if __name__ == "__main__":
+    main()

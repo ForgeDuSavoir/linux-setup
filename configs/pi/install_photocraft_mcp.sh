@@ -5,7 +5,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 AGENT_DIR="${HOME}/.pi/agent"
 MCP_CONFIG="${AGENT_DIR}/mcp.json"
-LAUNCHER="${HOME}/.local/bin/photocraft-ai"
+LAUNCHER="${HOME}/.local/bin/photocraft-live"
 WORKSPACE="${HOME}/Pictures/PhotoCraft-AI"
 STATE_DIR="${XDG_STATE_HOME:-${HOME}/.local/state}/photocraft"
 TOKEN_FILE="${STATE_DIR}/control.token"
@@ -22,7 +22,7 @@ chmod 700 "$STATE_DIR"
 if [[ -e "$TOKEN_FILE" ]]; then
     chmod 600 "$TOKEN_FILE"
 fi
-install -m 0755 "${SCRIPT_DIR}/launch_photocraft_ai.sh" "$LAUNCHER"
+install -m 0755 "${SCRIPT_DIR}/launch_photocraft_live.sh" "$LAUNCHER"
 SKILL_DIR="${HOME}/.agents/skills/photocraft"
 mkdir -p "$SKILL_DIR"
 install -m 0644 "${SCRIPT_DIR}/skills/photocraft/SKILL.md" "${SKILL_DIR}/SKILL.md"
@@ -50,7 +50,7 @@ config.mcpServers.photocraft_live = {
     command: 'photocraft-cli',
     args: ['mcp', '--bridge', '127.0.0.1:7878', '--control-token-file', tokenFile],
     enabled: false,
-    description: 'PhotoCraft live desktop session started with photocraft-ai'
+    description: 'PhotoCraft live desktop session started with photocraft-ai or photocraft-live'
 };
 const tmp = path.join(path.dirname(configPath), `.mcp.json.${process.pid}.tmp`);
 try {
@@ -63,4 +63,4 @@ NODE
 
 echo "✓ PhotoCraft MCP configured in $MCP_CONFIG (headless enabled; live bridge disabled)."
 echo "✓ PhotoCraft skill installed in $SKILL_DIR."
-echo "  Start a live session with photocraft-ai; enable photocraft_live in Pi's /mcp when needed."
+echo "  For an app-only controlled window, run photocraft-live and enable photocraft_live in Pi's /mcp."

@@ -1,0 +1,13 @@
+# PhotoCraft + Pi
+
+`install_photocraft_ai.sh` is called after `install_photocraft_mcp.sh` by `configs/install_configs.sh`. It installs `photocraft-ai [document.pcraft]`, the session helper, a dedicated Pi MCP override and `photocraft-ai.desktop` as the default for **only** `application/x-photocraft` (`.pcraft`). The native PhotoCraft entry remains available under **Open With**. Other image-format defaults are untouched. The existing headless `photocraft` MCP remains enabled for ordinary Pi sessions and confined to `~/Pictures/PhotoCraft-AI`; the separate `photocraft-live` command opens a controlled window without Pi.
+
+Double-click a `.pcraft` or run `photocraft-ai '/path with spaces/document.pcraft'`. Close any other PhotoCraft window first. The launcher starts PhotoCraft on localhost:7878 with a private token in `~/.local/state/photocraft/control.token` (0600) and opens Pi in Kitty from `~/.local/share/photocraft-ai`. Only there is `photocraft_live` enabled (and the headless server disabled). The live app limits automation file read/write to the opened document's directory, or `~/Pictures/PhotoCraft-AI` when opened without a document. Pi itself still has your normal user permissions: project trust and MCP automation roots are **not** a Pi filesystem sandbox. Do not expose or tunnel the control port. Close PhotoCraft to stop its bridge.
+
+Pi prompts for project trust on first use. Review `~/.local/share/photocraft-ai/.pi/mcp.json` and approve if it matches this setup. The skill starts with read-only inspection and guidance and asks before changes, saves or exports. `/mcp` can report a connected stdio bridge even after the window closes; verify the live window before trying UI tools.
+
+### Conversation per document
+
+The first assisted opening creates a Pi session; subsequent openings resume exactly that session with `pi --session-id` and do not send another initial prompt. The session ID is in a private hidden sidecar beside the document, `.<document.pcraft>.pi-session` (0600). Move this file with the document to retain the association after moving its folder. Actual conversation history remains in `~/.pi/agent/sessions/` and will not follow to another computer automatically. Copying a document *with* its sidecar deliberately shares its session; for an independent conversation, replace the copied sidecar with a new `photocraft-<UUID>` ID. `/new` inside Pi does not change the association. If the first Pi launch fails before creating a session, reopening retries the initial prompt.
+
+Check the association with `gio mime application/x-photocraft` and `gio info -a standard::content-type document.pcraft`. Test real GUI inspection after double-click before claiming that the live workflow works end-to-end.
