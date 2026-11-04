@@ -156,6 +156,15 @@ hl.animation({
     bezier = "wind",
     style = "slide", -- Baseline restored after a vertical row transition.
 })
+
+-- Session and global scratchpads are special workspaces, not ordinary rows.
+hl.animation({
+    leaf = "specialWorkspace",
+    enabled = true,
+    speed = 6,
+    bezier = "default",
+    style = "fade",
+})
 -- Ref https://wiki.hypr.land/Configuring/Basics/Workspace-Rules/
 -- "Smart gaps" / "No gaps when only"
 -- uncomment all if you wish to use that.
