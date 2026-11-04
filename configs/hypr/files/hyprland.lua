@@ -68,6 +68,16 @@ require("inputs")
 package.loaded["keybinds"] = nil
 require("keybinds")
 
+-- React to windows closed by either SUPER+Q or the application itself.
+-- Keep shell process work out of the compositor event callback.
+_G.__workflow_window_close_subscription = hl.on("window.close", function(window)
+    local workspace = window and window.workspace
+    local id = workspace and workspace.id
+    if type(id) == "number" and id > 0 then
+        hl.dispatch(hl.dsp.exec_cmd(os.getenv("HOME") .. "/.config/hypr/Scripts/workspace-columns.py closed " .. tostring(id)))
+    end
+end)
+
 --------------------------------
 ---- WINDOWS AND WORKSPACES ----
 --------------------------------

@@ -154,6 +154,7 @@ hl.animation({
     enabled = true,
     speed = 5,
     bezier = "wind",
+    style = "slide", -- Baseline restored after a vertical row transition.
 })
 -- Ref https://wiki.hypr.land/Configuring/Basics/Workspace-Rules/
 -- "Smart gaps" / "No gaps when only"

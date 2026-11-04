@@ -5,11 +5,11 @@ local mainMod = "SUPER"
 local terminal = "kitty"
 local editor = "mousepad"
 local browser = "firefox"
+local hyprScripts = os.getenv("HOME") .. "/.config/hypr/Scripts"
 
 -- Applications
 
 hl.bind(mainMod .. " + RETURN", hl.dsp.exec_cmd(terminal))
-hl.bind(mainMod .. " + Y", hl.dsp.exec_cmd([[bash -lc 'exec "$HOME/.local/bin/launch-terminal-command" "$HOME" launch-yazi']]))
 hl.bind(mainMod .. " + P", hl.dsp.exec_cmd([[bash -lc 'exec "$HOME/.local/bin/agora-project-launcher"']]))
 hl.bind(mainMod .. " + B", hl.dsp.exec_cmd(browser))
 
@@ -28,22 +28,20 @@ hl.bind(mainMod .. " + H", hl.dsp.exec_cmd("quickshell ipc call keybinds toggle"
 -- Window Management
 
 hl.bind(mainMod .. " + Q", hl.dsp.window.close())
-hl.bind(mainMod .. " + W", hl.dsp.window.float({ action = "toggle" }))
 hl.bind(mainMod .. " + F", hl.dsp.window.fullscreen())
 
-hl.bind(mainMod .. " + TAB", hl.dsp.focus({ workspace = "m+1" }))
-hl.bind(mainMod .. " + SHIFT + TAB", hl.dsp.focus({ workspace = "m-1" }))
+hl.bind(mainMod .. " + TAB", hl.dsp.exec_cmd(hyprScripts .. "/workspace-columns.py cycle"))
+hl.bind(mainMod .. " + SHIFT + TAB", hl.dsp.exec_cmd(hyprScripts .. "/workspace-columns.py move-next"))
 
 hl.bind(mainMod .. " + LEFT", hl.dsp.focus({ direction = "left" }))
 hl.bind(mainMod .. " + RIGHT", hl.dsp.focus({ direction = "right" }))
 hl.bind(mainMod .. " + UP", hl.dsp.focus({ direction = "up" }))
 hl.bind(mainMod .. " + DOWN", hl.dsp.focus({ direction = "down" }))
 
-hl.bind(mainMod .. " + Z", hl.dsp.layout("focus previous"))
-hl.bind(mainMod .. " + X", hl.dsp.layout("focus next"))
-
-hl.bind(mainMod .. " + SHIFT + Z", hl.dsp.layout("move previous"))
-hl.bind(mainMod .. " + SHIFT + X", hl.dsp.layout("move next"))
+hl.bind(mainMod .. " + SHIFT + LEFT", hl.dsp.layout("move previous"))
+hl.bind(mainMod .. " + SHIFT + UP", hl.dsp.layout("move previous"))
+hl.bind(mainMod .. " + SHIFT + RIGHT", hl.dsp.layout("move next"))
+hl.bind(mainMod .. " + SHIFT + DOWN", hl.dsp.layout("move next"))
 
 hl.bind(mainMod .. " + C", hl.dsp.layout("toggle dimension"))
 
@@ -59,17 +57,6 @@ hl.bind("ALT + TAB", hl.dsp.exec_cmd("hyprctl dispatch cyclenext"))
 --hl.bind(mainMod .. " + SHIFT + LEFT", hl.dsp.window.resize({ x = -30, y = 0 }))
 --hl.bind(mainMod .. " + SHIFT + UP", hl.dsp.window.resize({ x = 0, y = -30 }))
 --hl.bind(mainMod .. " + SHIFT + DOWN", hl.dsp.window.resize({ x = 0, y = 30 }))
-
-local moveActiveWindow = [[
-grep -q "true" <<< "$(hyprctl activewindow -j | jq -r .floating)" \
-&& hyprctl dispatch moveactive
-]]
-
-hl.bind(mainMod .. " + SHIFT + CONTROL + LEFT", hl.dsp.exec_cmd(moveActiveWindow .. " -30 0 || hyprctl dispatch movewindow l"))
-hl.bind(mainMod .. " + SHIFT + CONTROL + RIGHT", hl.dsp.exec_cmd(moveActiveWindow .. " 30 0 || hyprctl dispatch movewindow r"))
-hl.bind(mainMod .. " + SHIFT + CONTROL + UP", hl.dsp.exec_cmd(moveActiveWindow .. " 0 -30 || hyprctl dispatch movewindow u"))
-hl.bind(mainMod .. " + SHIFT + CONTROL + DOWN", hl.dsp.exec_cmd(moveActiveWindow .. " 0 30 || hyprctl dispatch movewindow d"))
-
 
 hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag(), { mouse = true })
 hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true })
@@ -95,30 +82,19 @@ hl.bind(mainMod .. " + Backslash", hl.dsp.layout("toggle_expand"))
 hl.bind(mainMod .. " + BRACKETRIGHT", hl.dsp.layout("next"))
 hl.bind(mainMod .. " + BRACKETLEFT", hl.dsp.layout("prev"))
 
--- Workspaces
+-- Workspaces and scratchpads
 
-hl.bind(mainMod .. " + S", hl.dsp.workspace.toggle_special(""))
-hl.bind(mainMod .. " + SHIFT + S", hl.dsp.window.move({ workspace = "special" }))
+hl.bind(mainMod .. " + G", hl.dsp.exec_cmd(hyprScripts .. "/scratchpad.sh toggle global"))
+hl.bind(mainMod .. " + SHIFT + G", hl.dsp.exec_cmd(hyprScripts .. "/scratchpad.sh move global"))
 
-hl.bind(mainMod .. " + A", hl.dsp.workspace.toggle_special("global"))
-hl.bind(mainMod .. " + SHIFT + A", hl.dsp.window.move({ workspace = "special:global" }))
+hl.bind(mainMod .. " + S", hl.dsp.exec_cmd(hyprScripts .. "/workspace-columns.py toggle-row"))
+hl.bind(mainMod .. " + SHIFT + S", hl.dsp.exec_cmd(hyprScripts .. "/workspace-columns.py move-row"))
 
-for i = 1, 10 do
-    local key = i % 10
-
-    hl.bind(mainMod .. " + " .. key, hl.dsp.focus({ workspace = i }))
-    hl.bind(mainMod .. " + SHIFT + " .. key, hl.dsp.window.move({ workspace = i }))
+-- Five session scratchpads.
+for slot = 1, 5 do
+    hl.bind(mainMod .. " + " .. slot, hl.dsp.exec_cmd(hyprScripts .. "/scratchpad.sh toggle " .. slot))
+    hl.bind(mainMod .. " + SHIFT + " .. slot, hl.dsp.exec_cmd(hyprScripts .. "/scratchpad.sh move " .. slot))
 end
-
-hl.bind(mainMod .. " + CONTROL + RIGHT", hl.dsp.focus({ workspace = "r+1" }))
-hl.bind(mainMod .. " + CONTROL + LEFT", hl.dsp.focus({ workspace = "r-1" }))
-hl.bind(mainMod .. " + CONTROL + DOWN", hl.dsp.focus({ workspace = "empty" }))
-
-hl.bind(mainMod .. " + mouse_down", hl.dsp.focus({ workspace = "e+1" }))
-hl.bind(mainMod .. " + mouse_up", hl.dsp.focus({ workspace = "e-1" }))
-
-hl.bind(mainMod .. " + CONTROL + ALT + RIGHT", hl.dsp.window.move({ workspace = "r+1" }))
-hl.bind(mainMod .. " + CONTROL + ALT + LEFT", hl.dsp.window.move({ workspace = "r-1" }))
 
 -- Hardware Controls
 

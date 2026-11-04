@@ -16,6 +16,69 @@ Scope {
         id: notificationService
     }
 
+    property var workspaceRows: []
+    property int focusedWorkspaceId: 0
+
+    function refreshWorkspaces() {
+        if (!workspaceListProcess.running)
+            workspaceListProcess.running = true;
+    }
+
+    Process {
+        id: workspaceListProcess
+        // Both the list and active ID must come from Hyprland. The Quickshell
+        // workspace objects can retain their old ID after change_id.
+        command: ["bash", "-c", "hyprctl -j workspaces | jq -c . && hyprctl -j activeworkspace | jq -c ."]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    const lines = text.trim().split("\n");
+                    if (lines.length !== 2)
+                        return;
+                    const occupiedColumns = {};
+                    for (const workspace of JSON.parse(lines[0])) {
+                        if (workspace.id > 0 && workspace.windows > 0) {
+                            const column = Math.ceil(workspace.id / 2);
+                            occupiedColumns[column] = { id: column, name: String(column) };
+                        }
+                    }
+                    root.workspaceRows = Object.values(occupiedColumns).sort((a, b) => a.id - b.id);
+                    const activeId = JSON.parse(lines[1]).id;
+                    root.focusedWorkspaceId = activeId > 0 ? Math.ceil(activeId / 2) : 0;
+                } catch (error) {
+                    console.warn("Unable to refresh Hyprland workspaces:", error);
+                }
+            }
+        }
+    }
+
+    Process {
+        id: workspaceFocusProcess
+        property int workspaceId: 0
+        command: ["python3", Quickshell.env("HOME") + "/.config/hypr/Scripts/workspace-columns.py", "focus-column", String(workspaceId)]
+    }
+
+    Connections {
+        target: Hyprland
+        function onRawEvent(event) { workspaceRefreshTimer.restart(); }
+    }
+
+    Timer {
+        id: workspaceRefreshTimer
+        interval: 100
+        onTriggered: root.refreshWorkspaces()
+    }
+
+    // Fallback for ID changes which Hyprland does not announce on socket2.
+    Timer {
+        interval: 2000
+        running: true
+        repeat: true
+        onTriggered: root.refreshWorkspaces()
+    }
+
+    Component.onCompleted: refreshWorkspaces()
+
     property bool controlCenterVisible: false
     property bool notificationHistoryVisible: false
     property bool keybindsVisible: false
@@ -46,7 +109,6 @@ Scope {
     ]
     readonly property var keybindRows: [
         ["SUPER+Enter", "Terminal"],
-        ["SUPER+Y", "Yazi home"],
         ["SUPER+U", "Scrolling layout"],
         ["SUPER+I", "Fit Scroller layout"],
         ["SUPER+P", "Projects"],
@@ -56,12 +118,13 @@ Scope {
         ["SUPER+H", "Keybinds"],
         ["SUPER+L", "Lock screen"],
         ["SUPER+Q", "Close window"],
-        ["SUPER+W", "Toggle floating"],
         ["SUPER+F", "Fullscreen"],
         ["SUPER+Tab", "Next workspace"],
-        ["SUPER+Shift+Tab", "Previous workspace"],
-        ["SUPER+1..0", "Focus workspace"],
-        ["SUPER+Shift+1..0", "Move window to workspace"],
+        ["SUPER+Shift+Tab", "Move window to next workspace"],
+        ["SUPER+G / Shift+G", "Global scratchpad / move window"],
+        ["SUPER+S / Shift+S", "Alternate row / move window to other row"],
+        ["SUPER+1..5", "Session scratchpads"],
+        ["SUPER+Shift+1..5", "Move window to/from session scratchpad"],
         ["Print", "Region screenshot"],
         ["Shift+Print", "Window screenshot"],
         ["Ctrl+Print", "Full screenshot"]
@@ -609,23 +672,23 @@ Scope {
                         spacing: 6
 
                         Repeater {
-                            model: Hyprland.workspaces
+                            model: root.workspaceRows
 
                             delegate: Rectangle {
                                 required property var modelData
+                                readonly property bool focused: root.focusedWorkspaceId === modelData.id
 
                                 width: Math.max(28, workspaceLabel.implicitWidth + 14)
                                 height: 22
                                 radius: 4
-                                color: modelData.focused ? "#3d5a80" : workspaceMouseArea.containsMouse ? "#2a3140" : "#1b202a"
-                                border.color: modelData.urgent ? "#d66b6b" : modelData.active ? "#6f7f95" : "transparent"
-                                border.width: modelData.urgent || modelData.active ? 1 : 0
+                                color: focused ? "#3d5a80" : workspaceMouseArea.containsMouse ? "#2a3140" : "#1b202a"
+                                border.color: "transparent"
 
                                 Text {
                                     id: workspaceLabel
 
                                     anchors.centerIn: parent
-                                    color: modelData.focused ? "#ffffff" : "#b9c0cc"
+                                    color: parent.focused ? "#ffffff" : "#b9c0cc"
                                     font.pixelSize: 12
                                     text: modelData.name
                                 }
@@ -635,7 +698,12 @@ Scope {
 
                                     anchors.fill: parent
                                     hoverEnabled: true
-                                    onClicked: modelData.activate()
+                                    onClicked: {
+                                        if (!workspaceFocusProcess.running) {
+                                            workspaceFocusProcess.workspaceId = modelData.id;
+                                            workspaceFocusProcess.running = true;
+                                        }
+                                    }
                                 }
                             }
                         }
