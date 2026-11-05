@@ -100,8 +100,20 @@ def occupied():
     return {w["id"]: w["windows"] for w in query("workspaces") if w["id"] > 0 and w["windows"] > 0}
 
 
-def occupied_columns():
-    return sorted({column_of(w) for w in occupied()})
+def occupied_columns(state=None, owner=None):
+    columns = sorted({column_of(w) for w in occupied()})
+    if state is not None and owner is not None:
+        return [col for col in columns if state.get("owners", {}).get(str(col), "neutral") == owner]
+    return columns
+
+
+def owner_of(state, col):
+    return state.get("owners", {}).get(str(col), "neutral")
+
+
+def current_owner(state):
+    ws = active()
+    return owner_of(state, column_of(ws)) if ws > 0 else "neutral"
 
 
 def save(state):
@@ -145,12 +157,27 @@ def load():
     state = json.loads(STATE.read_text())
     if state.get("version") != 2:
         raise RuntimeError("unsupported workspace state; refusing to alter windows")
+    # Existing columns and historical scratchpads belong to the neutral context.
+    # This metadata upgrade only records ownership; it does not dispatch to Hyprland.
+    if "owners" not in state:
+        cols = set(occupied_columns())
+        if active() > 0:
+            cols.add(column_of(active()))
+        state["owners"] = {str(col): "neutral" for col in sorted(cols)}
+        save(state)
     return state
 
 
 def compact(state, order=None):
     """Renumber occupied columns without ever assigning an occupied ID."""
     columns = occupied_columns()
+    # A registered empty session column must not be reused while that session is open.
+    # Preserve unknown, externally focused empty columns as neutral rather than
+    # silently assigning their ID to another session during compaction.
+    reserved = {int(c) for c in state.get("owners", {})}
+    if "owners" in state:
+        reserved |= {column_of(w["id"]) for w in query("workspaces") if w["id"] > 0}
+    columns = sorted(set(columns) | reserved)
     order = [c for c in (order or columns) if c in columns]
     order += [c for c in columns if c not in order]
     existing = {w["id"] for w in query("workspaces") if w["id"] > 0}
@@ -176,6 +203,13 @@ def compact(state, order=None):
                 rename(ws)
     previous_last = state["last"]
     state["last"] = {str(index): previous_last.get(str(col), 1) for index, col in enumerate(order, 1)}
+    if "owners" in state:
+        previous_owners = state["owners"]
+        state["owners"] = {str(index): previous_owners.get(str(col), "neutral")
+                           for index, col in enumerate(order, 1)}
+    if "preferred" in state:
+        state["preferred"] = {owner: order.index(col) + 1 for owner, col in state["preferred"].items()
+                              if col in order}
     previous_origins = state["origins"]
     state["origins"] = {addr: order.index(col) + 1 for addr, col in previous_origins.items() if col in order}
     save(state)
@@ -188,7 +222,7 @@ def active():
 
 def cycle(state):
     current = column_of(active())
-    cols = occupied_columns()
+    cols = occupied_columns(state, current_owner(state))
     if not cols:
         return
     next_col = next((col for col in cols if col > current), cols[0])
@@ -230,7 +264,7 @@ def move_next(state):
     # line has only one window, but the column is not empty after isolation.
     count = sum(c["workspace"]["id"] > 0 and column_of(c["workspace"]["id"]) == col for c in clients)
     if count > 1:
-        order = occupied_columns()
+        order = sorted(set(occupied_columns()) | {int(c) for c in state.get("owners", {})})
         temp_col = max([*order, col]) + len(order) + 2
         move(workspace_id(temp_col, row))
         # If the source line is now empty, its column should reopen on the
@@ -239,10 +273,12 @@ def move_next(state):
             state["last"][str(col)] = 3 - row
         order.insert(order.index(col) + 1, temp_col)
         state["last"][str(temp_col)] = row
+        if "owners" in state:
+            state["owners"][str(temp_col)] = owner_of(state, col)
         state["origins"][address] = col
         compact(state, order)
         return
-    cols = occupied_columns()
+    cols = occupied_columns(state, owner_of(state, col))
     origin = state["origins"].get(address, col)
     targets = [c for c in cols if c != col]
     if not targets:
@@ -273,13 +309,16 @@ def closed(state, closed_ws):
             state["last"][str(col)] = 3 - row
         save(state)
         return
-    cols = occupied_columns()
+    cols = occupied_columns(state, owner_of(state, col))
     if active() == closed_ws and cols:
         target = next((c for c in reversed(cols) if c < col), None)
         target = target if target is not None else next((c for c in cols if c > col), None)
         if target:
             focus(workspace_id(target, state["last"].get(str(target), 1)))
-    if cols:
+    if "owners" in state and any(owner_of(state, c) == owner_of(state, col)
+                                  for c in occupied_columns() if c != col):
+        state["owners"].pop(str(col), None)
+    if occupied_columns() or state.get("owners"):
         compact(state)
     else:
         save(state)
@@ -303,7 +342,7 @@ def main():
             closed(state, int(sys.argv[2]))
         elif command == "focus-column" and len(sys.argv) == 3:
             col = int(sys.argv[2])
-            if col in occupied_columns():
+            if col in occupied_columns(state, current_owner(state)):
                 focus(workspace_id(col, state["last"].get(str(col), 1)))
         elif command == "migrate":
             pass  # load() performed the one-time migration.

@@ -20,6 +20,8 @@ hl.bind(mainMod .. " + V", hl.dsp.exec_cmd([[bash -lc 'exec "$HOME/.local/bin/cl
 -- Shell
 
 hl.bind(mainMod .. " + D", hl.dsp.exec_cmd([[bash -lc 'exec rofi -show drun -theme "$HOME/.config/rofi/project-launcher.rasi" -display-drun ""']]))
+hl.bind(mainMod .. " + A", hl.dsp.exec_cmd([[bash -lc 'exec "$HOME/.local/bin/session-app-launcher"']]))
+hl.bind(mainMod .. " + ESCAPE", hl.dsp.exec_cmd("quickshell ipc call sessions toggle"))
 hl.bind(mainMod .. " + L", hl.dsp.exec_cmd("hyprlock"))
 hl.bind(mainMod .. " + O", hl.dsp.exec_cmd("quickshell ipc call controlCenter toggle"))
 hl.bind(mainMod .. " + H", hl.dsp.exec_cmd("quickshell ipc call keybinds toggle"))

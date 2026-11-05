@@ -16,6 +16,10 @@ Scope {
         id: notificationService
     }
 
+    SessionMenu {
+        id: sessionMenu
+    }
+
     property var workspaceRows: []
     property int focusedWorkspaceId: 0
 
@@ -112,7 +116,9 @@ Scope {
         ["SUPER+U", "Scrolling layout"],
         ["SUPER+I", "Fit Scroller layout"],
         ["SUPER+P", "Projects"],
-        ["SUPER+D", "Applications"],
+        ["SUPER+D", "Applications (system)"],
+        ["SUPER+A", "Applications (current session)"],
+        ["SUPER+Esc", "Sessions"],
         ["SUPER+B", "Browser"],
         ["SUPER+O", "Control center"],
         ["SUPER+H", "Keybinds"],
@@ -664,7 +670,7 @@ Scope {
 
                         color: "#e7e7e7"
                         font.pixelSize: 13
-                        text: "Session: default"
+                        text: "Session: " + sessionMenu.activeName
                     }
 
                     Row {

@@ -6,3 +6,4 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 "$SCRIPT_DIR/obsidian/install_obsidian.sh"
 "$SCRIPT_DIR/todoist/install_todoist.sh"
+"$SCRIPT_DIR/session-manager/install_session_manager.sh"

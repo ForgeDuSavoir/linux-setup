@@ -14,6 +14,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 "$SCRIPT_DIR/quickshell/install_quickshell_config.sh"
 "$SCRIPT_DIR/quickshell/install_notification_server.sh"
 "$SCRIPT_DIR/rofi/install_rofi_config.sh"
+if [[ -d "${SESSION_MANAGER_PROJECT_SOURCE:-${HOME}/Obsidian/Agora/2 Projects}" ]]; then
+    "$SCRIPT_DIR/session-manager/configure_session_manager.sh"
+else
+    echo '⚠ Session Manager configuration skipped: Agora projects directory is absent.'
+fi
 "$SCRIPT_DIR/starship/install_starship_config.sh"
 "$SCRIPT_DIR/text-tools/install_text_tools_config.sh"
 "$SCRIPT_DIR/neovim/install_neovim_config.sh"

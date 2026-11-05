@@ -1,0 +1,238 @@
+diff --git a/src/application.rs b/src/application.rs
+index dd9d967..4f20aa3 100644
+--- a/src/application.rs
++++ b/src/application.rs
+@@ -56,6 +56,11 @@ pub struct StopMutation {
+     pub stopped_session_id: Uuid,
+ }
+ #[derive(Debug, Clone, Serialize)]
++pub struct DeactivateMutation {
++    pub revision: u64,
++    pub active_session_id: Option<Uuid>,
++}
++#[derive(Debug, Clone, Serialize)]
+ pub struct SessionList {
+     pub revision: u64,
+     pub active_session_id: Option<Uuid>,
+@@ -265,6 +270,28 @@ impl<U: UuidGenerator> Core<U> {
+             session: view(state, &session),
+         })
+     }
++    /// Clear the active role without stopping any running session.
++    /// Repeating this operation while already neutral does not commit a revision.
++    pub fn deactivate(&self) -> Result<DeactivateMutation> {
++        let mut inner = self.lock()?;
++        let mut next = inner
++            .state
++            .clone()
++            .ok_or(Error("recovery.invalid_runtime"))?;
++        if next.active_session_id.is_some() {
++            next.active_session_id = None;
++            next.next_revision()?;
++            commit(&mut inner, next, &mut NoFault)?;
++        }
++        let state = inner
++            .state
++            .as_ref()
++            .ok_or(Error("recovery.invalid_runtime"))?;
++        Ok(DeactivateMutation {
++            revision: state.revision,
++            active_session_id: state.active_session_id,
++        })
++    }
+     pub fn stop(&self, id: Uuid) -> Result<()> {
+         self.stop_with_faults(id, &mut NoFault)
+     }
+diff --git a/src/c1_tests.rs b/src/c1_tests.rs
+index dd1f8ea..82e7a5e 100644
+--- a/src/c1_tests.rs
++++ b/src/c1_tests.rs
+@@ -576,6 +576,7 @@ fn switching_active_is_a_noop_and_revision_exhaustion_is_atomic() {
+     f.persist(&state);
+     let c = f.core();
+     c.switch(s.id).unwrap();
++    code(c.deactivate(), "limit.exceeded");
+     code(c.stop(s.id), "limit.exceeded");
+     code(c.start("P"), "limit.exceeded");
+     assert_eq!(
+diff --git a/src/c3_tests.rs b/src/c3_tests.rs
+index 0d81e9e..d90bfce 100644
+--- a/src/c3_tests.rs
++++ b/src/c3_tests.rs
+@@ -188,6 +188,82 @@ fn api_full_flow_restart_fallback_and_cli_compatible_results() {
+     );
+ }
+ 
++#[test]
++fn deactivate_preserves_sessions_and_installed_only_apps_across_restart() {
++    let f = Fixture::new();
++    fs::create_dir(f.source.join("P")).unwrap();
++    let running = f.running();
++    let idle = f.call(&Command::Deactivate);
++    assert_eq!(
++        idle,
++        serde_json::json!({"revision":0,"active_session_id":null})
++    );
++    let a = f.call(&start("P"));
++    let a_id = Uuid::parse_str(a["session"]["id"].as_str().unwrap()).unwrap();
++    let b = f.call(&start("P"));
++    let b_id = Uuid::parse_str(b["session"]["id"].as_str().unwrap()).unwrap();
++    fs::create_dir_all(f.source.join("P/.session-manager/apps")).unwrap();
++    fs::write(
++        f.source.join("P/.session-manager/apps/a.desktop"),
++        "[Desktop Entry]\nType=Application\nName=Project\nExec=never-executed\n",
++    )
++    .unwrap();
++    assert_eq!(
++        f.call(&Command::Applications)["applications"][0]["name"],
++        "Project"
++    );
++    let neutral = f.call(&Command::Deactivate);
++    assert_eq!(
++        neutral,
++        serde_json::json!({"revision":3,"active_session_id":null})
++    );
++    assert_eq!(f.call(&Command::Deactivate), neutral);
++    assert_eq!(
++        f.call(&Command::Applications)["applications"][0]["name"],
++        "Installed"
++    );
++    let sessions = f.call(&Command::Sessions);
++    assert_eq!(sessions["sessions"].as_array().unwrap().len(), 2);
++    assert!(
++        sessions["sessions"]
++            .as_array()
++            .unwrap()
++            .iter()
++            .all(|s| s["active"] == false)
++    );
++    drop(running);
++    let _running = f.running();
++    assert_eq!(
++        f.call(&Command::Sessions)["active_session_id"],
++        serde_json::Value::Null
++    );
++    assert_eq!(
++        f.call(&Command::Switch { session_id: a_id })["session"]["active"],
++        true
++    );
++    assert_eq!(
++        f.call(&Command::Applications)["applications"][0]["name"],
++        "Project"
++    );
++    f.call(&Command::Stop { session_id: b_id });
++    assert_eq!(
++        f.call(&Command::Sessions)["active_session_id"],
++        a_id.to_string()
++    );
++    let bad = serde_json::json!({"protocol_version":2,"request_id":Uuid::nil(),
++        "method":"session.deactivate","params":{"session_id":a_id}});
++    let mut conn = UnixStream::connect(f.locations.runtime.join("ipc-v2.sock")).unwrap();
++    conn.write_all(&canonical_json::encode_line(&bad).unwrap())
++        .unwrap();
++    let mut reply = String::new();
++    conn.read_to_string(&mut reply).unwrap();
++    assert_eq!(
++        serde_json::from_str::<serde_json::Value>(&reply).unwrap()["error"]["code"],
++        "validation.invalid_request"
++    );
++    assert_eq!(f.call(&Command::Sessions)["revision"], 5);
++}
++
+ #[test]
+ fn strict_requests_reject_unknown_fields_types_versions_and_duplicate_keys_without_mutation() {
+     let f = Fixture::new();
+@@ -491,6 +567,7 @@ fn cli_grammar_matches_the_closed_inventory_and_escapes_names_as_data() {
+     for args in [
+         vec!["project", "list", "--json"],
+         vec!["--json", "session", "start", "Name With Spaces"],
++        vec!["session", "deactivate", "--json"],
+         vec![
+             "project",
+             "create",
+@@ -509,6 +586,7 @@ fn cli_grammar_matches_the_closed_inventory_and_escapes_names_as_data() {
+     for args in [
+         vec!["daemon", "--json"],
+         vec!["session", "pause", "x"],
++        vec!["session", "deactivate", "unexpected"],
+         vec!["project", "create", "--base-name", "A"],
+         vec!["project", "list", "extra"],
+         vec!["session", "stop", "not-a-uuid"],
+diff --git a/src/cli.rs b/src/cli.rs
+index 3ace0ab..8a7f513 100644
+--- a/src/cli.rs
++++ b/src/cli.rs
+@@ -19,7 +19,7 @@ use std::{
+     },
+ };
+ 
+-pub const HELP: &str = "Session Manager (protocol 2)\n\nUsage: session-manager [--json] COMMAND\n  daemon\n  project list\n  project create --base-name NAME --template NAME\n  template list\n  session list\n  session start NAME\n  session switch UUID\n  session stop UUID\n  application list\n  --help | --version\n\n--json prints the exact API result or error object. It may also follow an API command.\nStart/switch/stop change logical state only; no applications are executed or closed.\n";
++pub const HELP: &str = "Session Manager (protocol 2)\n\nUsage: session-manager [--json] COMMAND\n  daemon\n  project list\n  project create --base-name NAME --template NAME\n  template list\n  session list\n  session start NAME\n  session switch UUID\n  session deactivate\n  session stop UUID\n  application list\n  --help | --version\n\n--json prints the exact API result or error object. It may also follow an API command.\nStart/switch/deactivate/stop change logical state only; no applications are executed or closed.\n";
+ #[derive(Debug, PartialEq, Eq)]
+ pub enum Action {
+     Help,
+@@ -75,6 +75,7 @@ pub fn parse(args: &[String]) -> Result<Invocation> {
+                 ("project", "list", []) => Command::Projects,
+                 ("template", "list", []) => Command::Templates,
+                 ("session", "list", []) => Command::Sessions,
++                ("session", "deactivate", []) => Command::Deactivate,
+                 ("application", "list", []) => Command::Applications,
+                 ("session", "start", [name]) => Command::Start {
+                     project_name: name.clone(),
+diff --git a/src/interface.rs b/src/interface.rs
+index f6e4726..956f4a2 100644
+--- a/src/interface.rs
++++ b/src/interface.rs
+@@ -95,6 +95,7 @@ pub enum Command {
+     Switch {
+         session_id: Uuid,
+     },
++    Deactivate,
+     Stop {
+         session_id: Uuid,
+     },
+@@ -104,7 +105,11 @@ impl Command {
+     pub fn mutates(&self) -> bool {
+         matches!(
+             self,
+-            Self::Create { .. } | Self::Start { .. } | Self::Switch { .. } | Self::Stop { .. }
++            Self::Create { .. }
++                | Self::Start { .. }
++                | Self::Switch { .. }
++                | Self::Deactivate
++                | Self::Stop { .. }
+         )
+     }
+     pub fn request(&self, request_id: Uuid) -> Value {
+@@ -127,6 +132,7 @@ impl Command {
+                 "session.switch",
+                 serde_json::json!({"session_id":session_id}),
+             ),
++            Self::Deactivate => ("session.deactivate", serde_json::json!({})),
+             Self::Stop { session_id } => {
+                 ("session.stop", serde_json::json!({"session_id":session_id}))
+             }
+@@ -175,12 +181,14 @@ fn decode(value: Value) -> Result<(Uuid, Command)> {
+         return Err(Error("validation.invalid_request"));
+     }
+     let command = match e.method.as_str() {
+-        "project.list" | "template.list" | "session.list" | "application.list" => {
++        "project.list" | "template.list" | "session.list" | "session.deactivate"
++        | "application.list" => {
+             params::<Empty>(e.params)?;
+             match e.method.as_str() {
+                 "project.list" => Command::Projects,
+                 "template.list" => Command::Templates,
+                 "session.list" => Command::Sessions,
++                "session.deactivate" => Command::Deactivate,
+                 _ => Command::Applications,
+             }
+         }
+@@ -267,6 +275,7 @@ impl Service {
+             Command::Start { project_name } => to_value(self.core.start_result(&project_name)?)?,
+             Command::Switch { session_id } => to_value(self.core.switch_result(session_id)?)?,
+             Command::Stop { session_id } => to_value(self.core.stop_result(session_id)?)?,
++            Command::Deactivate => to_value(self.core.deactivate()?)?,
+             Command::Applications => to_value(self.core.applications(&self.resolver)?)?,
+         };
+         Ok(value)

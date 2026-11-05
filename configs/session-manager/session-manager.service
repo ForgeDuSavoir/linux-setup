@@ -1,0 +1,12 @@
+[Unit]
+Description=Session Manager (logical work contexts)
+Documentation=https://github.com/ForgeDuSavoir/session-manager/blob/main/docs/usage.md
+
+[Service]
+Type=simple
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+Environment=XDG_CURRENT_DESKTOP=Hyprland
+ExecStart=%h/.local/bin/session-manager daemon
+
+[Install]
+WantedBy=default.target

@@ -84,6 +84,10 @@ with tempfile.TemporaryDirectory() as directory:
     module.migrate()
     assert {c["address"]: c["workspace"]["id"] for c in desktop.clients} == {"a": 1, "b": 3, "c": 4}
     assert desktop.active == 3
+    before_upgrade = list(desktop.transitions)
+    upgraded = module.load()
+    assert upgraded["owners"] == {"1": "neutral", "2": "neutral"}
+    assert desktop.transitions == before_upgrade  # metadata upgrade cannot dispatch
 
     # Empty row persists logically, and each column retains its own row.
     module.toggle_row(state)
@@ -144,6 +148,49 @@ with tempfile.TemporaryDirectory() as directory:
     desktop.clients = [c for c in desktop.clients if c["address"] != "c"]
     module.closed(state, 4)
     assert {c["address"]: c["workspace"]["id"] for c in desktop.clients} == {"a": 1, "d": 3}
+    assert desktop.active == 1
+
+# Navigation and insertion never target another session's column.
+with tempfile.TemporaryDirectory() as directory:
+    desktop = Desktop([client("neutral", 1), client("session-a", 3), client("session-b", 3)], 3)
+    desktop.focused = "session-b"
+    state = setup(desktop, Path(directory))
+    state["owners"] = {"1": "neutral", "2": "session-uuid"}
+    state["preferred"] = {"session-uuid": 2}
+    module.cycle(state)
+    assert desktop.active == 3
+    desktop.focused = "session-b"
+    module.move_next(state)
+    assert desktop.clients[0]["workspace"]["id"] == 1
+    assert state["owners"] == {"1": "neutral", "2": "session-uuid", "3": "session-uuid"}
+    assert state["preferred"]["session-uuid"] == 2
+    assert desktop.clients[2]["workspace"]["id"] == 5
+    module.cycle(state)
+    assert desktop.active == 3
+    # A lone session window cannot be merged into the neutral column.
+    desktop.focused = "session-b"
+    module.move_next(state)
+    assert desktop.clients[2]["workspace"]["id"] == 3
+    assert desktop.clients[0]["workspace"]["id"] == 1
+    # Last session window closes: never fall back to occupied neutral windows.
+    desktop.clients = [c for c in desktop.clients if c["address"] == "neutral"]
+    desktop.active = 3
+    module.closed(state, 3)
+    assert desktop.active == 3
+    assert "session-uuid" in state["owners"].values()
+
+with tempfile.TemporaryDirectory() as directory:
+    desktop = Desktop([client("neutral", 1), client("session-a", 3), client("session-b", 5)], 1)
+    state = setup(desktop, Path(directory))
+    state["owners"] = {"1": "neutral", "2": "session-uuid", "3": "session-uuid"}
+    state["preferred"] = {"neutral": 1, "session-uuid": 3}
+    desktop.clients = [c for c in desktop.clients if c["address"] != "session-a"]
+    desktop.ws.remove(3)  # Hyprland discards an unfocused, now-empty workspace.
+    module.closed(state, 3)
+    assert {c["address"]: c["workspace"]["id"] for c in desktop.clients} == {
+        "neutral": 1, "session-b": 3}
+    assert state["owners"] == {"1": "neutral", "2": "session-uuid"}
+    assert state["preferred"] == {"neutral": 1, "session-uuid": 2}
     assert desktop.active == 1
 
 calls = []

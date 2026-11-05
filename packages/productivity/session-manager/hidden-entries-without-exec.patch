@@ -1,0 +1,185 @@
+diff --git a/ToDo.md b/ToDo.md
+index d8f9db1..b9f7c9f 100644
+--- a/ToDo.md
++++ b/ToDo.md
+@@ -36,6 +36,8 @@ References: [C1 scope and acceptance](docs/implementation-plan.md#c1--projects-t
+ 
+ ## C2 — Current application lists
+ 
++- [x] Follow-up for real installed data: allow a missing `Exec` only on explicit `Hidden=true` or `NoDisplay=true` entries while validating every other field; test high-priority masking, local overrides, and malformed hidden files. This does not retroactively change the original C2 acceptance record.
++
+ References: [C2 scope and acceptance](docs/implementation-plan.md#c2--current-application-list). **Accepted:** [C2 evidence](docs/reviews/c2-acceptance.md), 79 passing tests normally and sandboxed (36 new C2 fixtures); daemon/API/CLI integration remains C3 work.
+ 
+ - [x] Implement bounded Linux XDG desktop-entry discovery using explicit test XDG roots, without a launcher dependency or executing applications.
+diff --git a/docs/decisions/0012-discover-project-profiles-and-resolve-xdg-applications.md b/docs/decisions/0012-discover-project-profiles-and-resolve-xdg-applications.md
+index b0d3a0b..8109b11 100644
+--- a/docs/decisions/0012-discover-project-profiles-and-resolve-xdg-applications.md
++++ b/docs/decisions/0012-discover-project-profiles-and-resolve-xdg-applications.md
+@@ -11,7 +11,7 @@ The earlier core design stored editable profiles, task subsets, roots, and appli
+ 
+ Configure one project-source directory; each immediate subdirectory is a profile even when empty. Read the project directory when starting a session, enumerate projects when creating one, and resolve installed and project-local applications when a launcher client requests the list. Do not continuously watch project files or maintain a central profile registry. Create projects by copying a selected template from `profile-template/<template-name>/` under Session Manager's configuration directory into a new `Name-N` project directory, choosing the first available positive suffix and never merging or overwriting. Ship one empty `Default Profile` template. All Markdown, Obsidian, application, and task files in templates are optional user-controlled contents.
+ 
+-Resolve the installed application list internally using Linux XDG desktop-entry conventions. Remove project-local excluded IDs and then overlay project-local `.desktop` entries from `.session-manager/apps/` by ID; local entries can reintroduce exclusions. Expose the resulting list through a launcher-independent Session Manager API, evaluated on demand. Firefox and launcher presentation have no core-specific schema. The task definitions in `.session-manager/tasks/` retain their existing preset/subset meaning but are ignored in the initial delivery; task support and pause/resume may be delivered later.
++Resolve the installed application list internally using Linux XDG desktop-entry conventions. Remove project-local excluded IDs and then overlay project-local `.desktop` entries from `.session-manager/apps/` by ID; local entries can reintroduce exclusions. Expose the resulting list through a launcher-independent Session Manager API, evaluated on demand. Entries explicitly marked `Hidden=true` or `NoDisplay=true` may omit `Exec` because they are never launch candidates; all other fields remain validated, and visible entries still require a nonempty `Exec`. This narrow clarification avoids rejecting installed menu-suppression entries that conform to ordinary desktop practice. Firefox and launcher presentation have no core-specific schema. The task definitions in `.session-manager/tasks/` retain their existing preset/subset meaning but are ignored in the initial delivery; task support and pause/resume may be delivered later.
+ 
+ A live session keeps stable UUID, recorded source name, generated name, number, lifecycle, and checkpoint without a durable reference to the current project directory or frozen application configuration. Rename/removal of the directory does not mutate the session. A new directory with the recorded name supplies future contextual lookups; absence falls back to eligible installed apps for application listing. Checkpoint restoration continues to use the producing adapter's retained payload, not current project files. Session naming and numbering remain per named launch source and must still reject live collisions.
+ 
+diff --git a/docs/functional-specification.md b/docs/functional-specification.md
+index 9d4cd7a..f896b3f 100644
+--- a/docs/functional-specification.md
++++ b/docs/functional-specification.md
+@@ -38,7 +38,7 @@ One configurable project-source directory contains profiles as immediate subdire
+ 
+ ## Applications
+ 
+-At each application-list request, Session Manager discovers installed applications according to the Linux XDG desktop-entry conventions, removes IDs excluded by the project's `.session-manager/apps/` exclusion list, then applies `.desktop` files in `.session-manager/apps/` by desktop-entry ID, replacing an installed entry of the same ID and allowing a local entry to reintroduce an excluded ID. A project without local application settings sees all eligible installed applications. The result, not a frozen list from session start, is exposed through a launcher-independent API; a client chooses how to display or launch it. A Firefox-specific command or profile can be expressed by the project's own `.desktop` file; the core has no Firefox field. Installed-app discovery is part of Session Manager's Linux integration, not a launcher-specific plugin. If the active session's recorded project name does not resolve to a current directory, the application list falls back to eligible installed applications with no project overrides. If a new directory later takes the same name, subsequent lookups use that new directory.
++At each application-list request, Session Manager discovers installed applications according to the Linux XDG desktop-entry conventions, removes IDs excluded by the project's `.session-manager/apps/` exclusion list, then applies `.desktop` files in `.session-manager/apps/` by desktop-entry ID, replacing an installed entry of the same ID and allowing a local entry to reintroduce an excluded ID. A project without local application settings sees all eligible installed applications. An entry explicitly marked `Hidden=true` or `NoDisplay=true` does not appear and may omit `Exec`; malformed fields other than an absent `Exec` still cause an error. The result, not a frozen list from session start, is exposed through a launcher-independent API; a client chooses how to display or launch it. A Firefox-specific command or profile can be expressed by the project's own `.desktop` file; the core has no Firefox field. Installed-app discovery is part of Session Manager's Linux integration, not a launcher-specific plugin. If the active session's recorded project name does not resolve to a current directory, the application list falls back to eligible installed applications with no project overrides. If a new directory later takes the same name, subsequent lookups use that new directory.
+ 
+ ## Tasks (later delivery)
+ 
+diff --git a/docs/technical-specification.md b/docs/technical-specification.md
+index 374b3ce..3396e76 100644
+--- a/docs/technical-specification.md
++++ b/docs/technical-specification.md
+@@ -48,13 +48,13 @@ The exclusion file is `.session-manager/apps/exclude.txt`, UTF-8, at most 64 KiB
+ 
+ Installed roots are `$XDG_DATA_HOME/applications` (fallback `$HOME/.local/share/applications`) then each absolute directory in `$XDG_DATA_DIRS` in order (fallback `/usr/local/share:/usr/share`); environment overrides are validated once at startup, with no implicit host lookup in tests. Deduplicate roots by lexical path. Search regular `.desktop` files recursively to depth 16; relative path components joined with `-` form the desktop-entry ID. A higher-priority file masks the same ID in lower roots **even if hidden or invalid**. Sort directory entries bytewise before traversal. Skip symlinks and non-regular entries. Bound traversal to 16,384 entries total, individual files to 1 MiB and unique IDs to 4096; exceeding a bound fails `limit.exceeded`. Inaccessible roots or present unreadable files fail `filesystem.unavailable`; absent roots are empty. Invalid installed desktop files fail `application.invalid_installed_file` rather than silently changing precedence.
+ 
+-Parse desktop-entry INI text as UTF-8, requiring one `[Desktop Entry]`, `Type=Application`, nonempty `Name` and `Exec`; reject duplicate groups/keys, invalid escapes, malformed booleans and unknown encoding. Return only `Name`, `Exec`, optional `Icon`, `Terminal` (default false), ID and origin (`installed` or `project`), each bounded to 4096 bytes; other recognized desktop-entry keys may be ignored but never executed. A file with `Hidden=true` masks lower-priority entries and is not returned; `NoDisplay=true`, `OnlyShowIn`/`NotShowIn` against the colon-separated `XDG_CURRENT_DESKTOP`, or `TryExec` not resolving to an executable in the injected PATH suppress visibility. `OnlyShowIn`/`NotShowIn` use semicolon-separated exact tokens; empty desktop environment matches neither. No locale translation in v2: use unlocalized `Name`. Apply eligibility **after** priority selection; installed entries failing eligibility do not expose lower entries. Filter exclusions from eligible installed IDs, then select valid local files by basename ID (including an excluded ID); a local `Hidden=true` or otherwise ineligible entry masks/removes that ID. A local file can reintroduce an excluded ID only if eligible. Local files are flat; reject nested directories. Sort final results by ID bytes; maximum 4096 applications and 16 MiB canonical response, otherwise `limit.exceeded`. No application or `TryExec` command is run. Without an active session, or when its recorded project directory is absent, return eligible installed entries only; recompute all inputs on each request.
++Parse desktop-entry INI text as UTF-8, requiring one `[Desktop Entry]`, `Type=Application`, nonempty `Name`, and nonempty `Exec` for every eligible entry. An entry explicitly marked `Hidden=true` or `NoDisplay=true` may omit `Exec` entirely; an explicitly empty `Exec=` is still invalid. Such an entry masks lower-priority IDs and never appears in the result. All other schema, field, size, escape, and boolean validation still applies before visibility filtering; in particular a malformed hidden entry fails the query. Reject duplicate groups/keys, invalid escapes, malformed booleans and unknown encoding. Return only `Name`, `Exec`, optional `Icon`, `Terminal` (default false), ID and origin (`installed` or `project`), each bounded to 4096 bytes; other recognized desktop-entry keys may be ignored but never executed. A file with `Hidden=true` masks lower-priority entries and is not returned; `NoDisplay=true`, `OnlyShowIn`/`NotShowIn` against the colon-separated `XDG_CURRENT_DESKTOP`, or `TryExec` not resolving to an executable in the injected PATH suppress visibility. `OnlyShowIn`/`NotShowIn` use semicolon-separated exact tokens; empty desktop environment matches neither. No locale translation in v2: use unlocalized `Name`. Apply eligibility **after** priority selection; installed entries failing eligibility do not expose lower entries. Filter exclusions from eligible installed IDs, then select valid local files by basename ID (including an excluded ID); a local `Hidden=true` or otherwise ineligible entry masks/removes that ID. A local file can reintroduce an excluded ID only if eligible. Local files are flat; reject nested directories. Sort final results by ID bytes; maximum 4096 applications and 16 MiB canonical response, otherwise `limit.exceeded`. No application or `TryExec` command is run. Without an active session, or when its recorded project directory is absent, return eligible installed entries only; recompute all inputs on each request.
+ 
+ #### Resolution details and query consistency
+ 
+ - The library receives explicit environment values, not ambient environment access. The daemon must capture them once at startup (C3 wiring). Each supplied environment string is at most 64 KiB and contains no ASCII control characters. Data and PATH locations are absolute, lexically normalized UTF-8 paths of at most 4096 bytes; empty/unset XDG data values select the documented defaults. An empty/unset PATH is an empty search list; empty or relative components in a nonempty path list fail startup validation instead of searching the daemon's working directory. Desktop tokens are exact colon-separated values; empty tokens are ignored.
+ - Installed traversal is byte-sorted depth-first, with the applications directory at nesting depth 0. All enumerated entries, including ignored entries and parent siblings, reserve the shared traversal budget before recursion. If distinct relative paths in one root flatten to the same desktop-entry ID, the first encountered path wins deterministically. Lower-priority masked files are not parsed; a malformed selected winner fails the query rather than exposing a lower entry. Symlinks in installed roots or their ancestors are skipped, as are symlink/non-regular directory entries. A present non-directory root or inaccessible real directory fails with `filesystem.unavailable`; missing roots are empty.
+-- The desktop-entry parser accepts LF/CRLF with an optional final newline, not bare CR separators or a BOM. It validates duplicate groups/keys and general string escapes (`\s`, `\n`, `\t`, `\r`, `\\`), including ignored localized/vendor/action data. Recognized string-list keys additionally accept escaped semicolons. Standard boolean keys accept only `true`/`false`; `OnlyShowIn` and `NotShowIn` are mutually exclusive. `Encoding`, if present, must be `UTF-8`. Validation precedes visibility filtering, including for hidden entries. This is a bounded discovery parser, not a launcher or exhaustive linter for every desktop-entry extension: Exec text is returned after general string-unescaping, without shell parsing or field-code expansion.
++- The desktop-entry parser accepts LF/CRLF with an optional final newline, not bare CR separators or a BOM. It validates duplicate groups/keys and general string escapes (`\s`, `\n`, `\t`, `\r`, `\\`), including ignored localized/vendor/action data. Recognized string-list keys additionally accept escaped semicolons. Standard boolean keys accept only `true`/`false`; `OnlyShowIn` and `NotShowIn` are mutually exclusive. `Encoding`, if present, must be `UTF-8`. Validation precedes visibility filtering, including for hidden entries; the sole exception is the absent-`Exec` allowance for explicit `Hidden=true` or `NoDisplay=true` entries, not an exemption from other validation. This is a bounded discovery parser, not a launcher or exhaustive linter for every desktop-entry extension: Exec text is returned after general string-unescaping, without shell parsing or field-code expansion.
+ - `TryExec` is a literal executable name searched in the injected PATH, or an absolute executable pathname. Relative pathnames containing `/` are not searched against a current directory. Presence requires a regular file and Unix execute access for the daemon's user. Metadata/access checks may follow executable symlinks; no executable content is read or run. Availability is rechecked on each query, not cached with the environment locations.
+ - Project-local enumeration is flat and bounded to 16,384 entries including ignored files; only `exclude.txt` and lowercase `.desktop` files are configuration. Other regular files are ignored; directories, symlinks and other non-regular entries are rejected. The 1024-local-desktop-file limit counts hidden/ineligible entries too. Exclusions compare exact IDs without trimming; a blank line is empty, not whitespace-only. The control-character ban includes comment text, except for LF/CRLF line separators. Resource-bound failures return `limit.exceeded`; malformed selected files use the origin-specific application error, while other I/O failures use `filesystem.unavailable`.
+ - A request snapshots the active session's recorded project name under the runtime lock, then releases the lock before filesystem reads. This is not a global atomic filesystem snapshot. The current named project's directory is held only for that request and checked before and after local reads; if removed or replaced in that interval, discard the detached local result and return installed-only entries. A later query can use the replacement. A missing project source also means missing context; an unsafe/inaccessible present source is an I/O error. Runtime recovery gates return `recovery.invalid_runtime`, not a fictitious no-active fallback. Queries never write runtime state, increment revisions or retain application data between requests.
+diff --git a/docs/usage.md b/docs/usage.md
+index 0243a66..1b1cf60 100644
+--- a/docs/usage.md
++++ b/docs/usage.md
+@@ -61,7 +61,7 @@ Ctrl-C or SIGTERM requests graceful daemon shutdown: stop accepting connections,
+ 
+ The empty `Default Profile` template is built in; **do not create a filesystem template with that reserved name**. Custom templates are immediate real directories under `${XDG_CONFIG_HOME:-$HOME/.config}/session-manager/profile-template/`. For example, create `profile-template/Notes/README.md`, then select `--template Notes`. Creation chooses the first free numbered project directory, never merges, and applies the [safe-copy limits](technical-specification.md#templates-and-project-creation). Template files are never executed.
+ 
+-Application listing uses the daemon's XDG data roots, not the client's environment. Edit the active project's `.session-manager/apps/exclude.txt` or local `.desktop` files to customize the next query. See [application resolution](technical-specification.md#application-resolution) for the exact formats, precedence, strict validation and bounds. A malformed selected installed or local entry fails the query; it is not silently skipped. Even hidden entries must satisfy the discovery schema. Installed symlinks are skipped; project-local symlinks are rejected. There is no locale translation or exhaustive vendor-extension compatibility guarantee.
++Application listing uses the daemon's XDG data roots, not the client's environment. Edit the active project's `.session-manager/apps/exclude.txt` or local `.desktop` files to customize the next query. See [application resolution](technical-specification.md#application-resolution) for the exact formats, precedence, strict validation and bounds. A malformed selected installed or local entry fails the query; it is not silently skipped. Entries with `Hidden=true` or `NoDisplay=true` may omit `Exec`, but must satisfy all other discovery validation; a visible entry still requires a nonempty `Exec`. Installed symlinks are skipped; project-local symlinks are rejected. There is no locale translation or exhaustive vendor-extension compatibility guarantee.
+ 
+ Changes to installed/project files are observed on the next request without restarting. Missing projects/no active session yield installed-only apps; same-name replacement directories supply new context. There is no filesystem-wide atomic snapshot or persisted application list.
+ 
+diff --git a/src/c2_tests.rs b/src/c2_tests.rs
+index 932a916..8147b70 100644
+--- a/src/c2_tests.rs
++++ b/src/c2_tests.rs
+@@ -271,6 +271,51 @@ fn hidden_and_ineligible_high_priority_entries_mask_lower_files() {
+     assert_eq!(ids(&result), ["safe.desktop"]);
+ }
+ 
++#[test]
++fn explicitly_hidden_entries_may_omit_exec_but_still_mask_and_validate() {
++    let f = Fixture::new();
++    for (id, flag) in [
++        ("hidden.desktop", "Hidden=true"),
++        ("menu.desktop", "NoDisplay=true"),
++    ] {
++        f.installed(1, id, "Lower Visible", "");
++        let upper = f.installed(0, id, "Higher Hidden", "");
++        fs::write(
++            &upper,
++            format!("[Desktop Entry]\nType=Application\nName=Higher Hidden\n{flag}\n"),
++        )
++        .unwrap();
++    }
++    assert!(f.resolver().installed().unwrap().applications.is_empty());
++
++    f.project("P");
++    let local = f.local("P", "local.desktop", "Not Shown", "");
++    fs::write(
++        &local,
++        "[Desktop Entry]\nType=Application\nName=Not Shown\nNoDisplay=true\n",
++    )
++    .unwrap();
++    let c = f.core();
++    c.start("P").unwrap();
++    assert!(
++        c.applications(&f.resolver())
++            .unwrap()
++            .applications
++            .is_empty()
++    );
++
++    for invalid in [
++        "[Desktop Entry]\nType=Application\nName=Bad\nHidden=true\nExec=\n",
++        "[Desktop Entry]\nType=Application\nName=Bad\nNoDisplay=true\nTerminal=maybe\n",
++        "[Desktop Entry]\nType=Application\nName=Bad\nExec=\n",
++    ] {
++        code(
++            DesktopEntry::parse(invalid.as_bytes()),
++            "application.invalid_desktop_entry",
++        );
++    }
++}
++
+ #[test]
+ fn desktop_visibility_uses_exact_current_desktop_tokens() {
+     let f = Fixture::new();
+diff --git a/src/desktop_entry.rs b/src/desktop_entry.rs
+index f79ba75..4377a8d 100644
+--- a/src/desktop_entry.rs
++++ b/src/desktop_entry.rs
+@@ -31,17 +31,6 @@ impl DesktopEntry {
+             return Err(INVALID);
+         }
+         let name = string("Name")?.filter(|s| !s.is_empty()).ok_or(INVALID)?;
+-        let exec = string("Exec")?.filter(|s| !s.is_empty()).ok_or(INVALID)?;
+-        let icon = string("Icon")?;
+-        let try_exec = string("TryExec")?;
+-        if [&name, &exec]
+-            .into_iter()
+-            .chain(icon.as_ref())
+-            .chain(try_exec.as_ref())
+-            .any(|s| s.len() > 4096)
+-        {
+-            return Err(Error("limit.exceeded"));
+-        }
+         let boolean = |key| -> Result<bool> {
+             match main.get(key).copied() {
+                 None | Some("false") => Ok(false),
+@@ -61,6 +50,23 @@ impl DesktopEntry {
+         ] {
+             boolean(key)?;
+         }
++        let hidden = boolean("Hidden")?;
++        let no_display = boolean("NoDisplay")?;
++        let exec = match string("Exec")? {
++            Some(value) if !value.is_empty() => value,
++            None if hidden || no_display => String::new(),
++            _ => return Err(INVALID),
++        };
++        let icon = string("Icon")?;
++        let try_exec = string("TryExec")?;
++        if [&name, &exec]
++            .into_iter()
++            .chain(icon.as_ref())
++            .chain(try_exec.as_ref())
++            .any(|s| s.len() > 4096)
++        {
++            return Err(Error("limit.exceeded"));
++        }
+         if main.contains_key("OnlyShowIn") && main.contains_key("NotShowIn") {
+             return Err(INVALID);
+         }
+@@ -70,8 +76,8 @@ impl DesktopEntry {
+             exec,
+             icon,
+             terminal: boolean("Terminal")?,
+-            hidden: boolean("Hidden")?,
+-            no_display: boolean("NoDisplay")?,
++            hidden,
++            no_display,
+             only_show_in: list("OnlyShowIn")?,
+             not_show_in: list("NotShowIn")?.unwrap_or_default(),
+             try_exec,
