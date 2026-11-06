@@ -13,6 +13,9 @@ Scope {
     property string activeName: "none"
     property string status: ""
     property string pendingStop: ""
+    property string selectedSection: "projects"
+    property int selectedProject: 0
+    property int selectedSession: 0
     readonly property string binary: Quickshell.env("HOME") + "/.local/bin/session-manager"
     readonly property string desktop: Quickshell.env("HOME") + "/.local/bin/session-desktop"
 
@@ -25,11 +28,72 @@ Scope {
             projectsProcess.running = true;
     }
 
-    function toggle() {
-        menuVisible = !menuVisible;
+    function showMenu() {
+        menuVisible = true;
         pendingStop = "";
+        selectedSection = projects.length ? "projects" : "sessions";
+        selectedProject = 0;
+        selectedSession = 0;
+        refresh();
+        Qt.callLater(function() { menuRoot.forceActiveFocus(); });
+    }
+
+    function toggle() {
         if (menuVisible)
-            refresh();
+            menuVisible = false;
+        else
+            showMenu();
+    }
+
+    function ensureSelectedVisible() {
+        const list = selectedSection === "projects" ? projectList : sessionList;
+        const index = selectedSection === "projects" ? selectedProject : selectedSession;
+        const rowHeight = selectedSection === "projects" ? 34 : 36;
+        const top = index * rowHeight;
+        const bottom = top + rowHeight;
+        if (top < list.contentY)
+            list.contentY = top;
+        else if (bottom > list.contentY + list.height)
+            list.contentY = Math.min(bottom - list.height, Math.max(0, list.contentHeight - list.height));
+    }
+
+    function normalizeSelection() {
+        selectedProject = Math.max(0, Math.min(selectedProject, projects.length - 1));
+        selectedSession = Math.max(0, Math.min(selectedSession, sessions.length - 1));
+        if (selectedSection === "projects" && !projects.length && sessions.length)
+            selectedSection = "sessions";
+        else if (selectedSection === "sessions" && !sessions.length && projects.length)
+            selectedSection = "projects";
+        if (menuVisible)
+            Qt.callLater(function() { menu.ensureSelectedVisible(); });
+    }
+
+    function handleKey(event) {
+        if (event.key === Qt.Key_Tab || event.key === Qt.Key_Backtab) {
+            if (selectedSection === "projects" && sessions.length)
+                selectedSection = "sessions";
+            else if (selectedSection === "sessions" && projects.length)
+                selectedSection = "projects";
+            ensureSelectedVisible();
+        } else if (event.key === Qt.Key_Up || event.key === Qt.Key_Down) {
+            const count = selectedSection === "projects" ? projects.length : sessions.length;
+            if (count) {
+                const step = event.key === Qt.Key_Down ? 1 : -1;
+                if (selectedSection === "projects")
+                    selectedProject = Math.max(0, Math.min(selectedProject + step, count - 1));
+                else
+                    selectedSession = Math.max(0, Math.min(selectedSession + step, count - 1));
+                ensureSelectedVisible();
+            }
+        } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+            if (selectedSection === "projects" && projects[selectedProject])
+                act(["start", projects[selectedProject].name]);
+            else if (selectedSection === "sessions" && sessions[selectedSession])
+                act(["switch", sessions[selectedSession].id]);
+        } else {
+            return;
+        }
+        event.accepted = true;
     }
 
     function act(argumentsList) {
@@ -53,6 +117,7 @@ Scope {
                     menu.activeId = result.active_session_id || "";
                     const active = result.sessions.find(item => item.id === menu.activeId);
                     menu.activeName = active ? active.name : "none";
+                    menu.normalizeSelection();
                     menu.status = "";
                 } catch (error) {
                     menu.status = "Unable to read sessions: " + error;
@@ -77,6 +142,7 @@ Scope {
                     if (!result.projects)
                         throw new Error(result.code || "invalid project response");
                     menu.projects = result.projects;
+                    menu.normalizeSelection();
                 } catch (error) {
                     menu.status = "Unable to read projects: " + error;
                 }
@@ -110,10 +176,7 @@ Scope {
     IpcHandler {
         target: "sessions"
         function toggle(): void { menu.toggle(); }
-        function show(): void {
-            menu.menuVisible = true;
-            menu.refresh();
-        }
+        function show(): void { menu.showMenu(); }
         function hide(): void { menu.menuVisible = false; }
     }
 
@@ -122,7 +185,7 @@ Scope {
         screen: Quickshell.screens[0]
         anchors { top: true }
         implicitWidth: 460
-        implicitHeight: 570
+        implicitHeight: 600
         color: "transparent"
         WlrLayershell.namespace: "quickshell-sessions"
         WlrLayershell.layer: WlrLayer.Overlay
@@ -130,12 +193,14 @@ Scope {
         WlrLayershell.exclusionMode: ExclusionMode.Ignore
 
         Rectangle {
+            id: menuRoot
             anchors.fill: parent
             color: "#151922"
             border.color: "#343d4f"
             radius: 8
             focus: menu.menuVisible
             Keys.onEscapePressed: menu.menuVisible = false
+            Keys.onPressed: function(event) { menu.handleKey(event); }
 
             Column {
                 anchors.fill: parent
@@ -143,10 +208,16 @@ Scope {
                 spacing: 10
 
                 Text {
-                    text: "Sessions — active: " + menu.activeName + "    (Esc to close)"
+                    text: "Sessions — active: " + menu.activeName
                     color: "#f0f0f0"
                     font.pixelSize: 16
                     elide: Text.ElideRight
+                    width: parent.width
+                }
+                Text {
+                    text: "↑↓ select · Tab switch list · Enter start/switch · Esc close"
+                    color: "#aab3c4"
+                    font.pixelSize: 12
                     width: parent.width
                 }
                 Text {
@@ -177,6 +248,7 @@ Scope {
                 }
                 Text { text: "Start from project"; color: "#aab3c4"; font.pixelSize: 13 }
                 Flickable {
+                    id: projectList
                     width: parent.width
                     height: 145
                     clip: true
@@ -189,10 +261,11 @@ Scope {
                             model: menu.projects
                             delegate: Rectangle {
                                 required property var modelData
+                                required property int index
                                 width: projectColumn.width
                                 height: 30
                                 radius: 4
-                                color: projectMouse.containsMouse ? "#343d4f" : "#202633"
+                                color: menu.selectedSection === "projects" && menu.selectedProject === index ? "#506e93" : projectMouse.containsMouse ? "#343d4f" : "#202633"
                                 Text {
                                     anchors.left: parent.left
                                     anchors.leftMargin: 10
@@ -206,7 +279,11 @@ Scope {
                                     id: projectMouse
                                     anchors.fill: parent
                                     hoverEnabled: true
-                                    onClicked: menu.act(["start", modelData.name])
+                                    onClicked: {
+                                        menu.selectedSection = "projects";
+                                        menu.selectedProject = index;
+                                        menu.act(["start", modelData.name]);
+                                    }
                                 }
                             }
                         }
@@ -214,6 +291,7 @@ Scope {
                 }
                 Text { text: "Open sessions (Stop requires two clicks)"; color: "#aab3c4"; font.pixelSize: 13 }
                 Flickable {
+                    id: sessionList
                     width: parent.width
                     height: 225
                     clip: true
@@ -226,6 +304,7 @@ Scope {
                             model: menu.sessions
                             delegate: Row {
                                 required property var modelData
+                                required property int index
                                 width: sessionColumn.width
                                 height: 32
                                 spacing: 5
@@ -233,7 +312,7 @@ Scope {
                                     width: sessionColumn.width - 82
                                     height: 30
                                     radius: 4
-                                    color: modelData.id === menu.activeId ? "#3d5a80" : switchMouse.containsMouse ? "#343d4f" : "#202633"
+                                    color: menu.selectedSection === "sessions" && menu.selectedSession === index ? "#506e93" : modelData.id === menu.activeId ? "#3d5a80" : switchMouse.containsMouse ? "#343d4f" : "#202633"
                                     Text {
                                         anchors.left: parent.left
                                         anchors.leftMargin: 10
@@ -247,7 +326,11 @@ Scope {
                                         id: switchMouse
                                         anchors.fill: parent
                                         hoverEnabled: true
-                                        onClicked: menu.act(["switch", modelData.id])
+                                        onClicked: {
+                                            menu.selectedSection = "sessions";
+                                            menu.selectedSession = index;
+                                            menu.act(["switch", modelData.id]);
+                                        }
                                     }
                                 }
                                 Rectangle {

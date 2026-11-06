@@ -96,8 +96,10 @@ neutral workspaces without stopping running sessions, switch to the selected
 session's columns, and refuse graphical stop while session windows/scratchpads
 remain. A visible scratchpad is hidden before a menu action; its windows stay
 open, and a nonempty session still cannot be stopped through the menu. The menu
-closes after success and stays open to display an action error. The five
-scratchpad names are scoped by session UUID; pre-existing `session-*` scratchpads
+closes after success and stays open to display an action error. In the menu,
+Up/Down select an item, Tab switches between projects and open sessions, and
+Enter starts/switches the selected item; the selection scrolls into view.
+The five scratchpad names are scoped by session UUID; pre-existing `session-*` scratchpads
 remain reachable in neutral context. Multi-monitor
 context changes fail closed until a focus policy is designed. Direct core
 CLI/API stops still have no Hyprland window guard. Deployment on an already
