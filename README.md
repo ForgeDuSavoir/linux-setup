@@ -98,7 +98,8 @@ configuration script installs `SUPER+ESC` (Quickshell session menu), `SUPER+A`
 (contextual Rofi application menu), and `SUPER+B` (launch the current context's
 `firefox.desktop` directly, without Rofi). Without a session, the installed Firefox
 entry is used; missing/unavailable context data produces an error rather than
-silently opening the wrong profile. `SUPER+D` and `SUPER+P` remain unchanged. The new menu uses `session-desktop` to start in a fresh empty column, return to
+silently opening the wrong profile. `SUPER+D` remains unchanged. `SUPER+P` directly opens Pi in the active
+session's project using `session-pi`, without the former project picker or Yazi. The new menu uses `session-desktop` to start in a fresh empty column, return to
 neutral workspaces without stopping running sessions, switch to the selected
 session's columns, and refuse graphical stop while session windows/scratchpads
 remain. A visible scratchpad is hidden before a menu action; its windows stay
@@ -141,6 +142,42 @@ versioned. A copied `.desktop` must receive a new UUID to avoid sharing a
 profile. Without an active session, the installed/default Firefox entry remains
 available. The service is **enabled but not started** by installation; the
 current graphical session is not reloaded. See the [Session Manager usage guide](https://github.com/ForgeDuSavoir/session-manager/blob/bff500ff52a0fd57f68a938e4610dfe7e47009e1/docs/usage.md).
+
+The retired `agora-project-launcher` Pi/Yazi project picker is removed by the
+Rofi configuration installer. Its shared `project-launcher.rasi` theme remains
+in use by the application menus, and the terminal helper remains in use by Pi.
+
+### Pi in the current session
+
+Each immediate project's `.session-manager/apps/session-pi.desktop` runs
+`session-pi`, installed by the Session Manager configuration script. It queries
+the active session and current project list, then calls
+`launch-terminal-command <project-directory> pi` with literal arguments. It opens
+neither Rofi nor Yazi and does not fall back to Agora when AGENTS.md is absent.
+With no active session it opens Pi at the user-configured `agora_root`; a missing
+project or unavailable daemon still fails rather than silently choosing another
+directory. There is no built-in Agora path. On first installation, supply it
+explicitly:
+
+```sh
+AGORA_ROOT="/absolute/path/to/your/Agora" bash configs/session-manager/configure_session_manager.sh
+```
+
+This creates `${XDG_CONFIG_HOME:-$HOME/.config}/agora-workflow/config.toml`:
+
+```toml
+agora_root = "/absolute/path/to/your/Agora"
+```
+
+Subsequent installs preserve the file (even if AGORA_ROOT is supplied again).
+Edit it directly to change the neutral directory; no daemon restart is needed.
+A missing/invalid path produces a clear error rather than an implicit fallback.
+The separate Session Manager `project_source` setting is unchanged.
+The configuration script also installs `session-pi.desktop` globally with
+`Exec=session-pi --agora`. Project-local entries of the same ID override it in
+`SUPER+A`; without a session, the installed entry opens Agora directly.
+The terminal helper and Pi must already be installed. `SUPER+P` invokes
+`session-pi` directly and follows the same neutral-Agora/active-project policy.
 
 ## Webapps
 

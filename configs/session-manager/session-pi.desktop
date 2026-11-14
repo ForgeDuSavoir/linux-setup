@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Pi
+GenericName=AI Coding Assistant
+Comment=Open Pi at the root of Agora
+Exec=session-pi --agora
+TryExec=session-pi
+Icon=utilities-terminal
+Terminal=false
+Categories=Development;
+Keywords=pi;terminal;agent;AI;Agora;

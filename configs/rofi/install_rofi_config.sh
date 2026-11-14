@@ -2,28 +2,31 @@
 
 set -euo pipefail
 
-CONFIG_NAME="Rofi project launcher"
+CONFIG_NAME="Rofi application menus"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 SOURCE_DIR="${SCRIPT_DIR}/files"
 TARGET_DIR="${HOME}/.config/rofi"
-TARGET_SCRIPT_DIR="${HOME}/.local/bin"
 
 THEME_SOURCE="${SOURCE_DIR}/project-launcher.rasi"
-LAUNCHER_SOURCE="${SOURCE_DIR}/agora-project-launcher.sh"
 THEME_TARGET="${TARGET_DIR}/project-launcher.rasi"
-LAUNCHER_TARGET="${TARGET_SCRIPT_DIR}/agora-project-launcher"
+LAUNCHER_TARGET="${HOME}/.local/bin/agora-project-launcher"
 
 echo "==> Installing ${CONFIG_NAME}..."
 
-for source in "${THEME_SOURCE}" "${LAUNCHER_SOURCE}"; do
+for source in "${THEME_SOURCE}"; do
     if [[ ! -f "${source}" ]]; then
         echo "✗ Source file not found: ${source}"
         exit 1
     fi
 done
 
-mkdir -p "${TARGET_DIR}" "${TARGET_SCRIPT_DIR}"
+mkdir -p "${TARGET_DIR}"
+# Keep the shared theme used by SUPER+D and SUPER+A, not the retired project picker.
 install -m 0644 "${THEME_SOURCE}" "${THEME_TARGET}"
-install -m 0755 "${LAUNCHER_SOURCE}" "${LAUNCHER_TARGET}"
+if [[ -L "${LAUNCHER_TARGET}" ]]; then
+    echo "✗ Refusing to remove a symlinked retired launcher: ${LAUNCHER_TARGET}" >&2
+    exit 1
+fi
+rm -f -- "${LAUNCHER_TARGET}"
 
 echo "✓ ${CONFIG_NAME} installed successfully."
