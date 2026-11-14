@@ -4,6 +4,14 @@ Documentation=https://github.com/ForgeDuSavoir/session-manager/blob/main/docs/us
 
 [Service]
 Type=simple
+# Start with valid, stable XDG roots before the graphical session's environment
+# preloader runs. Session Manager rejects unset/relative/empty PATH components.
+Environment=HOME=%h
+Environment=XDG_CONFIG_HOME=%h/.config
+Environment=XDG_STATE_HOME=%h/.local/state
+Environment=XDG_RUNTIME_DIR=%t
+Environment=XDG_DATA_HOME=%h/.local/share
+Environment=XDG_DATA_DIRS=%h/.local/share/flatpak/exports/share:/var/lib/flatpak/exports/share:/usr/local/share:/usr/share
 Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
 Environment=XDG_CURRENT_DESKTOP=Hyprland
 ExecStart=%h/.local/bin/session-manager daemon

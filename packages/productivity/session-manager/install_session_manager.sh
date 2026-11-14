@@ -7,6 +7,7 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 PATCH_FILES=(
     "${SCRIPT_DIR}/hidden-entries-without-exec.patch"
     "${SCRIPT_DIR}/deactivate-session.patch"
+    "${SCRIPT_DIR}/flatpak-exports.patch"
 )
 SOURCE_URL="https://github.com/ForgeDuSavoir/session-manager.git"
 SOURCE_DIR="${HOME}/.cache/linux-setup/session-manager"
@@ -72,5 +73,5 @@ install -m 0755 "${BUILD_DIR}/target/release/session-manager" "${TEMP_TARGET}"
 mv -f -- "${TEMP_TARGET}" "${TARGET}"
 TEMP_TARGET=""
 
-echo "✓ Session Manager ${REVISION} with reviewed hidden-entry and deactivate patches installed at ${TARGET}."
+echo "✓ Session Manager ${REVISION} with reviewed hidden-entry, deactivate and Flatpak patches installed at ${TARGET}."
 echo '  No daemon, project configuration, or desktop integration has been started.'

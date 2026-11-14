@@ -9,6 +9,9 @@ Scope {
     property bool menuVisible: false
     property var sessions: []
     property var projects: []
+    property string searchText: ""
+    readonly property var filteredProjects: projects.filter(function(project) { return project.name.toLocaleLowerCase().includes(searchText.trim().toLocaleLowerCase()); })
+    onFilteredProjectsChanged: normalizeSelection()
     property string activeId: ""
     property string activeName: "none"
     property string status: ""
@@ -16,6 +19,7 @@ Scope {
     property string selectedSection: "projects"
     property int selectedProject: 0
     property int selectedSession: 0
+    property bool initialSelectionPending: false
     readonly property string binary: Quickshell.env("HOME") + "/.local/bin/session-manager"
     readonly property string desktop: Quickshell.env("HOME") + "/.local/bin/session-desktop"
 
@@ -31,11 +35,23 @@ Scope {
     function showMenu() {
         menuVisible = true;
         pendingStop = "";
-        selectedSection = projects.length ? "projects" : "sessions";
+        initialSelectionPending = false;
+        searchInput.text = "";
+        selectedSection = sessions.length ? "sessions" : "projects";
         selectedProject = 0;
         selectedSession = 0;
+        initialSelectionPending = true;
         refresh();
-        Qt.callLater(function() { menuRoot.forceActiveFocus(); });
+        Qt.callLater(function() { menu.focusSelection(); });
+    }
+
+    function focusSelection() {
+        if (!menuVisible)
+            return;
+        if (selectedSection === "sessions")
+            menuRoot.forceActiveFocus();
+        else
+            searchInput.forceActiveFocus();
     }
 
     function toggle() {
@@ -58,25 +74,32 @@ Scope {
     }
 
     function normalizeSelection() {
-        selectedProject = Math.max(0, Math.min(selectedProject, projects.length - 1));
+        const previousSection = selectedSection;
+        selectedProject = Math.max(0, Math.min(selectedProject, filteredProjects.length - 1));
         selectedSession = Math.max(0, Math.min(selectedSession, sessions.length - 1));
-        if (selectedSection === "projects" && !projects.length && sessions.length)
+        if (selectedSection === "projects" && !filteredProjects.length && !searchText && sessions.length)
             selectedSection = "sessions";
-        else if (selectedSection === "sessions" && !sessions.length && projects.length)
+        else if (selectedSection === "sessions" && !sessions.length && filteredProjects.length)
             selectedSection = "projects";
         if (menuVisible)
-            Qt.callLater(function() { menu.ensureSelectedVisible(); });
+            Qt.callLater(function() {
+                menu.ensureSelectedVisible();
+                if (previousSection !== menu.selectedSection)
+                    menu.focusSelection();
+            });
     }
 
     function handleKey(event) {
+        initialSelectionPending = false;
         if (event.key === Qt.Key_Tab || event.key === Qt.Key_Backtab) {
             if (selectedSection === "projects" && sessions.length)
                 selectedSection = "sessions";
             else if (selectedSection === "sessions" && projects.length)
                 selectedSection = "projects";
             ensureSelectedVisible();
+            focusSelection();
         } else if (event.key === Qt.Key_Up || event.key === Qt.Key_Down) {
-            const count = selectedSection === "projects" ? projects.length : sessions.length;
+            const count = selectedSection === "projects" ? filteredProjects.length : sessions.length;
             if (count) {
                 const step = event.key === Qt.Key_Down ? 1 : -1;
                 if (selectedSection === "projects")
@@ -86,10 +109,12 @@ Scope {
                 ensureSelectedVisible();
             }
         } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
-            if (selectedSection === "projects" && projects[selectedProject])
-                act(["start", projects[selectedProject].name]);
+            if (selectedSection === "projects" && filteredProjects[selectedProject])
+                act(["start", filteredProjects[selectedProject].name]);
             else if (selectedSection === "sessions" && sessions[selectedSession])
                 act(["switch", sessions[selectedSession].id]);
+        } else if (event.key === Qt.Key_Escape) {
+            menuVisible = false;
         } else {
             return;
         }
@@ -114,6 +139,11 @@ Scope {
                     if (!result.sessions)
                         throw new Error(result.code || "invalid session response");
                     menu.sessions = result.sessions;
+                    if (menu.menuVisible && menu.initialSelectionPending) {
+                        menu.selectedSection = result.sessions.length ? "sessions" : "projects";
+                        menu.initialSelectionPending = false;
+                        Qt.callLater(function() { menu.focusSelection(); });
+                    }
                     menu.activeId = result.active_session_id || "";
                     const active = result.sessions.find(item => item.id === menu.activeId);
                     menu.activeName = active ? active.name : "none";
@@ -142,7 +172,6 @@ Scope {
                     if (!result.projects)
                         throw new Error(result.code || "invalid project response");
                     menu.projects = result.projects;
-                    menu.normalizeSelection();
                 } catch (error) {
                     menu.status = "Unable to read projects: " + error;
                 }
@@ -185,7 +214,7 @@ Scope {
         screen: Quickshell.screens[0]
         anchors { top: true }
         implicitWidth: 460
-        implicitHeight: 600
+        implicitHeight: 660
         color: "transparent"
         WlrLayershell.namespace: "quickshell-sessions"
         WlrLayershell.layer: WlrLayer.Overlay
@@ -199,7 +228,6 @@ Scope {
             border.color: "#343d4f"
             radius: 8
             focus: menu.menuVisible
-            Keys.onEscapePressed: menu.menuVisible = false
             Keys.onPressed: function(event) { menu.handleKey(event); }
 
             Column {
@@ -215,7 +243,7 @@ Scope {
                     width: parent.width
                 }
                 Text {
-                    text: "↑↓ select · Tab switch list · Enter start/switch · Esc close"
+                    text: "Type to filter projects · ↑↓ select · Tab list · Enter open · Esc close"
                     color: "#aab3c4"
                     font.pixelSize: 12
                     width: parent.width
@@ -247,6 +275,44 @@ Scope {
                     }
                 }
                 Text { text: "Start from project"; color: "#aab3c4"; font.pixelSize: 13 }
+                Rectangle {
+                    width: parent.width
+                    height: 30
+                    radius: 4
+                    color: "#202633"
+                    border.color: searchInput.activeFocus ? "#506e93" : "#343d4f"
+                    Text {
+                        anchors.left: parent.left
+                        anchors.leftMargin: 10
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "Search projects..."
+                        color: "#7f8999"
+                        visible: !searchInput.text.length
+                    }
+                    TextInput {
+                        id: searchInput
+                        anchors.fill: parent
+                        anchors.leftMargin: 10
+                        anchors.rightMargin: 10
+                        verticalAlignment: TextInput.AlignVCenter
+                        color: "#f0f0f0"
+                        font.pixelSize: 14
+                        clip: true
+                        selectByMouse: true
+                        onTextChanged: {
+                            menu.initialSelectionPending = false;
+                            menu.searchText = text;
+                            menu.selectedProject = 0;
+                            Qt.callLater(function() { projectList.contentY = 0; });
+                        }
+                        onActiveFocusChanged: {
+                            if (activeFocus && menu.menuVisible)
+                                menu.selectedSection = "projects";
+                        }
+                        Keys.priority: Keys.BeforeItem
+                        Keys.onPressed: function(event) { menu.handleKey(event); }
+                    }
+                }
                 Flickable {
                     id: projectList
                     width: parent.width
@@ -257,8 +323,14 @@ Scope {
                         id: projectColumn
                         width: parent.width
                         spacing: 4
+                        Text {
+                            text: menu.searchText ? "No matching project" : "No projects"
+                            color: "#7f8999"
+                            height: visible ? 30 : 0
+                            visible: !menu.filteredProjects.length
+                        }
                         Repeater {
-                            model: menu.projects
+                            model: menu.filteredProjects
                             delegate: Rectangle {
                                 required property var modelData
                                 required property int index

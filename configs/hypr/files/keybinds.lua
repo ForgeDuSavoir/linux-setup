@@ -4,14 +4,13 @@ local mainMod = "SUPER"
 
 local terminal = "kitty"
 local editor = "mousepad"
-local browser = "firefox"
 local hyprScripts = os.getenv("HOME") .. "/.config/hypr/Scripts"
 
 -- Applications
 
 hl.bind(mainMod .. " + RETURN", hl.dsp.exec_cmd(terminal))
 hl.bind(mainMod .. " + P", hl.dsp.exec_cmd([[bash -lc 'exec "$HOME/.local/bin/agora-project-launcher"']]))
-hl.bind(mainMod .. " + B", hl.dsp.exec_cmd(browser))
+hl.bind(mainMod .. " + B", hl.dsp.exec_cmd([[bash -lc 'exec "$HOME/.local/bin/session-app-launcher" --browser']]))
 
 -- Text tools
 hl.bind(mainMod .. " + SPACE", hl.dsp.exec_cmd([[bash -lc 'exec "$HOME/.local/bin/dictation-toggle"']]))

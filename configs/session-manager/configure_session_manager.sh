@@ -11,6 +11,8 @@ LAUNCHER_SOURCE="${SCRIPT_DIR}/session-app-launcher.py"
 LAUNCHER_TARGET="${HOME}/.local/bin/session-app-launcher"
 DESKTOP_SOURCE="${SCRIPT_DIR}/session-desktop.py"
 DESKTOP_TARGET="${HOME}/.local/bin/session-desktop"
+FIREFOX_SOURCE="${SCRIPT_DIR}/agora-project-firefox.sh"
+FIREFOX_TARGET="${HOME}/.local/bin/agora-project-firefox"
 UNIT_DIR="${HOME}/.config/systemd/user"
 UNIT_FILE="${UNIT_DIR}/session-manager.service"
 
@@ -22,7 +24,7 @@ if [[ ! -x "${HOME}/.local/bin/session-manager" ]]; then
     echo '✗ Install Session Manager before configuring it.' >&2
     exit 1
 fi
-for source in "${UNIT_SOURCE}" "${LAUNCHER_SOURCE}" "${DESKTOP_SOURCE}"; do
+for source in "${UNIT_SOURCE}" "${LAUNCHER_SOURCE}" "${DESKTOP_SOURCE}" "${FIREFOX_SOURCE}"; do
     if [[ ! -f "${source}" ]]; then
         echo "✗ Missing Session Manager integration: ${source}" >&2
         exit 1
@@ -33,8 +35,13 @@ if ! command -v python3 >/dev/null 2>&1 || ! command -v systemctl >/dev/null 2>&
     exit 1
 fi
 
+if ! /usr/bin/python3 -c 'from gi.repository import Gio; assert Gio.DesktopAppInfo' >/dev/null 2>&1; then
+    echo '✗ python-gobject (Gio desktop metadata) is required for the application launcher.' >&2
+    exit 1
+fi
+
 mkdir -p "${CONFIG_DIR}" "${UNIT_DIR}"
-if [[ -L "${CONFIG_FILE}" || -L "${UNIT_FILE}" || -L "${LAUNCHER_TARGET}" || -L "${DESKTOP_TARGET}" ]]; then
+if [[ -L "${CONFIG_FILE}" || -L "${UNIT_FILE}" || -L "${LAUNCHER_TARGET}" || -L "${DESKTOP_TARGET}" || -L "${FIREFOX_TARGET}" ]]; then
     echo '✗ Refusing a symlinked Session Manager configuration or service unit.' >&2
     exit 1
 fi
@@ -66,6 +73,7 @@ fi
 install -m 0644 "${UNIT_SOURCE}" "${UNIT_FILE}"
 install -m 0755 "${LAUNCHER_SOURCE}" "${LAUNCHER_TARGET}"
 install -m 0755 "${DESKTOP_SOURCE}" "${DESKTOP_TARGET}"
+install -m 0755 "${FIREFOX_SOURCE}" "${FIREFOX_TARGET}"
 systemctl --user daemon-reload
 systemctl --user enable session-manager.service
 bash "${SCRIPT_DIR}/install_desktop_integration.sh"

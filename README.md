@@ -79,24 +79,34 @@ For the Fire Emblem: Fortune’s Weave tool:
 dependencies and installs the binary to `~/.local/bin/session-manager`. It obtains the
 pinned source from GitHub into `~/.cache/linux-setup/session-manager`, never from an
 Agora project checkout. Until the upstream changes are published, it applies the
-versioned `hidden-entries-without-exec.patch` and `deactivate-session.patch` in a
+versioned `hidden-entries-without-exec.patch`, `deactivate-session.patch` and
+`flatpak-exports.patch` in a
 temporary build tree so the GitHub cache stays clean and repeated installs remain
 reproducible. The installed binary supports `session deactivate`; the running daemon
 requires a separate controlled restart before it serves this new method.
 Rust 1.96.1 must already be installed. The separate
 `configs/session-manager/configure_session_manager.sh` creates `config-v2.toml` only when
 absent, targeting `${HOME}/Obsidian/Agora/2 Projects` by default, and enables a user
-systemd service for the next login. It preserves an existing configuration and does not
+systemd service for the next login. The unit supplies stable, absolute HOME/XDG
+paths and PATH (including XDG Flatpak application roots) even before the graphical
+environment preloader runs; Session Manager otherwise rejects malformed startup
+environment values. It preserves an existing configuration and does not
 start/restart a running daemon or touch Hyprland/Quickshell. Set
 `SESSION_MANAGER_PROJECT_SOURCE` to choose another existing directory before running it.
 The full installer skips this configuration when the directory is absent. The same
-configuration script installs `SUPER+ESC` (Quickshell session menu) and `SUPER+A`
-(contextual Rofi application menu); `SUPER+D` and `SUPER+P` remain unchanged. The new menu uses `session-desktop` to start in a fresh empty column, return to
+configuration script installs `SUPER+ESC` (Quickshell session menu), `SUPER+A`
+(contextual Rofi application menu), and `SUPER+B` (launch the current context's
+`firefox.desktop` directly, without Rofi). Without a session, the installed Firefox
+entry is used; missing/unavailable context data produces an error rather than
+silently opening the wrong profile. `SUPER+D` and `SUPER+P` remain unchanged. The new menu uses `session-desktop` to start in a fresh empty column, return to
 neutral workspaces without stopping running sessions, switch to the selected
 session's columns, and refuse graphical stop while session windows/scratchpads
 remain. A visible scratchpad is hidden before a menu action; its windows stay
 open, and a nonempty session still cannot be stopped through the menu. The menu
 closes after success and stays open to display an action error. In the menu,
+open sessions receive keyboard focus first, with a fallback to projects if none
+are open. Tab moves to the project search field; typing there filters projects
+only (not open sessions).
 Up/Down select an item, Tab switches between projects and open sessions, and
 Enter starts/switches the selected item; the selection scrolls into view.
 The five scratchpad names are scoped by session UUID; pre-existing `session-*` scratchpads
@@ -108,9 +118,29 @@ window/scratchpad verification. The targeted desktop installer refuses to run
 while the known user service still executes an older binary; installing files
 does not reload the UI or change focus.
 The application bridge uses `gtk-launch` for installed desktop entries and `gio launch`
-for project-local desktop files, never shell-evaluates their `Exec`. The service is
-**enabled but not started** by installation; the current graphical session is not
-reloaded. See the [Session Manager usage guide](https://github.com/ForgeDuSavoir/session-manager/blob/bff500ff52a0fd57f68a938e4610dfe7e47009e1/docs/usage.md).
+for project-local desktop files, never shell-evaluates their `Exec`. Each current
+immediate project has a local `.session-manager/apps/firefox.desktop` overriding
+`firefox.desktop` in its application list with `Name=Firefox` and
+`GenericName=Web Browser`, without the project name. The application bridge uses
+Gio (`python-gobject`, checked at configuration time) to read localized desktop
+names, GenericName and Keywords from the selected installed/local entry. Like
+Rofi drun, it renders the generic description in smaller italic parentheses;
+keywords and comments are searchable through Rofi's hidden `meta` field. Text is
+markup-escaped and IDs remain hidden; selection still uses the row index/ID.
+Core application eligibility and project-specific launch commands are unchanged.
+The downstream Flatpak patch permits exported desktop-file symlinks into the
+same installation's matching app deployment, retaining XDG priorities, bounded
+reads and validation; directory links and unrelated symlinks remain excluded.
+Its stable UUID identifies a distinct
+Firefox profile at `${XDG_DATA_HOME:-$HOME/.local/share}/agora-project-firefox/<UUID>/firefox-profile`.
+`configure_session_manager.sh` installs the `agora-project-firefox` executable;
+it creates the private profile directory on first launch and calls Firefox with
+`--no-remote --profile`, as the webapp installers do. The UUID survives a
+project-folder rename; browser profile data stays outside Agora and is not
+versioned. A copied `.desktop` must receive a new UUID to avoid sharing a
+profile. Without an active session, the installed/default Firefox entry remains
+available. The service is **enabled but not started** by installation; the
+current graphical session is not reloaded. See the [Session Manager usage guide](https://github.com/ForgeDuSavoir/session-manager/blob/bff500ff52a0fd57f68a938e4610dfe7e47009e1/docs/usage.md).
 
 ## Webapps
 

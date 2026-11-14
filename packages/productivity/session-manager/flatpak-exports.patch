@@ -1,0 +1,190 @@
+diff --git a/src/applications.rs b/src/applications.rs
+index cd0deae..449aefd 100644
+--- a/src/applications.rs
++++ b/src/applications.rs
+@@ -8,7 +8,7 @@ use crate::{
+     safe_fs::{Directory, read_bounded, unchanged, validate_path},
+ };
+ use nix::{
+-    libc::{S_IFDIR, S_IFMT, S_IFREG},
++    libc::{S_IFDIR, S_IFLNK, S_IFMT, S_IFREG},
+     unistd::{AccessFlags, access},
+ };
+ use serde::Serialize;
+@@ -263,11 +263,18 @@ impl<P: ExecutableLookup> ApplicationResolver<P> {
+                 }
+                 Err(e) => return Err(e),
+             };
+-            self.scan(&dir, "", 0, &mut scan)?;
++            self.scan(&dir, path, "", 0, &mut scan)?;
+         }
+         Ok(scan.apps)
+     }
+-    fn scan(&self, dir: &Directory, prefix: &str, depth: usize, scan: &mut Scan) -> Result<()> {
++    fn scan(
++        &self,
++        dir: &Directory,
++        location: &Path,
++        prefix: &str,
++        depth: usize,
++        scan: &mut Scan,
++    ) -> Result<()> {
+         if depth > 16 {
+             return Err(Error("limit.exceeded"));
+         }
+@@ -284,12 +291,38 @@ impl<P: ExecutableLookup> ApplicationResolver<P> {
+                         .ok_or(Error("application.invalid_installed_file"))?;
+                     self.scan(
+                         &dir.child(path)?,
++                        &location.join(path),
+                         &format!("{prefix}{text}-"),
+                         depth + 1,
+                         scan,
+                     )?;
+                 }
+-                S_IFREG if name.as_bytes().ends_with(b".desktop") => {
++                kind if (kind == S_IFREG || kind == S_IFLNK)
++                    && name.as_bytes().ends_with(b".desktop") =>
++                {
++                    let linked;
++                    let (entry_dir, entry_path) = if kind == S_IFLNK {
++                        let Some(target) = flatpak_export_target(location, path)? else {
++                            continue;
++                        };
++                        linked = (
++                            Directory::open(
++                                target.parent().ok_or(Error("filesystem.unavailable"))?,
++                            )?,
++                            target,
++                        );
++                        (
++                            &linked.0,
++                            Path::new(
++                                linked
++                                    .1
++                                    .file_name()
++                                    .ok_or(Error("filesystem.unavailable"))?,
++                            ),
++                        )
++                    } else {
++                        (dir, path)
++                    };
+                     let id = format!(
+                         "{prefix}{}",
+                         name.to_str()
+@@ -304,7 +337,7 @@ impl<P: ExecutableLookup> ApplicationResolver<P> {
+                     if scan.ids.len() > MAX_IDS {
+                         return Err(Error("limit.exceeded"));
+                     }
+-                    let entry = parse_file(dir, path, Origin::Installed)?;
++                    let entry = parse_file(entry_dir, entry_path, Origin::Installed)?;
+                     if let Some(app) = self.visible(id.clone(), entry, Origin::Installed) {
+                         scan.apps.insert(id, app);
+                     }
+@@ -353,6 +386,55 @@ impl<P: ExecutableLookup> ApplicationResolver<P> {
+         Ok((exclusions, apps))
+     }
+ }
++/// Flatpak exports use file links into app/<ID>/<arch>/<branch>/<deployment>/export.
++/// Only these installed exports may follow links; arbitrary XDG and local links
++/// remain excluded. Canonicalize once, then use no-follow directory-relative IO.
++fn flatpak_export_target(location: &Path, name: &Path) -> Result<Option<PathBuf>> {
++    if !location.ends_with("exports/share/applications") {
++        return Ok(None);
++    }
++    let Some(base) = location
++        .parent()
++        .and_then(Path::parent)
++        .and_then(Path::parent)
++    else {
++        return Ok(None);
++    };
++    let target = match fs::canonicalize(location.join(name)) {
++        Ok(target) => target,
++        Err(error)
++            if matches!(
++                error.raw_os_error(),
++                Some(nix::libc::ENOENT | nix::libc::ELOOP | nix::libc::ENOTDIR)
++            ) =>
++        {
++            return Ok(None);
++        }
++        Err(_) => return Err(Error("filesystem.unavailable")),
++    };
++    let Ok(relative) = target.strip_prefix(base.join("app")) else {
++        return Ok(None);
++    };
++    let parts: Vec<_> = relative.components().collect();
++    let id = name.to_str().and_then(|text| text.strip_suffix(".desktop"));
++    if parts.len() != 8
++        || parts[0].as_os_str().to_str() != id
++        || Path::new(
++            &parts[4..]
++                .iter()
++                .map(|part| part.as_os_str())
++                .collect::<PathBuf>(),
++        ) != Path::new("export/share/applications").join(name)
++    {
++        return Ok(None);
++    }
++    let metadata = fs::symlink_metadata(&target)?;
++    if !metadata.is_file() {
++        return Ok(None);
++    }
++    Ok(Some(target))
++}
++
+ #[derive(Default)]
+ struct Scan {
+     entries: usize,
+diff --git a/src/c2_tests.rs b/src/c2_tests.rs
+index 8147b70..39ef42d 100644
+--- a/src/c2_tests.rs
++++ b/src/c2_tests.rs
+@@ -678,6 +678,46 @@ fn local_symlinks_directories_fifos_and_symlink_ancestors_are_invalid() {
+     fs::remove_file(settings).unwrap();
+ }
+ 
++#[test]
++fn flatpak_exports_resolve_bounded_targets_and_preserve_xdg_priority() {
++    let f = Fixture::new();
++    let base = f.root.as_ref().unwrap().root().join("flatpak");
++    let exports = base.join("exports/share/applications");
++    let deployment = base.join("app/com.todoist.Todoist/x86_64/stable/deployment");
++    let app_dir = deployment.join("export/share/applications");
++    fs::create_dir_all(&exports).unwrap();
++    fs::create_dir_all(&app_dir).unwrap();
++    let id = "com.todoist.Todoist.desktop";
++    fs::write(app_dir.join(id), entry("Todoist", "")).unwrap();
++    symlink("deployment", deployment.parent().unwrap().join("active")).unwrap();
++    symlink("../../../app/com.todoist.Todoist/x86_64/stable/active/export/share/applications/com.todoist.Todoist.desktop", exports.join(id)).unwrap();
++    let environment = ApplicationEnvironment::from_values(
++        &f.root.as_ref().unwrap().home(),
++        Some(f.data[0].to_str().unwrap()),
++        Some(base.join("exports/share").to_str().unwrap()),
++        Some("KDE"),
++        Some(""),
++    )
++    .unwrap();
++    let resolver = ApplicationResolver::new(environment);
++    let apps = resolver.installed().unwrap().applications;
++    assert_eq!(apps.len(), 1);
++    assert_eq!(apps[0].name, "Todoist");
++    f.installed(0, id, "Hidden", "Hidden=true\n");
++    assert!(resolver.installed().unwrap().applications.is_empty());
++    fs::remove_file(f.data[0].join("applications").join(id)).unwrap();
++    fs::write(app_dir.join(id), entry("Todoist", "Hidden=true\n")).unwrap();
++    assert!(resolver.installed().unwrap().applications.is_empty());
++    fs::write(app_dir.join(id), "invalid").unwrap();
++    code(resolver.installed(), "application.invalid_installed_file");
++    fs::remove_file(exports.join(id)).unwrap();
++    symlink(f.data[0].join("outside.desktop"), exports.join(id)).unwrap();
++    assert!(resolver.installed().unwrap().applications.is_empty());
++    fs::remove_file(exports.join(id)).unwrap();
++    symlink(&f.source, exports.join(id)).unwrap();
++    assert!(resolver.installed().unwrap().applications.is_empty());
++}
++
+ #[test]
+ fn installed_symlinks_and_nonregular_entries_are_skipped_without_opening() {
+     let f = Fixture::new();

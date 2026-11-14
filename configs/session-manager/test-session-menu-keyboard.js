@@ -22,7 +22,7 @@ const calls = [];
 const menu = {
     Qt: {
         Key_Tab: 1, Key_Backtab: 2, Key_Up: 3, Key_Down: 4,
-        Key_Return: 5, Key_Enter: 6, callLater: fn => fn(),
+        Key_Return: 5, Key_Enter: 6, Key_Escape: 7, callLater: fn => fn(),
     },
     projects: Array.from({length: 10}, (_, n) => ({name: `Project ${n}`})),
     sessions: [{id: 'uuid-1'}, {id: 'uuid-2'}],
@@ -30,17 +30,38 @@ const menu = {
     projectList: {contentY: 0, contentHeight: 336, height: 145},
     sessionList: {contentY: 0, contentHeight: 68, height: 225},
     menuVisible: true,
+    menuRoot: {forceActiveFocus: () => { menu.focusTarget = 'sessions'; }},
+    searchInput: {text: '', forceActiveFocus: () => { menu.focusTarget = 'search'; }},
+    refresh: () => {},
     act: args => calls.push(args),
 };
+menu.filteredProjects = menu.projects;
+menu.searchText = '';
 menu.menu = menu;
 vm.createContext(menu);
-for (const name of ['ensureSelectedVisible', 'normalizeSelection', 'handleKey'])
+const filterExpression = source.match(/readonly property var filteredProjects: (.+)\n/)[1];
+function filter(query) {
+    menu.searchText = query;
+    menu.filteredProjects = vm.runInContext(filterExpression, menu);
+    menu.selectedProject = 0;
+    menu.projectList.contentY = 0;
+    menu.normalizeSelection();
+}
+for (const name of ['showMenu', 'focusSelection', 'ensureSelectedVisible', 'normalizeSelection', 'handleKey'])
     vm.runInContext(method(name), menu);
 function key(code) {
     const event = {key: code, accepted: false};
     menu.handleKey(event);
     assert(event.accepted);
 }
+menu.showMenu();
+assert.equal(menu.selectedSection, 'sessions');
+assert.equal(menu.focusTarget, 'sessions');
+key(menu.Qt.Key_Return);
+assert.deepEqual(Array.from(calls.pop()), ['switch', 'uuid-1']);
+key(menu.Qt.Key_Tab);
+assert.equal(menu.selectedSection, 'projects');
+assert.equal(menu.focusTarget, 'search');
 key(menu.Qt.Key_Up);
 assert.equal(menu.selectedProject, 0);
 for (let i = 0; i < 20; i++) key(menu.Qt.Key_Down);
@@ -56,13 +77,37 @@ key(menu.Qt.Key_Enter);
 assert.deepEqual(Array.from(calls.pop()), ['switch', 'uuid-2']);
 key(menu.Qt.Key_Backtab);
 assert.equal(menu.selectedSection, 'projects');
+filter(' PROJECT 3 ');
+assert.equal(menu.filteredProjects.length, 1);
+assert.equal(menu.filteredProjects[0].name, 'Project 3');
+assert.equal(menu.sessions.length, 2, 'search cannot filter open sessions');
+key(menu.Qt.Key_Return);
+assert.deepEqual(Array.from(calls.pop()), ['start', 'Project 3']);
+filter('nothing matches');
+assert.equal(menu.filteredProjects.length, 0);
+assert.equal(menu.selectedSection, 'projects');
+const count = calls.length;
+key(menu.Qt.Key_Return);
+assert.equal(calls.length, count, 'Enter cannot launch a hidden project');
+key(menu.Qt.Key_Tab);
+assert.equal(menu.selectedSection, 'sessions');
+key(menu.Qt.Key_Return);
+assert.deepEqual(Array.from(calls.pop()), ['switch', 'uuid-2']);
+key(menu.Qt.Key_Backtab);
+assert.equal(menu.selectedSection, 'projects');
+filter('');
+assert.equal(menu.filteredProjects.length, 10);
 menu.projects = [];
-menu.normalizeSelection();
+filter('');
 assert.equal(menu.selectedSection, 'sessions');
 menu.sessions = [];
 menu.normalizeSelection();
-const count = calls.length;
 key(menu.Qt.Key_Return);
 key(menu.Qt.Key_Tab);
 assert.equal(calls.length, count, 'empty lists must not run an action');
-console.log('Session menu arrows, Tab, Enter, selection bounds and scroll: passed');
+key(menu.Qt.Key_Escape);
+assert.equal(menu.menuVisible, false);
+menu.showMenu();
+assert.equal(menu.selectedSection, 'projects');
+assert.equal(menu.focusTarget, 'search');
+console.log('Session menu search, arrows, Tab, Enter, selection bounds and scroll: passed');
