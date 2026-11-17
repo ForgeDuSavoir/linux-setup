@@ -23,6 +23,15 @@ if [ ! -f "$INPUT" ]; then
   exit 1
 fi
 
+# Freeze the origin before starting either editor operation. An OBS recording
+# hook may already have captured it at RECORDING_STARTED; keep that value.
+if command -v agora-notify >/dev/null 2>&1; then
+  AGORA_NOTIFICATION_CONTEXT="$(agora-notify capture)" || AGORA_NOTIFICATION_CONTEXT=global
+else
+  AGORA_NOTIFICATION_CONTEXT=global
+fi
+export AGORA_NOTIFICATION_CONTEXT
+
 BASENAME="$(basename "$INPUT")"
 BASENAME="${BASENAME%.*}"
 KDENLIVE_OUTPUT="${BASENAME}_premontage.kdenlive"
@@ -30,8 +39,10 @@ FILMCRAFT_XML="${BASENAME}_premontage.xml"
 FILMCRAFT_PROJECT="${BASENAME}_premontage.fcproj"
 
 notify() {
-  if command -v notify-send >/dev/null 2>&1; then
-    notify-send "$@" || true
+  if command -v agora-notify >/dev/null 2>&1; then
+    agora-notify send "$@" || true
+  elif command -v notify-send >/dev/null 2>&1; then
+    notify-send "$@" || true  # Untagged/global compatibility fallback.
   fi
 }
 

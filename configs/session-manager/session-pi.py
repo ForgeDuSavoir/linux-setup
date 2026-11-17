@@ -54,8 +54,14 @@ def launch_command():
         if active is not None:
             raise ValueError('active session is missing from the session list')
         return terminal_command(agora_root())
+    source = session.get("source")
+    if source == {"kind": "neutral"}:
+        return terminal_command(agora_root())
+    if (not isinstance(source, dict) or set(source) != {"kind", "project_name"}
+            or source["kind"] != "project" or not isinstance(source["project_name"], str)):
+        raise ValueError("invalid v3 session source")
     projects = query('project', 'list')['projects']
-    project = next((item for item in projects if item['name'] == session['project_name']), None)
+    project = next((item for item in projects if item['name'] == source['project_name']), None)
     if project is None:
         raise ValueError('active session project is no longer available')
     path = Path(project['path'])

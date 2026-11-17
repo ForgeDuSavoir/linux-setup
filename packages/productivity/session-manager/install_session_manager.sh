@@ -2,18 +2,25 @@
 
 set -euo pipefail
 
-REVISION="bff500ff52a0fd57f68a938e4610dfe7e47009e1"
-SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
-PATCH_FILES=(
-    "${SCRIPT_DIR}/hidden-entries-without-exec.patch"
-    "${SCRIPT_DIR}/deactivate-session.patch"
-    "${SCRIPT_DIR}/flatpak-exports.patch"
-)
+REVISION="9032a6aceffbe53053968dfa918371851e866fcd"
+
+
 SOURCE_URL="https://github.com/ForgeDuSavoir/session-manager.git"
 SOURCE_DIR="${HOME}/.cache/linux-setup/session-manager"
 BIN_DIR="${HOME}/.local/bin"
 TARGET="${BIN_DIR}/session-manager"
 
+# Binary replacement is an explicit offline upgrade, never a hot daemon update.
+if [[ -e "${HOME}/.config/systemd/user/session-manager.service" ]]; then
+    if ! pid="$(systemctl --user show session-manager.service -p MainPID --value 2>/dev/null)" || [[ ! "${pid}" =~ ^[0-9]+$ ]]; then
+        echo 'Cannot inspect the known service; refusing binary replacement.' >&2
+        exit 1
+    fi
+    if [[ "${pid}" != 0 ]]; then
+        echo 'Stop the known Session Manager service explicitly before installing protocol 3.' >&2
+        exit 1
+    fi
+fi
 for tool in git cargo rustup install tar; do
     if ! command -v "${tool}" >/dev/null 2>&1; then
         echo "✗ ${tool} is required to install Session Manager." >&2
@@ -49,29 +56,21 @@ if [[ "$(git -C "${SOURCE_DIR}" rev-parse HEAD)" != "${REVISION}" ]]; then
     git -C "${SOURCE_DIR}" checkout --detach "${REVISION}"
 fi
 
-for patch_file in "${PATCH_FILES[@]}"; do
-    if [[ ! -s "${patch_file}" ]]; then
-        echo "✗ Missing reviewed Session Manager patch: ${patch_file}" >&2
-        exit 1
-    fi
-done
-# Build the pinned GitHub tree with the reviewed downstream fix in an owned temporary
-# directory. The Git cache stays pristine, and rerunning the installer is safe.
+# Build only the immutable published tree; all previous downstream patches are upstream.
 BUILD_DIR="$(mktemp -d "${HOME}/.cache/linux-setup/session-manager-build.XXXXXXXX")"
 trap 'rm -rf -- "${BUILD_DIR}"; if [[ -n "${TEMP_TARGET:-}" ]]; then rm -f -- "${TEMP_TARGET}"; fi' EXIT
 git -C "${SOURCE_DIR}" archive "${REVISION}" | tar -x -C "${BUILD_DIR}"
-for patch_file in "${PATCH_FILES[@]}"; do
-    git -C "${BUILD_DIR}" apply --check "${patch_file}"
-    git -C "${BUILD_DIR}" apply "${patch_file}"
-done
+
 (cd -- "${BUILD_DIR}" && RUSTUP_TOOLCHAIN=1.96.1 RUSTUP_AUTO_INSTALL=0 CARGO_NET_OFFLINE=true cargo build --release --offline --locked)
 
 mkdir -p "${BIN_DIR}"
 TEMP_TARGET="$(mktemp "${BIN_DIR}/.session-manager.XXXXXXXX")"
 install -m 0755 "${BUILD_DIR}/target/release/session-manager" "${TEMP_TARGET}"
-"${TEMP_TARGET}" --version
+version="$("${TEMP_TARGET}" --version)"
+[[ "${version}" == *' (protocol 3)' ]] || { echo 'Pinned binary is not protocol 3' >&2; exit 1; }
+printf '%s\n' "${version}"
 mv -f -- "${TEMP_TARGET}" "${TARGET}"
 TEMP_TARGET=""
 
-echo "✓ Session Manager ${REVISION} with reviewed hidden-entry, deactivate and Flatpak patches installed at ${TARGET}."
+echo "✓ Session Manager ${REVISION} (protocol 3, no downstream patches) installed at ${TARGET}."
 echo '  No daemon, project configuration, or desktop integration has been started.'

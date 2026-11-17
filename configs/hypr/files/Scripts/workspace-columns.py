@@ -8,6 +8,7 @@ import fcntl
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 import time
@@ -324,12 +325,31 @@ def closed(state, closed_ws):
         save(state)
 
 
+def dismiss_scratchpad():
+    """Consume navigation by hiding the focused monitor's special workspace."""
+    monitors = query("monitors")
+    monitor = next((item for item in monitors if item.get("focused")), None)
+    if monitor is None and len(monitors) == 1:
+        monitor = monitors[0]
+    if monitor is None:
+        raise RuntimeError("cannot determine focused monitor; refusing navigation")
+    name = monitor.get("specialWorkspace", {}).get("name", "")
+    if not name:
+        return False
+    if not re.fullmatch(r"special:[A-Za-z0-9_-]{1,100}", name):
+        raise RuntimeError("unsafe special workspace name; refusing navigation")
+    dispatch(f'hl.dsp.workspace.toggle_special("{name[len("special:"):]}")')
+    return True
+
+
 def main():
     RUNTIME.mkdir(parents=True, exist_ok=True)
     with (RUNTIME / "workspace-columns.lock").open("w") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
-        state = load()
         command = sys.argv[1] if len(sys.argv) > 1 else ""
+        if command in ("cycle", "toggle-row", "focus-column") and dismiss_scratchpad():
+            return  # Do not load/migrate state or perform the requested navigation.
+        state = load()
         if command == "cycle":
             cycle(state)
         elif command == "toggle-row":

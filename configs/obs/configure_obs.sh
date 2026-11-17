@@ -5,6 +5,12 @@ set -euo pipefail
 CONFIG_NAME="OBS"
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+if [[ "${1:-}" == --scripts-only && $# -eq 1 ]]; then
+    exec bash "${SCRIPT_DIR}/install_obs_scripts.sh"
+elif [[ $# -ne 0 ]]; then
+    echo "Usage: $0 [--scripts-only]" >&2
+    exit 2
+fi
 
 SOURCE_CONFIG_DIR="${SCRIPT_DIR}/files"
 SOURCE_LUA_DIR="${SCRIPT_DIR}/scripts-lua"
@@ -35,23 +41,6 @@ fi
 echo "==> Copying OBS config..."
 cp -r "${SOURCE_CONFIG_DIR}" "${TARGET_CONFIG_DIR}"
 
-if [[ -d "${SOURCE_LUA_DIR}" ]]; then
-    echo "==> Installing OBS Lua scripts..."
-    sudo cp "${SOURCE_LUA_DIR}"/*.lua "${TARGET_LUA_DIR}/"
-else
-    echo "⚠ Lua scripts directory not found, skipping:"
-    echo "  ${SOURCE_LUA_DIR}"
-fi
-
-if [[ -d "${SOURCE_SH_DIR}" ]]; then
-    echo "==> Installing OBS shell scripts..."
-    cp "${SOURCE_SH_DIR}"/*.sh "${TARGET_BIN_DIR}/"
-
-    echo "==> Making OBS shell scripts executable..."
-    chmod +x "${TARGET_BIN_DIR}"/*.sh
-else
-    echo "⚠ Shell scripts directory not found, skipping:"
-    echo "  ${SOURCE_SH_DIR}"
-fi
+bash "${SCRIPT_DIR}/install_obs_scripts.sh"
 
 echo "✓ ${CONFIG_NAME} config installed successfully."

@@ -72,7 +72,20 @@ def guard_stop(state, session_id):
             raise RuntimeError("session has open windows; stop refused")
 
 
+def start_arguments(source):
+    """Translate a closed v3 source into literal CLI arguments, never a shell."""
+    if source == {"kind": "neutral"}:
+        return ("--neutral",)
+    if (isinstance(source, dict) and set(source) == {"kind", "project_name"}
+            and source["kind"] == "project" and isinstance(source["project_name"], str)
+            and source["project_name"]):
+        return ("--project", source["project_name"])
+    raise RuntimeError("invalid v3 launch source")
+
+
 def invoke(action, value=None):
+    if action == "start":
+        start_arguments(value)  # Reject old/malformed shapes before any desktop effect.
     columns.RUNTIME.mkdir(parents=True, exist_ok=True)
     with (columns.RUNTIME / "workspace-columns.lock").open("w") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
@@ -95,7 +108,7 @@ def invoke(action, value=None):
             owner = columns.owner_of(state, columns.column_of(current))
             state.setdefault("preferred", {})[owner] = columns.column_of(current)
         if action not in ("start", "switch", "stop", "deactivate"):
-            raise RuntimeError("usage: session-desktop.py start NAME|switch UUID|deactivate|stop UUID")
+            raise RuntimeError("usage: session-desktop start --neutral|start --project NAME|switch UUID|deactivate|stop UUID")
         # Hiding is reversible and does not move/close its windows. The shared
         # workspace lock also prevents a scratchpad shortcut racing this action.
         hide_scratchpad(special)
@@ -119,7 +132,7 @@ def invoke(action, value=None):
                 columns.save(state)
             return reply
         if action == "start":
-            reply = request("start", value)
+            reply = request("start", *start_arguments(value))
             owner = reply["session"]["id"]
             # New UUID always receives a fresh, empty column, not the current one.
         elif action == "switch":
@@ -131,7 +144,7 @@ def invoke(action, value=None):
             reply = request("deactivate")
             owner = "neutral"
         else:
-            raise RuntimeError("usage: session-desktop.py start NAME|switch UUID|deactivate|stop UUID")
+            raise RuntimeError("usage: session-desktop start --neutral|start --project NAME|switch UUID|deactivate|stop UUID")
         target = pick_column(state, owner)
         state["preferred"][owner] = target
         columns.save(state)
@@ -139,14 +152,53 @@ def invoke(action, value=None):
         return reply
 
 
+def status():
+    """Read-only snapshot; never initialize state, hide a popup or change focus."""
+    columns.RUNTIME.mkdir(parents=True, exist_ok=True)
+    with (columns.RUNTIME / "workspace-columns.lock").open("w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        state = json.loads(columns.STATE.read_text()) if columns.STATE.exists() else {"version": 2, "owners": {}}
+        if state.get("version") != 2:
+            raise RuntimeError("unsupported workspace state")
+        monitors = columns.query("monitors")
+        monitor = next((item for item in monitors if item.get("focused")), None)
+        if monitor is None and len(monitors) == 1:
+            monitor = monitors[0]
+        owner = "unknown"
+        if monitor:
+            ws = monitor.get("activeWorkspace", {}).get("id", 0)
+            if ws > 0:
+                owner = columns.owner_of(state, columns.column_of(ws))
+            special = monitor.get("specialWorkspace", {}).get("name", "")
+            scoped = re.fullmatch(r"special:sm-([0-9a-f-]{36})-(ai|notes|tasks|4|5)", special)
+            if scoped and scoped.group(1) != owner:
+                owner = "unknown"
+            elif special.startswith("special:session-") and owner != "neutral":
+                owner = "unknown"
+        result = request("list")
+        if not isinstance(result.get("sessions"), list):
+            raise RuntimeError("invalid session list")
+        expected = result.get("active_session_id") or "neutral"
+        known = owner == "neutral" or any(s["id"] == owner for s in result["sessions"])
+        result["displayed_context"] = owner if known else "unknown"
+        result["context_confirmed"] = known and owner == expected
+        return result
+
+
 def main():
     args = sys.argv[1:]
-    if len(args) == 1 and args[0] == "deactivate":
+    if args == ["status"]:
+        reply = status()
+    elif len(args) == 1 and args[0] == "deactivate":
         reply = invoke(args[0])
-    elif len(args) == 2 and args[0] in ("start", "switch", "stop"):
+    elif args == ["start", "--neutral"]:
+        reply = invoke("start", {"kind": "neutral"})
+    elif len(args) == 3 and args[:2] == ["start", "--project"]:
+        reply = invoke("start", {"kind": "project", "project_name": args[2]})
+    elif len(args) == 2 and args[0] in ("switch", "stop"):
         reply = invoke(args[0], args[1])
     else:
-        raise RuntimeError("usage: session-desktop.py start NAME|switch UUID|deactivate|stop UUID")
+        raise RuntimeError("usage: session-desktop start --neutral|start --project NAME|switch UUID|deactivate|stop UUID")
     print(json.dumps(reply, separators=(",", ":")))
 
 

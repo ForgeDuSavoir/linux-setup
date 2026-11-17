@@ -89,11 +89,11 @@ with tempfile.TemporaryDirectory(prefix='project-firefox-ipc-') as tmp:
            'XDG_RUNTIME_DIR': str(runtime), 'XDG_DATA_HOME': str(root / 'data'),
            'XDG_DATA_DIRS': str(root / 'empty-data'), 'XDG_CURRENT_DESKTOP': 'Hyprland',
            'LANG': 'C.UTF-8'}
-    manager = Path.home() / '.local/bin/session-manager'
+    manager = PROJECTS / 'session-manager/target/debug/session-manager'
     daemon = subprocess.Popen([str(manager), 'daemon'], env=env,
                               stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
     try:
-        socket = runtime / 'session-manager/ipc-v2.sock'
+        socket = runtime / 'session-manager/ipc-v3.sock'
         for _ in range(100):
             if socket.exists():
                 break
@@ -109,7 +109,7 @@ with tempfile.TemporaryDirectory(prefix='project-firefox-ipc-') as tmp:
         neutral = next(app for app in request('application', 'list')['applications'] if app['id'] == 'firefox.desktop')
         assert neutral['origin'] == 'installed'
         for name, profile_id in entries.items():
-            request('session', 'start', name)
+            request('session', 'start', '--project', name)
             browser = next(app for app in request('application', 'list')['applications']
                            if app['id'] == 'firefox.desktop')
             assert browser['origin'] == 'project' and browser['name'] == 'Firefox'

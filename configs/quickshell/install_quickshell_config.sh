@@ -5,6 +5,8 @@ set -euo pipefail
 CONFIG_NAME="Quickshell"
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+source "${SCRIPT_DIR}/../session-manager/require_protocol_v3.sh"
+session_manager_require_v3
 SOURCE_DIR="${SCRIPT_DIR}/files"
 TARGET_DIR="${HOME}/.config/quickshell"
 RUNNING_PID="$(pgrep -o -x quickshell || true)"

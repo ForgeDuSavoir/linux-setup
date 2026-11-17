@@ -45,6 +45,15 @@ esac
         result, commands = run("toggle", slot)
         assert result.returncode == 0, result.stderr
         assert commands == [f'hl.dsp.workspace.toggle_special("session-{label}")']
+    # Multiple neutral instances are ordinary UUID owners, never the legacy bucket.
+    other = "22222222-2222-2222-2222-222222222222"
+    original = SESSION
+    SESSION = other
+    for slot, label in [("1", "ai"), ("2", "notes"), ("3", "tasks"), ("4", "4"), ("5", "5")]:
+        result, commands = run("toggle", slot, other)
+        assert result.returncode == 0, result.stderr
+        assert commands == [f'hl.dsp.workspace.toggle_special("sm-{other}-{label}")']
+    SESSION = original
     result, commands = run("move", "2", SESSION)
     assert result.returncode == 0, result.stderr
     assert commands == [f'hl.dsp.window.move({{ workspace = "special:sm-{SESSION}-notes" }})']

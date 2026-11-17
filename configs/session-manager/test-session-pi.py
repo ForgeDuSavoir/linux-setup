@@ -19,7 +19,7 @@ with tempfile.TemporaryDirectory() as directory:
     config = Path(directory) / 'config/agora-workflow/config.toml'
     config.parent.mkdir(parents=True)
     config.write_text('agora_root = ' + json.dumps(str(agora)) + '\n')
-    session = {'id': 'session-uuid', 'project_name': project.name}
+    session = {'id': 'session-uuid', 'source': {'kind': 'project', 'project_name': project.name}}
     state = {'active_session_id': session['id'], 'sessions': [session]}
     projects = {'projects': [{'name': project.name, 'path': str(project)}]}
     def query(*args):
@@ -31,6 +31,11 @@ with tempfile.TemporaryDirectory() as directory:
         assert 'yazi' not in str(command)
         state['active_session_id'] = None
         assert module.launch_command() == [str(module.TERMINAL), str(agora), 'pi']
+        session['source'] = {'kind': 'neutral'}
+        state['active_session_id'] = session['id']
+        assert module.launch_command() == [str(module.TERMINAL), str(agora), 'pi']
+        session['source'] = {'kind': 'project', 'project_name': project.name}
+        state['active_session_id'] = None
         config.unlink()
         try:
             module.launch_command()

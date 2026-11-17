@@ -7,13 +7,14 @@ Scope {
     id: menu
 
     property bool menuVisible: false
-    property var sessions: []
+    required property var sessionService
+    readonly property var sessions: sessionService.sessions
     property var projects: []
     property string searchText: ""
-    readonly property var filteredProjects: projects.filter(function(project) { return project.name.toLocaleLowerCase().includes(searchText.trim().toLocaleLowerCase()); })
+    readonly property var filteredProjects: projects.filter(function(project) { return project.source.kind === "neutral" || project.name.toLocaleLowerCase().includes(searchText.trim().toLocaleLowerCase()); })
     onFilteredProjectsChanged: normalizeSelection()
-    property string activeId: ""
-    property string activeName: "none"
+    readonly property string activeId: sessionService.activeId
+    readonly property string activeName: sessionService.activeName
     property string status: ""
     property string pendingStop: ""
     property string selectedSection: "projects"
@@ -21,13 +22,11 @@ Scope {
     property int selectedSession: 0
     property bool initialSelectionPending: false
     readonly property string binary: Quickshell.env("HOME") + "/.local/bin/session-manager"
-    readonly property string desktop: Quickshell.env("HOME") + "/.local/bin/session-desktop"
 
     Component.onCompleted: refresh()
 
     function refresh() {
-        if (!sessionsProcess.running)
-            sessionsProcess.running = true;
+        sessionService.refresh();
         if (!projectsProcess.running)
             projectsProcess.running = true;
     }
@@ -110,7 +109,7 @@ Scope {
             }
         } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
             if (selectedSection === "projects" && filteredProjects[selectedProject])
-                act(["start", filteredProjects[selectedProject].name]);
+                act(startArguments(filteredProjects[selectedProject]));
             else if (selectedSection === "sessions" && sessions[selectedSession])
                 act(["switch", sessions[selectedSession].id]);
         } else if (event.key === Qt.Key_Escape) {
@@ -121,85 +120,52 @@ Scope {
         event.accepted = true;
     }
 
-    function act(argumentsList) {
-        if (actionProcess.running)
-            return;
-        status = "Working...";
-        actionProcess.argumentsList = argumentsList;
-        actionProcess.running = true;
+    function startArguments(row) {
+        return row.source.kind === "neutral" ? ["start", "--neutral"] : ["start", "--project", row.source.project_name];
     }
 
-    Process {
-        id: sessionsProcess
-        command: [menu.binary, "--json", "session", "list"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                try {
-                    const result = JSON.parse(text);
-                    if (!result.sessions)
-                        throw new Error(result.code || "invalid session response");
-                    menu.sessions = result.sessions;
-                    if (menu.menuVisible && menu.initialSelectionPending) {
-                        menu.selectedSection = result.sessions.length ? "sessions" : "projects";
-                        menu.initialSelectionPending = false;
-                        Qt.callLater(function() { menu.focusSelection(); });
-                    }
-                    menu.activeId = result.active_session_id || "";
-                    const active = result.sessions.find(item => item.id === menu.activeId);
-                    menu.activeName = active ? active.name : "none";
-                    menu.normalizeSelection();
-                    menu.status = "";
-                } catch (error) {
-                    menu.status = "Unable to read sessions: " + error;
-                }
+    function act(argumentsList) {
+        if (sessionService.busy)
+            return;
+        status = "Working...";
+        sessionService.act(argumentsList);
+    }
+
+    Connections {
+        target: menu.sessionService
+        function onUpdated() {
+            if (menu.menuVisible && menu.initialSelectionPending) {
+                menu.selectedSection = menu.sessions.length ? "sessions" : "projects";
+                menu.initialSelectionPending = false;
+                Qt.callLater(function() { menu.focusSelection(); });
             }
+            menu.normalizeSelection();
         }
-        stderr: StdioCollector {
-            onStreamFinished: {
-                if (text.trim())
-                    menu.status = text.trim().split("\n")[0];
+        function onActionFinished(success, message) {
+            menu.status = message;
+            if (success) {
+                menu.pendingStop = "";
+                menu.menuVisible = false;
+                menu.refresh();
             }
         }
     }
 
     Process {
         id: projectsProcess
-        command: [menu.binary, "--json", "project", "list"]
+        command: [menu.binary, "--json", "source", "list"]
         stdout: StdioCollector {
             onStreamFinished: {
                 try {
                     const result = JSON.parse(text);
-                    if (!result.projects)
-                        throw new Error(result.code || "invalid project response");
-                    menu.projects = result.projects;
+                    if (!Array.isArray(result.sources) || !result.sources.every(row => menu.sessionService.validSource(row.source)))
+                        throw new Error(result.code || "invalid source response");
+                    menu.projects = result.sources;
                 } catch (error) {
-                    menu.status = "Unable to read projects: " + error;
+                    menu.status = "Unable to read launch sources: " + error;
                 }
             }
         }
-    }
-
-    Process {
-        id: actionProcess
-        property var argumentsList: []
-        command: [menu.desktop].concat(argumentsList)
-        onExited: function(exitCode) {
-            if (exitCode !== 0) {
-                try {
-                    const error = JSON.parse(actionOutput.text);
-                    menu.status = error.code || "Session action failed";
-                } catch (_) {
-                    menu.status = actionError.text.trim().split("\n")[0] || "Session action failed";
-                }
-            }
-            else {
-                menu.pendingStop = "";
-                menu.menuVisible = false;
-                menu.refresh();
-            }
-        }
-        stdout: StdioCollector { id: actionOutput }
-        stderr: StdioCollector { id: actionError }
     }
 
     IpcHandler {
@@ -249,36 +215,19 @@ Scope {
                     width: parent.width
                 }
                 Text {
-                    text: menu.status
+                    text: menu.status || menu.sessionService.error
                     color: "#d9a26b"
                     font.pixelSize: 12
                     width: parent.width
                     wrapMode: Text.Wrap
                     visible: text.length > 0
                 }
+                Text { text: "Start a session"; color: "#aab3c4"; font.pixelSize: 13 }
                 Rectangle {
                     width: parent.width
                     height: 30
                     radius: 4
-                    color: menu.activeId === "" ? "#3d5a80" : neutralMouse.containsMouse ? "#343d4f" : "#202633"
-                    Text {
-                        anchors.centerIn: parent
-                        text: "Neutral workspace (keep sessions open)"
-                        color: "#f0f0f0"
-                        font.pixelSize: 12
-                    }
-                    MouseArea {
-                        id: neutralMouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        onClicked: menu.act(["deactivate"])
-                    }
-                }
-                Text { text: "Start from project"; color: "#aab3c4"; font.pixelSize: 13 }
-                Rectangle {
-                    width: parent.width
-                    height: 30
-                    radius: 4
+
                     color: "#202633"
                     border.color: searchInput.activeFocus ? "#506e93" : "#343d4f"
                     Text {
@@ -343,7 +292,7 @@ Scope {
                                     anchors.leftMargin: 10
                                     anchors.verticalCenter: parent.verticalCenter
                                     width: parent.width - 20
-                                    text: "+ " + modelData.name
+                                    text: "+ " + modelData.name + (modelData.source.kind === "neutral" ? " (built-in)" : " (project)")
                                     elide: Text.ElideRight
                                     color: "#f0f0f0"
                                 }
@@ -354,7 +303,7 @@ Scope {
                                     onClicked: {
                                         menu.selectedSection = "projects";
                                         menu.selectedProject = index;
-                                        menu.act(["start", modelData.name]);
+                                        menu.act(menu.startArguments(modelData));
                                     }
                                 }
                             }
@@ -434,7 +383,11 @@ Scope {
                 }
                 Text {
                     width: parent.width
-                    text: "The menu keeps existing windows in their workspaces. Stop refuses sessions with windows."
+                    text: "Deselect session — return to the unowned desktop"
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: menu.act(["deactivate"])
+                    }
                     wrapMode: Text.Wrap
                     color: "#7f8999"
                     font.pixelSize: 12

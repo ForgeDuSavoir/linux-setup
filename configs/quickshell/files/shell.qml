@@ -12,12 +12,18 @@ import QtQuick
 Scope {
     id: root
 
+    SessionService {
+        id: sessionState
+    }
+
     NotificationService {
         id: notificationService
+        sessionService: sessionState
     }
 
     SessionMenu {
         id: sessionMenu
+        sessionService: sessionState
     }
 
     property var workspaceRows: []
@@ -64,7 +70,11 @@ Scope {
 
     Connections {
         target: Hyprland
-        function onRawEvent(event) { workspaceRefreshTimer.restart(); }
+        function onRawEvent(event) {
+            workspaceRefreshTimer.restart();
+            if (["workspace", "workspacev2", "focusedmon", "activespecial", "activespecialv2", "moveworkspace", "moveworkspacev2", "renameworkspace"].includes(event.name))
+                sessionState.invalidateContext();
+        }
     }
 
     Timer {
@@ -115,9 +125,9 @@ Scope {
         ["SUPER+Enter", "Terminal"],
         ["SUPER+U", "Scrolling layout"],
         ["SUPER+I", "Fit Scroller layout"],
-        ["SUPER+P", "Projects"],
-        ["SUPER+D", "Applications (system)"],
-        ["SUPER+A", "Applications (current session)"],
+        ["SUPER+P", "Pi (current session / Agora)"],
+        ["SUPER+A", "Applications (system)"],
+        ["SUPER+D", "Applications (current session)"],
         ["SUPER+Esc", "Sessions"],
         ["SUPER+B", "Browser"],
         ["SUPER+O", "Control center"],
@@ -661,16 +671,16 @@ Scope {
                         }
                     }
 
-                    Text {
+                    SessionStrip {
                         anchors {
                             left: parent.left
                             leftMargin: 12
                             verticalCenter: parent.verticalCenter
                         }
-
-                        color: "#e7e7e7"
-                        font.pixelSize: 13
-                        text: "Session: " + sessionMenu.activeName
+                        width: Math.min(300, parent.width * 0.25)
+                        height: 26
+                        sessionService: sessionState
+                        notificationState: notificationService
                     }
 
                     Row {
@@ -925,6 +935,21 @@ Scope {
                                 radius: 6
                                 color: "#202633"
 
+                                Rectangle {
+                                    anchors.right: parent.right
+                                    anchors.top: parent.top
+                                    anchors.margins: 5
+                                    width: 24; height: 24
+                                    radius: 4
+                                    color: removeNotification.containsMouse ? "#3a2530" : "transparent"
+                                    Text { anchors.centerIn: parent; text: "×"; color: "#b9c0cc" }
+                                    MouseArea {
+                                        id: removeNotification
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        onClicked: notificationService.removeHistory(modelData.key)
+                                    }
+                                }
                                 Column {
                                     id: notificationContent
 
@@ -942,6 +967,15 @@ Scope {
                                         font.pixelSize: 11
                                         elide: Text.ElideRight
                                         text: modelData.appName + " · " + new Date(modelData.timestamp).toLocaleTimeString(Qt.locale(), "HH:mm")
+                                        rightPadding: 24
+                                    }
+
+                                    Text {
+                                        width: parent.width
+                                        color: modelData.unread ? "#d66b6b" : "#8f99a8"
+                                        font.pixelSize: 11
+                                        elide: Text.ElideRight
+                                        text: notificationService.contextLabel(modelData) + (modelData.unread ? " · new" : "")
                                     }
 
                                     Text {

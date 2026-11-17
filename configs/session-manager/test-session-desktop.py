@@ -45,7 +45,7 @@ with tempfile.TemporaryDirectory(prefix="session-desktop-") as temp:
         events.append(("request", args))
         if args == ("list",):
             return {"sessions": [{"id": item} for item in sessions], "active_session_id": selected[0]}
-        if args == ("start", "Project"):
+        if args == ("start", "--project", "Project"):
             sessions.append(SESSION)
             selected[0] = SESSION
             return {"session": {"id": SESSION}}
@@ -63,7 +63,7 @@ with tempfile.TemporaryDirectory(prefix="session-desktop-") as temp:
         raise AssertionError(args)
 
     module.request = request
-    module.invoke("start", "Project")
+    module.invoke("start", {"kind": "project", "project_name": "Project"})
     assert state["owners"] == {"1": "neutral", "2": SESSION}
     assert active_ws[0] == 3
     assert clients == [{"workspace": {"id": 1, "name": "1"}}]
@@ -124,7 +124,7 @@ with tempfile.TemporaryDirectory(prefix="session-desktop-") as temp:
     monitors.append({"specialWorkspace": {"name": ""}})
     before = list(events)
     try:
-        module.invoke("start", "Project")
+        module.invoke("start", {"kind": "project", "project_name": "Project"})
         raise AssertionError("multiple monitors must fail before any mutation")
     except RuntimeError as exc:
         assert "one monitor" in str(exc)
@@ -138,7 +138,7 @@ with tempfile.TemporaryDirectory(prefix="session-desktop-") as temp:
     module.columns.load = original_load
     module.columns.save = original_save
     events.clear()
-    module.invoke("start", "Project")
+    module.invoke("start", {"kind": "project", "project_name": "Project"})
     persisted = module.columns.load()
     assert persisted["owners"] == {"1": "neutral", "2": SESSION}
     assert clients == [{"workspace": {"id": 1, "name": "1"}}]

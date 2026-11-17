@@ -61,8 +61,14 @@ def selected_project_path():
     session = next((item for item in state["sessions"] if item["id"] == active), None)
     if session is None:
         return None
+    source = session.get("source")
+    if source == {"kind": "neutral"}:
+        return None
+    if (not isinstance(source, dict) or set(source) != {"kind", "project_name"}
+            or source["kind"] != "project" or not isinstance(source["project_name"], str)):
+        raise ValueError("invalid v3 session source")
     projects = query("project", "list")["projects"]
-    return next((Path(item["path"]) for item in projects if item["name"] == session["project_name"]), None)
+    return next((Path(item["path"]) for item in projects if item["name"] == source["project_name"]), None)
 
 
 def launch_command(app):

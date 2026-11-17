@@ -5,50 +5,16 @@ import Quickshell.Widgets
 import QtQuick
 import QtQuick.Layouts
 
-Scope {
+NotificationStore {
     id: root
 
     readonly property int popupWidth: 380
-    readonly property int historyLimit: 100
-    property var history: []
-
-    function addToHistory(notification) {
-        const entry = {
-            timestamp: Date.now(),
-            appName: notification.appName,
-            summary: notification.summary,
-            body: notification.body,
-            urgency: notification.urgency
-        };
-
-        history = [entry].concat(history).slice(0, historyLimit);
-    }
-
-    function clearHistory() {
-        history = [];
-    }
-
     function accentColor(urgency) {
         if (urgency === NotificationUrgency.Critical)
             return "#d66b6b";
         if (urgency === NotificationUrgency.Low)
             return "#7f8999";
         return "#5f8fbd";
-    }
-
-    NotificationServer {
-        id: notificationServer
-
-        keepOnReload: false
-        bodySupported: true
-        bodyMarkupSupported: true
-        actionsSupported: true
-        imageSupported: true
-
-        onNotification: notification => {
-            root.addToHistory(notification);
-            notification.tracked = true;
-        }
     }
 
     Variants {
@@ -61,7 +27,7 @@ Scope {
                 required property var modelData
 
                 screen: modelData
-                visible: notificationServer.trackedNotifications.values.length > 0
+                visible: root.popupNotifications.length > 0
 
                 anchors {
                     top: true
@@ -89,7 +55,7 @@ Scope {
                     spacing: 8
 
                     Repeater {
-                        model: notificationServer.trackedNotifications
+                        model: root.trackedNotifications
 
                         delegate: Rectangle {
                             id: notificationCard
@@ -97,8 +63,11 @@ Scope {
                             required property var modelData
 
                             readonly property var notification: modelData
+                            visible: root.popupNotifications.some(item => item.id === notification.id)
+                            onVisibleChanged: {
+                                if (!visible && notification) root.setHovered(notification.id, false);
+                            }
                             readonly property color accent: root.accentColor(notification.urgency)
-                            readonly property int defaultDuration: notification.urgency === NotificationUrgency.Critical ? 10000 : 5000
 
                             width: notificationStack.width
                             implicitHeight: content.implicitHeight + 24
@@ -264,16 +233,13 @@ Scope {
 
                             HoverHandler {
                                 id: notificationHover
+                                onHoveredChanged: root.setHovered(notification.id, hovered)
+                            }
+                            Component.onDestruction: {
+                                if (notification) root.setHovered(notification.id, false);
                             }
 
-                            Timer {
-                                interval: notification.expireTimeout > 0
-                                    ? notification.expireTimeout
-                                    : notificationCard.defaultDuration
-                                running: !notificationHover.hovered
-                                repeat: false
-                                onTriggered: notification.expire()
-                            }
+
                         }
                     }
                 }

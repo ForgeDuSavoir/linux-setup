@@ -3,6 +3,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+source "${SCRIPT_DIR}/require_protocol_v3.sh"
+session_manager_require_v3
 CONFIGS_DIR="$(cd -- "${SCRIPT_DIR}/.." && pwd -P)"
 
 # An old running daemon cannot serve session.deactivate. Do not expose the
@@ -24,6 +26,11 @@ for mapping in \
     "hypr/files/keybinds.lua|${HOME}/.config/hypr/keybinds.lua" \
     "hypr/files/Scripts/workspace-columns.py|${HOME}/.config/hypr/Scripts/workspace-columns.py" \
     "hypr/files/Scripts/scratchpad.sh|${HOME}/.config/hypr/Scripts/scratchpad.sh" \
+    "quickshell/files/NotificationPolicy.js|${HOME}/.config/quickshell/NotificationPolicy.js" \
+    "quickshell/files/NotificationStore.qml|${HOME}/.config/quickshell/NotificationStore.qml" \
+    "quickshell/files/NotificationService.qml|${HOME}/.config/quickshell/NotificationService.qml" \
+    "quickshell/files/SessionService.qml|${HOME}/.config/quickshell/SessionService.qml" \
+    "quickshell/files/SessionStrip.qml|${HOME}/.config/quickshell/SessionStrip.qml" \
     "quickshell/files/shell.qml|${HOME}/.config/quickshell/shell.qml" \
     "quickshell/files/SessionMenu.qml|${HOME}/.config/quickshell/SessionMenu.qml"; do
     relative="${mapping%%|*}"

@@ -24,7 +24,7 @@ const menu = {
         Key_Tab: 1, Key_Backtab: 2, Key_Up: 3, Key_Down: 4,
         Key_Return: 5, Key_Enter: 6, Key_Escape: 7, callLater: fn => fn(),
     },
-    projects: Array.from({length: 10}, (_, n) => ({name: `Project ${n}`})),
+    projects: Array.from({length: 10}, (_, n) => ({name: `Project ${n}`, source: {kind: "project", project_name: `Project ${n}`}})),
     sessions: [{id: 'uuid-1'}, {id: 'uuid-2'}],
     selectedSection: 'projects', selectedProject: 0, selectedSession: 0,
     projectList: {contentY: 0, contentHeight: 336, height: 145},
@@ -47,7 +47,7 @@ function filter(query) {
     menu.projectList.contentY = 0;
     menu.normalizeSelection();
 }
-for (const name of ['showMenu', 'focusSelection', 'ensureSelectedVisible', 'normalizeSelection', 'handleKey'])
+for (const name of ['showMenu', 'focusSelection', 'ensureSelectedVisible', 'normalizeSelection', 'startArguments', 'handleKey'])
     vm.runInContext(method(name), menu);
 function key(code) {
     const event = {key: code, accepted: false};
@@ -68,7 +68,7 @@ for (let i = 0; i < 20; i++) key(menu.Qt.Key_Down);
 assert.equal(menu.selectedProject, 9);
 assert(menu.projectList.contentY > 0, 'selection must scroll past clipped projects');
 key(menu.Qt.Key_Return);
-assert.deepEqual(Array.from(calls.pop()), ['start', 'Project 9']);
+assert.deepEqual(Array.from(calls.pop()), ['start', '--project', 'Project 9']);
 key(menu.Qt.Key_Tab);
 assert.equal(menu.selectedSection, 'sessions');
 key(menu.Qt.Key_Down);
@@ -82,7 +82,7 @@ assert.equal(menu.filteredProjects.length, 1);
 assert.equal(menu.filteredProjects[0].name, 'Project 3');
 assert.equal(menu.sessions.length, 2, 'search cannot filter open sessions');
 key(menu.Qt.Key_Return);
-assert.deepEqual(Array.from(calls.pop()), ['start', 'Project 3']);
+assert.deepEqual(Array.from(calls.pop()), ['start', '--project', 'Project 3']);
 filter('nothing matches');
 assert.equal(menu.filteredProjects.length, 0);
 assert.equal(menu.selectedSection, 'projects');
@@ -111,3 +111,17 @@ menu.showMenu();
 assert.equal(menu.selectedSection, 'projects');
 assert.equal(menu.focusTarget, 'search');
 console.log('Session menu search, arrows, Tab, Enter, selection bounds and scroll: passed');
+
+menu.projects = [{name: 'Neutral', source: {kind: 'neutral'}},
+    {name: 'Neutral', source: {kind: 'project', project_name: 'Neutral'}}];
+menu.sessions = [];
+filter('does not match any project');
+assert.equal(menu.filteredProjects.length, 1, 'built-in source remains available during project search');
+menu.showMenu();
+key(menu.Qt.Key_Return);
+assert.deepEqual(Array.from(calls.pop()), ['start', '--neutral']);
+filter('Neutral');
+menu.selectedProject = 1;
+key(menu.Qt.Key_Return);
+assert.deepEqual(Array.from(calls.pop()), ['start', '--project', 'Neutral']);
+assert(!source.includes('Neutral workspace (keep sessions open)'), 'no singleton neutral button');

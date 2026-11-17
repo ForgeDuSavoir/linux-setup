@@ -3,7 +3,14 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+source "${SCRIPT_DIR}/require_protocol_v3.sh"
+session_manager_require_v3
 PROJECT_SOURCE="${SESSION_MANAGER_PROJECT_SOURCE:-${HOME}/Obsidian/Agora/2 Projects}"
+INSTALL_DESKTOP="${SESSION_MANAGER_INSTALL_DESKTOP:-1}"
+if [[ "${INSTALL_DESKTOP}" != 0 && "${INSTALL_DESKTOP}" != 1 ]]; then
+    echo '✗ SESSION_MANAGER_INSTALL_DESKTOP must be 0 or 1.' >&2
+    exit 1
+fi
 CONFIG_DIR="${XDG_CONFIG_HOME:-${HOME}/.config}/session-manager"
 CONFIG_FILE="${CONFIG_DIR}/config-v2.toml"
 UNIT_SOURCE="${SCRIPT_DIR}/session-manager.service"
@@ -15,6 +22,8 @@ FIREFOX_SOURCE="${SCRIPT_DIR}/agora-project-firefox.sh"
 FIREFOX_TARGET="${HOME}/.local/bin/agora-project-firefox"
 PI_SOURCE="${SCRIPT_DIR}/session-pi.py"
 PI_TARGET="${HOME}/.local/bin/session-pi"
+NOTIFY_SOURCE="${SCRIPT_DIR}/agora-notify.py"
+NOTIFY_TARGET="${HOME}/.local/bin/agora-notify"
 PI_DESKTOP_SOURCE="${SCRIPT_DIR}/session-pi.desktop"
 PI_DESKTOP_TARGET="${XDG_DATA_HOME:-${HOME}/.local/share}/applications/session-pi.desktop"
 UNIT_DIR="${HOME}/.config/systemd/user"
@@ -28,7 +37,7 @@ if [[ ! -x "${HOME}/.local/bin/session-manager" ]]; then
     echo '✗ Install Session Manager before configuring it.' >&2
     exit 1
 fi
-for source in "${UNIT_SOURCE}" "${LAUNCHER_SOURCE}" "${DESKTOP_SOURCE}" "${FIREFOX_SOURCE}" "${PI_SOURCE}" "${PI_DESKTOP_SOURCE}"; do
+for source in "${UNIT_SOURCE}" "${LAUNCHER_SOURCE}" "${DESKTOP_SOURCE}" "${FIREFOX_SOURCE}" "${PI_SOURCE}" "${PI_DESKTOP_SOURCE}" "${NOTIFY_SOURCE}"; do
     if [[ ! -f "${source}" ]]; then
         echo "✗ Missing Session Manager integration: ${source}" >&2
         exit 1
@@ -49,7 +58,7 @@ fi
 python3 "${SCRIPT_DIR}/configure_agora_workflow.py"
 
 mkdir -p "${CONFIG_DIR}" "${UNIT_DIR}"
-if [[ -L "${CONFIG_FILE}" || -L "${UNIT_FILE}" || -L "${LAUNCHER_TARGET}" || -L "${DESKTOP_TARGET}" || -L "${FIREFOX_TARGET}" || -L "${PI_TARGET}" || -L "${PI_DESKTOP_TARGET}" ]]; then
+if [[ -L "${CONFIG_FILE}" || -L "${UNIT_FILE}" || -L "${LAUNCHER_TARGET}" || -L "${DESKTOP_TARGET}" || -L "${FIREFOX_TARGET}" || -L "${PI_TARGET}" || -L "${PI_DESKTOP_TARGET}" || -L "${NOTIFY_TARGET}" ]]; then
     echo '✗ Refusing a symlinked Session Manager configuration or service unit.' >&2
     exit 1
 fi
@@ -83,13 +92,18 @@ install -m 0755 "${LAUNCHER_SOURCE}" "${LAUNCHER_TARGET}"
 install -m 0755 "${DESKTOP_SOURCE}" "${DESKTOP_TARGET}"
 install -m 0755 "${FIREFOX_SOURCE}" "${FIREFOX_TARGET}"
 install -m 0755 "${PI_SOURCE}" "${PI_TARGET}"
+install -m 0755 "${NOTIFY_SOURCE}" "${NOTIFY_TARGET}"
 install -Dm0644 "${PI_DESKTOP_SOURCE}" "${PI_DESKTOP_TARGET}"
 if command -v update-desktop-database >/dev/null 2>&1; then
     update-desktop-database "$(dirname -- "${PI_DESKTOP_TARGET}")"
 fi
 systemctl --user daemon-reload
 systemctl --user enable session-manager.service
-bash "${SCRIPT_DIR}/install_desktop_integration.sh"
+if [[ "${INSTALL_DESKTOP}" == 1 ]]; then
+    bash "${SCRIPT_DIR}/install_desktop_integration.sh"
+else
+    echo '==> Desktop files deferred; preserving the running shell and its notification history.'
+fi
 
 echo '✓ Session Manager enabled for the next user login.'
 echo '  No daemon was started and no Hyprland/Quickshell process was reloaded by this script.'
