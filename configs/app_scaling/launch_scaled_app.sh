@@ -1,10 +1,18 @@
 #!/usr/bin/env bash
-# Installed as ~/.local/bin/<app> for Steam and the 13 ArtCraft GUI programs.
+# Installed as ~/.local/bin/<app> for Steam, ArtCraft GUI programs and VLC.
 set -euo pipefail
 
 app=${0##*/}
 source_dir=${APP_SCALING_SYSTEM_BIN_DIR:-/usr/bin}
 case "$app" in
+    vlc)
+        # Keep the confirmed Qt5/XWayland backend and render at 150%, not a
+        # compositor bitmap upscale. A unit screen factor prevents double DPI.
+        export QT_QPA_PLATFORM=xcb
+        export QT_AUTO_SCREEN_SCALE_FACTOR=0
+        export QT_SCREEN_SCALE_FACTORS=1
+        export QT_SCALE_FACTOR=1.5
+        ;;
     steam)
         # Steam's UI setting; do not set GDK/QT/Winit scaling for its games.
         export STEAM_FORCE_DESKTOPUI_SCALING=1.5

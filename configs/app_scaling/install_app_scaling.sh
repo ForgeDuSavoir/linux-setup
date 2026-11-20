@@ -9,13 +9,21 @@ bin_dir="$HOME/.local/bin"
 desktop_dir="$HOME/.local/share/applications"
 launcher="$bin_dir/scaled-app-launcher"
 
-mapfile -t apps < "$app_list"
-if (( ${#apps[@]} != 13 )); then
-    echo "Expected 13 ArtCraft applications in $app_list" >&2
-    exit 1
+if [[ $# -eq 1 && "$1" == --vlc-only ]]; then
+    apps=(vlc)
+elif [[ $# -eq 0 ]]; then
+    mapfile -t apps < "$app_list"
+    if (( ${#apps[@]} != 13 )); then
+        echo "Expected 13 ArtCraft applications in $app_list" >&2
+        exit 1
+    fi
+    apps+=(steam)
+    [[ ! -x "$source_bin/vlc" ]] || apps+=(vlc)
+else
+    echo "Usage: $0 [--vlc-only]" >&2
+    exit 2
 fi
-apps+=(steam)
-if [[ -e "$launcher" && ! -f "$launcher" ]]; then
+if [[ -L "$launcher" || ( -e "$launcher" && ! -f "$launcher" ) ]]; then
     echo "Refusing to replace $launcher" >&2
     exit 1
 fi
@@ -29,7 +37,7 @@ for app in "${apps[@]}"; do
         echo "Refusing to replace existing launcher: $link" >&2
         exit 1
     fi
-    if [[ "$app" != steam ]]; then
+    if [[ "$app" != steam && "$app" != vlc ]]; then
         entry="$source_desktop/ai.storyteller.$app.desktop"
         if [[ ! -f "$entry" ]] || ! grep -q "^Exec=$app " "$entry"; then
             echo "Unexpected ArtCraft desktop command: $entry" >&2
@@ -46,17 +54,45 @@ if [[ "$bin_dir" == *[[:space:]]* ]]; then
     echo "Desktop launcher path contains whitespace: $bin_dir" >&2
     exit 1
 fi
-if [[ ! -f "$source_desktop/steam.desktop" ]]; then
-    echo 'Steam desktop entry not found' >&2
-    exit 1
-fi
-if [[ -e "$desktop_dir/steam.desktop" ]] && ! grep -q '^# Managed by linux-setup app_scaling$' "$desktop_dir/steam.desktop"; then
-    echo "Refusing to replace existing Steam override: $desktop_dir/steam.desktop" >&2
-    exit 1
-fi
+for app in "${apps[@]}"; do
+    if [[ "$app" == steam || "$app" == vlc ]]; then
+        if [[ ! -f "$source_desktop/$app.desktop" ]] || ! grep -q "^Exec=/usr/bin/$app " "$source_desktop/$app.desktop"; then
+            echo "Missing or unexpected desktop entry: $app" >&2; exit 1
+        fi
+        if [[ -L "$desktop_dir/$app.desktop" ]] || { [[ -e "$desktop_dir/$app.desktop" ]] && ! grep -q '^# Managed by linux-setup app_scaling$' "$desktop_dir/$app.desktop"; }; then
+            echo "Refusing personal/symlinked override: $app" >&2; exit 1
+        fi
+    fi
+done
 
+for location in "$bin_dir" "$desktop_dir" "${XDG_STATE_HOME:-$HOME/.local/state}/linux-setup/app-scaling-upgrades"; do
+    [[ "$location" == /* ]] || { echo "Installation/state paths must be absolute" >&2; exit 1; }
+    while [[ "$location" != / ]]; do
+        [[ ! -L "$location" ]] || { echo "Refusing a symlinked destination ancestor: $location" >&2; exit 1; }
+        location="$(dirname -- "$location")"
+    done
+done
 mkdir -p "$bin_dir" "$desktop_dir"
-install -m 0755 "$script_dir/launch_scaled_app.sh" "$launcher"
+# Retain originals before updating the shared wrapper/selected entries. No GUI.
+backup_root="${XDG_STATE_HOME:-$HOME/.local/state}/linux-setup/app-scaling-upgrades"
+[[ "$backup_root" == /* ]] || { echo "XDG_STATE_HOME must be absolute" >&2; exit 1; }
+backup=""
+if [[ -f "$launcher" ]] && ! cmp -s "$script_dir/launch_scaled_app.sh" "$launcher"; then
+    mkdir -p "$backup_root"
+    backup="$(mktemp -d "$backup_root/$(date -u +%Y%m%dT%H%M%SZ)-XXXXXXXX")"
+    chmod 700 "$backup"
+    cp -p "$launcher" "$backup/scaled-app-launcher"
+    for app in "${apps[@]}"; do
+        if [[ "$app" == steam || "$app" == vlc ]]; then name="$app.desktop"; else name="ai.storyteller.$app.desktop"; fi
+        [[ ! -f "$desktop_dir/$name" ]] || cp -p "$desktop_dir/$name" "$backup/$name"
+    done
+    echo "Private scaling backup: $backup"
+fi
+tmp="$(mktemp "$bin_dir/.scaled-launcher.XXXXXXXX")"
+trap 'rm -f -- "$tmp"' EXIT
+install -m 0755 "$script_dir/launch_scaled_app.sh" "$tmp"
+mv -fT -- "$tmp" "$launcher"
+trap - EXIT
 for app in "${apps[@]}"; do
     [[ -L "$bin_dir/$app" ]] || ln -s scaled-app-launcher "$bin_dir/$app"
 done
@@ -73,9 +109,9 @@ import tempfile
 
 source_dir, desktop_dir, bin_dir = map(pathlib.Path, sys.argv[1:4])
 for app in sys.argv[4:]:
-    name = 'steam.desktop' if app == 'steam' else f'ai.storyteller.{app}.desktop'
+    name = f'{app}.desktop' if app in ('steam', 'vlc') else f'ai.storyteller.{app}.desktop'
     source, target = source_dir / name, desktop_dir / name
-    original = '/usr/bin/steam' if app == 'steam' else app
+    original = f'/usr/bin/{app}' if app in ('steam', 'vlc') else app
     launcher = str(bin_dir / app)
     content, count = re.subn(r'^Exec=' + re.escape(original) + r'(?=\s|$)',
                              lambda _: 'Exec=' + launcher, source.read_text(), flags=re.M)
@@ -94,8 +130,8 @@ for app in sys.argv[4:]:
 PY
 if command -v desktop-file-validate >/dev/null 2>&1; then
     for app in "${apps[@]}"; do
-        if [[ "$app" == steam ]]; then
-            entry="$desktop_dir/steam.desktop"
+        if [[ "$app" == steam || "$app" == vlc ]]; then
+            entry="$desktop_dir/$app.desktop"
         else
             entry="$desktop_dir/ai.storyteller.$app.desktop"
         fi
@@ -105,4 +141,4 @@ fi
 if command -v update-desktop-database >/dev/null 2>&1; then
     update-desktop-database "$desktop_dir" >/dev/null 2>&1 || true
 fi
-echo '✓ Steam UI and 13 ArtCraft apps: app-only 1.5 scaling installed (games unchanged).'
+echo "✓ Application-only scaling installed: ${apps[*]} (no app launched/restarted)."

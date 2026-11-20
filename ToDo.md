@@ -1,5 +1,8 @@
 # To do
 
+- [x] Confirm live VLC uses Qt5/xcb/XWayland at monitor scale 1.5 with force-zero scaling; add VLC-only Qt 1.5 launch environment/per-screen factor 1, managed same-ID desktop override and targeted `--vlc-only` install. Preserve media argv/MIME and Steam/ArtCraft behavior; normal setup includes VLC when present. Isolated mocks and actual offscreen Qt5 DPR probe pass. Installed with private wrapper backup; existing VLC window/settings untouched. [Details](configs/app_scaling/README.md).
+- [ ] User visual acceptance after fully quitting/reopening VLC (single-instance reuse can retain the old environment).
+
 - [x] Install native `session-pi` continuation: literal `pi --continue` in the already-routed project/Agora directory; Pi owns most-recent/new-if-empty behavior. Existing notification origin/routing/environment unchanged, no transcript scan/registry/window reuse or concurrent-open lock. 73 desktop Rust tests, 60 oracle cases with one explicit argv delta, real private-core/stub Pi and installer tests pass. Targeted ELF installed with private backup; no real Pi/model/terminal or reload. [Contract/evidence](runtime/R5-pi.md#automatic-continuation--installed-2026-11-20).
 
 - [x] Implement/test/stage [SUPER+F1 attention-first navigation](runtime/session-attention.md): exact bar-order leftmost pending, otherwise successor/wrap; fresh status, existing safe switch/acknowledgement, ignored repeats until confirmation, no new timer/retry/queue. Full runtime suite and genuine private QML/IPC/D-Bus tests pass. Inactive generation `a3c8cad3a5fab1959be14a9f`; live pointer/QML/keybinds unchanged.
