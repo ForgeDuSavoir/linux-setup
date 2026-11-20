@@ -14,6 +14,7 @@ Scope {
 
     SessionService {
         id: sessionState
+        notificationState: notificationService
     }
 
     NotificationService {

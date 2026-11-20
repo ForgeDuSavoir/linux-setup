@@ -170,6 +170,7 @@ Scope {
 
     IpcHandler {
         target: "sessions"
+        function nextAttention(): void { menu.sessionService.nextAttention(); }
         function toggle(): void { menu.toggle(); }
         function show(): void { menu.showMenu(); }
         function hide(): void { menu.menuVisible = false; }

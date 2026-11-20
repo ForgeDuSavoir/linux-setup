@@ -1,5 +1,6 @@
 //! Context-confirmed Rofi launcher with private project-local usage ranking.
 mod context;
+mod expected;
 mod fs;
 mod git;
 mod history;
@@ -75,6 +76,7 @@ struct Client {
     home: PathBuf,
     manager: PathBuf,
     theme: PathBuf,
+    expected: Option<expected::Expected>,
 }
 impl Client {
     fn query<T: DeserializeOwned>(&self, args: &[&str]) -> Result<T> {
@@ -200,6 +202,9 @@ impl Client {
             .iter()
             .map(|c| row(&c.app, c.info.clone()))
             .collect();
+        if self.expected.is_some() {
+            self.confirmed()?;
+        }
         let output = process::run(
             Command::new("rofi")
                 .args([
@@ -233,7 +238,12 @@ impl Client {
                 .choices
                 .get(index)
                 .ok_or("invalid launcher selection")?,
-            store.as_ref(),
+            // Preserve the existing policy: only the explicit SUPER+D menu records usage.
+            if self.expected.is_some() {
+                None
+            } else {
+                store.as_ref()
+            },
         )
     }
 }
@@ -350,15 +360,25 @@ fn entry() -> Result<()> {
     let args = std::env::args_os().skip(1).collect::<Vec<_>>();
     if args == ["--version"] {
         println!(
-            "session-app-launcher {} (Rust; project-local usage history v1)",
+            "session-app-launcher {} (Rust; project-local usage history v1) [expected-workspace-v1]",
             env!("CARGO_PKG_VERSION")
         );
         return Ok(());
     }
     let browser = args == ["--browser"];
-    if !args.is_empty() && !browser {
-        return Err("usage: session-app-launcher [--browser]".into());
-    }
+    let expected = match args.as_slice() {
+        [] => None,
+        [flag] if flag == "--browser" => None,
+        [flag, id, owner] if flag == "--expected-workspace" => Some(expected::Expected::parse(
+            id.to_str().ok_or("invalid workspace")?,
+            owner.to_str().ok_or("invalid owner")?,
+        )?),
+        _ => {
+            return Err(
+                "usage: session-app-launcher [--browser | --expected-workspace ID OWNER]".into(),
+            );
+        }
+    };
     let home = std::env::var_os("HOME")
         .map(PathBuf::from)
         .filter(|p| p.is_absolute())
@@ -366,6 +386,7 @@ fn entry() -> Result<()> {
     let client = Client {
         manager: home.join(".local/bin/session-manager"),
         theme: home.join(".config/rofi/project-launcher.rasi"),
+        expected,
         home,
     };
     client.run(browser)

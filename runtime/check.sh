@@ -11,6 +11,9 @@ cargo +1.96.1 clippy --offline --locked --all-targets -- -D warnings
 cargo +1.96.1 build --offline --locked --release --bins --examples
 python3 tests/test_workspace_parity.py
 python3 tests/test_workspace_cli.py
+# SUPER+Tab pairs the controller with the guarded native application launcher.
+cargo +1.96.1 build --offline --locked --release --manifest-path ../configs/session-manager/app-launcher/Cargo.toml --target-dir ../configs/session-manager/app-launcher/target
+python3 tests/test_tab_launcher.py
 python3 tests/test_desktop_parity.py
 python3 tests/test_desktop_cli.py
 python3 tests/test_desktop_private_core.py
@@ -46,5 +49,8 @@ python3 ../configs/session-manager/test-agora-workflow-config.py
 python3 ../configs/session-manager/test-agora-notify.py
 python3 ../configs/pi/session-notifications/test-install.py
 node --experimental-strip-types --test ../configs/pi/session-notifications/test.mjs
+node ../configs/session-manager/test-session-service.js
+node ../configs/session-manager/test-session-attention.js
+python3 ../configs/session-manager/test-session-attention-qml.py
 node ../configs/session-manager/test-notification-policy.js
 python3 ../configs/session-manager/test-notification-store.py

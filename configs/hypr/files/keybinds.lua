@@ -23,6 +23,7 @@ hl.bind(mainMod .. " + V", hl.dsp.exec_cmd([[bash -lc 'exec "$HOME/.local/bin/cl
 
 hl.bind(mainMod .. " + A", hl.dsp.exec_cmd([[bash -lc 'exec rofi -show drun -theme "$HOME/.config/rofi/project-launcher.rasi" -display-drun ""']]))
 hl.bind(mainMod .. " + D", hl.dsp.exec_cmd([[bash -lc 'exec "$HOME/.local/bin/session-app-launcher"']]))
+hl.bind(mainMod .. " + F1", hl.dsp.exec_cmd("quickshell ipc call sessions nextAttention"))
 hl.bind(mainMod .. " + ESCAPE", hl.dsp.exec_cmd("quickshell ipc call sessions toggle"))
 hl.bind(mainMod .. " + L", hl.dsp.exec_cmd("hyprlock"))
 hl.bind(mainMod .. " + O", hl.dsp.exec_cmd("quickshell ipc call controlCenter toggle"))
@@ -40,7 +41,7 @@ hl.bind(mainMod .. " + Q", function()
 end)
 hl.bind(mainMod .. " + F", hl.dsp.window.fullscreen())
 
-hl.bind(mainMod .. " + TAB", hl.dsp.exec_cmd(workspaceController .. " create-empty"))
+hl.bind(mainMod .. " + TAB", hl.dsp.exec_cmd(workspaceController .. " create-empty-and-launch"))
 hl.bind(mainMod .. " + SHIFT + TAB", hl.dsp.exec_cmd(workspaceController .. " isolate-or-previous"))
 
 hl.bind(mainMod .. " + LEFT", hl.dsp.focus({ direction = "left" }))

@@ -57,6 +57,26 @@ The direct CLI accepts:
 The binary currently resolves native `hyprctl` from PATH just like Python;
 tests replace it with strict fixtures.
 
+## SUPER+F1 attention-first session navigation — installed
+
+[Session attention](session-attention.md) adds Quickshell IPC selection in exact
+bar order, leftmost pending first or successor/wrap. Existing notification
+acknowledgement and desktop switching are reused; busy persists through fresh
+confirmation, no action queue/timer/retry. Exact-method and genuine private-QML/
+IPC/D-Bus tests pass. Generation activated with explicit RAM-history reset consent;
+coordinator core/desktop/state checks and installed IPC/binding verified. Normal
+user acceptance remains open. No Rust/core API or usage-history feature change.
+
+## SUPER+Tab application menu
+
+[Confirmed workspace launch](tab-launcher.md) adds a dedicated controller action:
+actual fresh creation → synchronous focus reply → readonly compositor check →
+release lock → expected-workspace guarded menu. No timers/polling, no menu on
+empty return or scratchpad dismissal, no Tab history writes. Matching launcher
+capability is required before mutation. Includes 14 actual CLI integration cases.
+The report explicitly records an early test-isolation/global-history incident
+and pending user-approved cleanup; do not treat global usage as preserved.
+
 ## Contextual Obsidian
 
 [session-obsidian](session-obsidian.md) routes the existing Obsidian menu identity

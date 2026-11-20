@@ -416,6 +416,15 @@ this integration with `python3 configs/pi/session-notifications/install.py --app
 the normal Pi package installer delegates to it. New Pi processes auto-load it;
 existing idle instances need explicit `/reload`. No shell restart/history reset.
 
+## Attention-first session navigation — installed
+
+[SUPER+F1](runtime/session-attention.md) selects the leftmost session with pending
+notifications, otherwise the next session in bar order with wrap. QML reuses the
+existing notification store and safe desktop switch; fresh status and confirmed
+arrival gate acknowledgement/repeated presses. Private tests pass; activated after
+explicit Quickshell restart/notification-history-reset approval. Core/desktop/state
+preservation and the installed IPC/binding verified; normal user acceptance remains.
+
 ## Project-specific OBS launchers
 
 The FDS and QMK launchers are now project-local overrides of

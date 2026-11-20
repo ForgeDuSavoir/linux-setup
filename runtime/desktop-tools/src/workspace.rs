@@ -12,6 +12,7 @@ use std::{collections::BTreeSet, time::Duration};
 pub enum Action {
     Cycle,
     CreateEmpty,
+    CreateEmptyAndLaunch,
     IsolateOrPrevious,
     MoveNext,
     Cleanup,
@@ -23,12 +24,12 @@ pub enum Action {
 impl Action {
     pub fn parse(args: &[String]) -> Result<Self> {
         match args {
-            [name]=>match name.as_str() {"cycle"=>Ok(Self::Cycle),"create-empty"=>Ok(Self::CreateEmpty),"isolate-or-previous"=>Ok(Self::IsolateOrPrevious),"move-next"=>Ok(Self::MoveNext),"cleanup"=>Ok(Self::Cleanup),"snapshot"=>Ok(Self::Snapshot),"migrate"=>Ok(Self::Migrate),_=>Err("unknown workspace command".into())},
+            [name]=>match name.as_str() {"cycle"=>Ok(Self::Cycle),"create-empty"=>Ok(Self::CreateEmpty),"create-empty-and-launch"=>Ok(Self::CreateEmptyAndLaunch),"isolate-or-previous"=>Ok(Self::IsolateOrPrevious),"move-next"=>Ok(Self::MoveNext),"cleanup"=>Ok(Self::Cleanup),"snapshot"=>Ok(Self::Snapshot),"migrate"=>Ok(Self::Migrate),_=>Err("unknown workspace command".into())},
             [name,id] if !id.is_empty() && id.bytes().all(|c|c.is_ascii_digit()) => {
                 let id=id.parse::<i64>().map_err(|_|"workspace argument out of range")?;
                 match name.as_str(){"closed"=>Ok(Self::Closed(id)),"focus-workspace"=>Ok(Self::FocusWorkspace(id)),_=>Err("unknown workspace command".into())}
             },
-            _=>Err("usage: workspace-controller cycle|create-empty|isolate-or-previous|move-next|cleanup|snapshot|migrate|closed ID|focus-workspace ID".into())
+            _=>Err("usage: workspace-controller cycle|create-empty|create-empty-and-launch|isolate-or-previous|move-next|cleanup|snapshot|migrate|closed ID|focus-workspace ID".into())
         }
     }
 }
@@ -199,9 +200,12 @@ impl<N: Native, S: Store> Controller<N, S> {
         Ok(())
     }
     pub fn create_empty(&mut self, state: &mut State) -> Result<()> {
+        self.create_empty_result(state, false).map(|_| ())
+    }
+    fn create_empty_result(&mut self, state: &mut State, confirm: bool) -> Result<Option<Value>> {
         let current = self.active()?;
         if current <= 0 {
-            return Ok(());
+            return Ok(None);
         }
         self.cleanup(state)?;
         if !self.occupied()?.contains(&current) {
@@ -218,11 +222,15 @@ impl<N: Native, S: Store> Controller<N, S> {
             {
                 self.select(state, previous, false, true)?;
             }
-            return Ok(());
+            return Ok(None);
         }
         let owner = state.owner(current).to_owned();
         let ws = self.fresh_workspace(state, &owner, Some(current))?;
-        self.select(state, ws, true, true)
+        self.select(state, ws, true, true)?;
+        if confirm {
+            self.native.ctl(&["eval", &native::confirm_empty(ws)])?;
+        }
+        Ok(Some(json!({"workspace_id":ws,"owner":owner})))
     }
     fn movement_source(&mut self, state: &mut State) -> Result<Option<(i64, String)>> {
         let client = self.native.query("activewindow")?;
@@ -413,7 +421,10 @@ impl<N: Native, S: Store> Controller<N, S> {
     pub fn run(&mut self, action: Action) -> Result<Option<Value>> {
         if matches!(
             action,
-            Action::Cycle | Action::CreateEmpty | Action::FocusWorkspace(_)
+            Action::Cycle
+                | Action::CreateEmpty
+                | Action::CreateEmptyAndLaunch
+                | Action::FocusWorkspace(_)
         ) && self.dismiss_scratchpad()?
         {
             return Ok(None);
@@ -425,6 +436,7 @@ impl<N: Native, S: Store> Controller<N, S> {
         match action {
             Action::Cycle => self.cycle(&mut state)?,
             Action::CreateEmpty => self.create_empty(&mut state)?,
+            Action::CreateEmptyAndLaunch => return self.create_empty_result(&mut state, true),
             Action::IsolateOrPrevious => self.isolate_or_previous(&mut state)?,
             Action::MoveNext => self.move_next(&mut state)?,
             Action::Cleanup => self.cleanup(&mut state)?,

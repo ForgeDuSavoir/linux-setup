@@ -1,5 +1,13 @@
 # To do
 
+- [x] Implement/test/stage [SUPER+F1 attention-first navigation](runtime/session-attention.md): exact bar-order leftmost pending, otherwise successor/wrap; fresh status, existing safe switch/acknowledgement, ignored repeats until confirmation, no new timer/retry/queue. Full runtime suite and genuine private QML/IPC/D-Bus tests pass. Inactive generation `a3c8cad3a5fab1959be14a9f`; live pointer/QML/keybinds unchanged.
+- [x] Explicit Quickshell restart/RAM notification history loss approval obtained; SUPER+F1 activated via full coordinator, generation `a3c8cad3a5fab1959be14a9f`, backup `20261120T150245-r2l_slj8`, complete journal. Persisted core/desktop/state/marker checks pass, unique F1 binding and IPC method verified without invoking real navigation. Additional manual baseline failed before saving; coordinator baseline used instead.
+- [ ] User normal-flow acceptance of SUPER+F1 pending-first priority, successor/wrap and rapid-press behavior.
+
+- [x] Implement/install [SUPER+Tab confirmed-workspace menu](runtime/tab-launcher.md): explicit created outcome, readonly Hyprland acknowledgement, no timers/polling, lock released before exec, expected workspace/owner checked before Rofi/selection. Empty return/scratchpad behavior unchanged; only SUPER+D records history. Runtime/launcher regression suites pass; 14 real private CLI cases and Lua guards pass. Matching launcher + movement-only native cohort installed without QML reload or live workspace tests.
+- [x] User-approved cleanup of the two disclosed synthetic `test.desktop` records completed under both launcher locks: private before/after backup and complete journal, exact targeted JSON removal without reserializing other entries/numbers, other counters verified unchanged, 0600 retained. Backup `tab-launcher-test-incident-cleanups/20261120T131207Z-3daug6ov`. Isolation/Tab non-counting already corrected; unavailable full pre-test baseline is not claimed restored.
+- [ ] User normal-flow acceptance of SUPER+Tab menu, empty return, scratchpad dismissal and context changes while selecting.
+
 - [x] Move specialized OBS FDS/QMK entries to project-local `com.obsproject.Studio.desktop` overrides; remove backed-up exact legacy global aliases, retain generic OBS elsewhere. Reproducible normal/targeted installation, canonical Gaming filenames and uninstaller name, literal Gio/private-core tests, personal/symlink/race/fault guards. Live `--launchers-only` preserves both installed helpers (FDS hardware behavior deliberately unchanged), OBS settings/other profiles/usage/index; second run is a no-op. [Details](configs/obs/README.md).
 
 ## Contextual Obsidian

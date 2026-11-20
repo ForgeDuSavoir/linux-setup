@@ -4,6 +4,11 @@ Downstream Session Manager v3 client. **0.2.1 implements project-local usage his
 
 ## User behavior
 
+- SUPER+Tab: after confirmed fresh workspace creation, the controller uses
+  `--expected-workspace ID OWNER`. Exact active workspace/owner/no-special checks
+  precede Rofi and application acceptance; ranking is read but no usage is recorded.
+  No menu on empty-workspace return or scratchpad dismissal.
+  [Protocol, deployment/tests and isolation incident](../../../runtime/tab-launcher.md).
 - SUPER+D: confirmed contextual catalog, usage-ranked rows in Rofi; filtering preserves order (`-no-sort`). Existing metadata, icons, search keywords and escaped labels remain.
 - SUPER+B / `--browser`: resolve exactly `firefox.desktop` in that catalog without a menu, preserving the project override/profile and never falling back to another profile silently.
 - Only SUPER+D counts successful GTK/Gio launch acceptance, not window focus, running time or proof of a visible window. SUPER+B / `--browser` bypasses usage reads/writes, lock creation and Git exclusions completely; pre-launch context/profile checks remain. Firefox selected in the menu still counts. Cancel/rejection/timeout is not recorded or replayed.
@@ -61,7 +66,7 @@ bash configs/session-manager/install_app_launcher.sh --apply
 bash configs/session-manager/install_app_launcher.sh --restore /absolute/private/backup/session-app-launcher
 ```
 
-Same installed command `~/.local/bin/session-app-launcher`, no args / `--browser`; `--version` is a read-only health command and does not initialize statistics. Core queries have a 35-second deadline, native queries five seconds, launch helpers 30 seconds, capture bounded to four MiB per stream. Literal GTK/Gio argument vectors only; never shell-evaluate `Exec`. Rofi cancellation/nonzero retains the previous exit-0/no-launch behavior.
+Same installed command `~/.local/bin/session-app-launcher`, no args / `--browser` / `--expected-workspace ID OWNER`; `--version` is a read-only health command and does not initialize statistics. Core queries have a 35-second deadline, native queries five seconds, launch helpers 30 seconds, capture bounded to four MiB per stream. Literal GTK/Gio argument vectors only; never shell-evaluate `Exec`. Rofi cancellation/nonzero retains the previous exit-0/no-launch behavior.
 
 The installer verifies the known protocol-3 stack, builds the locked pinned release, saves a private backup under `${XDG_STATE_HOME:-$HOME/.local/state}/linux-setup/app-launcher-upgrades/`, and atomically replaces only the executable. Explicit restore saves the version being replaced. No app/menu launch, core/shell restart, session/workspace change, history initialization or real Git exclusion edit is an installation check.
 

@@ -143,7 +143,7 @@ struct Desktop {
 }
 
 impl Client {
-    fn confirmed(&self) -> Result<Sessions> {
+    pub(crate) fn confirmed(&self) -> Result<Sessions> {
         let before: Sessions = self.query(&["session", "list"])?;
         let mut ids = std::collections::HashSet::new();
         for item in &before.sessions {
@@ -207,6 +207,9 @@ impl Client {
             "neutral".into()
         };
         let special = &monitor.special_workspace.name;
+        if let Some(expected) = &self.expected {
+            expected.check(ws, &owner, special)?;
+        }
         let mismatched_scope = special
             .strip_prefix("special:sm-")
             .and_then(|s| s.rsplit_once('-'))

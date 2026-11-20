@@ -46,6 +46,13 @@ pub fn focus(ws: i64, fresh: bool) -> String {
         format!("hl.dsp.focus({{ workspace = {ws} }})")
     }
 }
+/// Read-only compositor acknowledgement, after focus and metadata finalization.
+/// No polling/sleep, and no second focus if another navigation has won.
+pub fn confirm_empty(ws: i64) -> String {
+    format!(
+        "local w=hl.get_active_workspace(); if not hl.get_workspace({ws}) or not w or w.id ~= {ws} or #hl.get_workspace_windows({ws}) ~= 0 then error(\"new empty workspace is not active\") end"
+    )
+}
 pub fn move_window(ws: i64, address: &str, fresh: bool) -> Result<String> {
     if address.is_empty() || !address.bytes().all(|c| c.is_ascii_hexdigit() || c == b'x') {
         return Err("unsafe window address".into());

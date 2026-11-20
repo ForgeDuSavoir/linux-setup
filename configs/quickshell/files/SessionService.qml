@@ -21,7 +21,11 @@ Scope {
     property string error: ""
     property int generation: 0
     property bool refreshPending: false
-    readonly property bool busy: actionProcess.running
+    property var notificationState: null
+    property string navigationPhase: "idle"
+    property string navigationTarget: ""
+    property string navigationError: ""
+    readonly property bool busy: actionProcess.running || navigationPhase !== "idle"
     readonly property string desktop: Quickshell.env("HOME") + "/.local/bin/session-desktop"
     signal updated()
     signal actionFinished(bool success, string message)
@@ -89,10 +93,14 @@ Scope {
                 if (exitCode !== 0)
                     throw new Error(diagnostic.trim().split("\n")[0] || "Session service unavailable");
                 acceptSnapshot(JSON.parse(output));
+                service.continueNavigation();
             } catch (failure) {
                 stale = true;
                 contextConfirmed = false;
-                error = String(failure);
+                error = navigationError || String(failure);
+                navigationPhase = "idle";
+                navigationTarget = "";
+                navigationError = "";
             }
         }
         if (refreshPending)
@@ -107,8 +115,76 @@ Scope {
     }
 
     function act(argumentsList) {
-        if (actionProcess.running)
+        if (busy)
             return;
+        startAction(argumentsList);
+    }
+
+    // The same ordered rows and exact unread predicate as the session strip.
+    function attentionTarget() {
+        const pending = sessions.find(item => notificationState.hasUnread(item.id) === true);
+        if (pending)
+            return pending.id;
+        if (!sessions.length)
+            return "";
+        const index = sessions.findIndex(item => item.id === activeId);
+        return sessions[(index + 1) % sessions.length].id;
+    }
+
+    function nextAttention() {
+        if (busy)
+            return;
+        navigationPhase = "choose";
+        navigationTarget = "";
+        navigationError = "";
+        generation++;
+        stale = true;
+        contextConfirmed = false;
+        error = "";
+        refresh(); // Fresh status, or wait for an older read to exit; never a delay timer.
+    }
+
+    function continueNavigation() {
+        if (navigationPhase === "choose") {
+            if (stale || !contextConfirmed || !notificationState) {
+                navigationPhase = "idle";
+                error = error || "Cannot choose a session without confirmed context and notification state";
+                return;
+            }
+            // Reconcile against this confirmed snapshot, not a stale painted selection.
+            notificationState.synchronize();
+            const target = attentionTarget();
+            if (!target || target === activeId) {
+                navigationPhase = "idle";
+                return;
+            }
+            navigationTarget = target;
+            navigationPhase = "confirm";
+            startAction(["switch", target]);
+        } else if (navigationPhase === "confirm") {
+            const target = navigationTarget;
+            const failure = navigationError;
+            navigationPhase = "idle";
+            navigationTarget = "";
+            navigationError = "";
+            if (failure)
+                error = failure;
+            else if (!contextConfirmed || displayedContext !== target)
+                error = "Session navigation was not confirmed; no retry";
+            // NotificationStore alone acknowledges actual confirmed visibility.
+        }
+    }
+
+    function finishAction(exitCode, diagnostic) {
+        const message = exitCode === 0 ? "" : diagnostic.trim().split("\n")[0] || "Session action failed";
+        if (navigationPhase === "confirm")
+            navigationError = message;
+        service.error = message;
+        service.actionFinished(exitCode === 0, message);
+        Qt.callLater(function() { service.refresh(); });
+    }
+
+    function startAction(argumentsList) {
         generation++;
         contextConfirmed = false;
         stale = true;
@@ -135,10 +211,7 @@ Scope {
         stdout: StdioCollector { id: actionOutput }
         stderr: StdioCollector { id: actionError }
         onExited: function(exitCode) {
-            const message = exitCode === 0 ? "" : actionError.text.trim().split("\n")[0] || "Session action failed";
-            service.error = message;
-            service.actionFinished(exitCode === 0, message);
-            Qt.callLater(function() { service.refresh(); });
+            service.finishAction(exitCode, actionError.text);
         }
     }
 }

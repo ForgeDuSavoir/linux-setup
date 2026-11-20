@@ -6,10 +6,20 @@ Approved replacement for the two-row column model, deployed on 2026-11-17 throug
 
 The navigation model itself is entirely downstream desktop policy. The Session Manager core API/runtime schema, existing session identities and application resolution do not change. The separate [new-login initialization policy](../session-manager/session-startup.md) now explicitly replaces old open instances with one Neutral-1 at the next graphical connection; it is not a navigation cleanup or daemon-restart action.
 
+## SUPER+Tab launcher extension — 2026-11-20
+
+[Confirmed empty-workspace launcher](../../runtime/tab-launcher.md) is installed:
+only actual fresh creation opens the contextual menu, after a readonly Hyprland
+acknowledgement of the active empty target. No delay/polling, no menu on empty
+return/scratchpad dismissal; expected workspace/owner revalidated before menu and
+selection, controller lock released first. Only SUPER+D continues recording usage.
+See the linked report also for the disclosed test-isolation incident affecting
+global history and its pending cleanup approval.
+
 ## User behavior
 
 - **SUPER+S:** cycle the ordinary workspaces of the displayed session, in list order, wrapping at the end. Never enter another session's workspace.
-- **SUPER+Tab:** if the current workspace is occupied, create/focus a fresh empty workspace immediately after it, inheriting its UUID owner but no windows. If it is empty, return to the preceding existing workspace of the same owner and forget the empty source. No wrapping: without a predecessor, leave the current empty workspace displayed and allocate nothing.
+- **SUPER+Tab:** if the current workspace is occupied, create/focus a fresh empty workspace immediately after it, inheriting its UUID owner but no windows, then open the contextual application menu after compositor confirmation. If it is empty, return to the preceding existing workspace of the same owner and forget the empty source. No wrapping: without a predecessor, leave the current empty workspace displayed and allocate nothing.
 - **SUPER+Shift+Tab:** with several windows, isolate the active one in a fresh workspace immediately after the current one and follow it. If it is already alone, join the nearest preceding occupied workspace of the same owner, without wrapping; with no such predecessor, do nothing. This naturally undoes isolation without recording provenance.
 - **SUPER+Shift+S:** move/follow the active window to the next existing workspace of the same owner, wrapping to the first. Never create a workspace; with no other workspace, do nothing. Leaving a sole-window source removes its now-empty workspace. The second row and temporary vertical animation overrides remain removed; ordinary compositor animations are unchanged.
 - With a visible scratchpad on the focused monitor, S/Tab/bar navigation first hides that scratchpad and consumes the command. Another press performs navigation/insertion. Navigation never closes scratchpad windows; explicit SUPER+Q closure is described below. Shift window-move shortcuts retain their behavior.

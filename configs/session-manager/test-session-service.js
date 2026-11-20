@@ -16,12 +16,13 @@ function method(source, name) {
     }
     throw Error('unclosed method');
 }
-const service = {sessions: [], activeId: '', generation: 0, refreshPending: false,
+const service = {navigationPhase: 'idle', navigationTarget: '', navigationError: '', sessions: [], activeId: '', generation: 0, refreshPending: false,
     snapshot: {running: false}, actionProcess: {running: false},
     Qt: {callLater: callback => callback()}, updated: () => {}};
+Object.defineProperty(service, 'busy', {get: () => service.actionProcess.running || service.navigationPhase !== 'idle'});
 service.service = service;
 vm.createContext(service);
-for (const name of ['validSource', 'refresh', 'acceptSnapshot', 'finishSnapshot', 'invalidateContext', 'act'])
+for (const name of ['validSource', 'refresh', 'acceptSnapshot', 'finishSnapshot', 'invalidateContext', 'act', 'startAction', 'finishAction', 'continueNavigation', 'attentionTarget', 'nextAttention'])
     vm.runInContext(method(source, name), service);
 const state = {sessions: [{id: 'z', name: 'Zulu-1', source: {kind: 'project', project_name: 'Zulu'}, number: 1}, {id: 'a', name: 'Alpha-1', source: {kind: 'project', project_name: 'Alpha'}, number: 1}], active_session_id: 'a', displayed_context: 'a', context_confirmed: true};
 service.acceptSnapshot(state);
