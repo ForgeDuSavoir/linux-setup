@@ -416,6 +416,14 @@ this integration with `python3 configs/pi/session-notifications/install.py --app
 the normal Pi package installer delegates to it. New Pi processes auto-load it;
 existing idle instances need explicit `/reload`. No shell restart/history reset.
 
+## Default file manager
+
+**SUPER+E** opens the default directory handler at HOME via `xdg-open`, not a
+hardcoded application. Thunar is the configured XDG/GIO default. The targeted
+`configs/default_applications/configure_default_applications.sh --file-manager-only`
+mode verifies/sets only file-manager associations, without quitting Thunar or
+changing other application defaults. [Setup and isolated test](configs/default_applications/README.md).
+
 ## Webapps
 
 Webapps are installed with:

@@ -3,6 +3,41 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+
+configure_file_manager() {
+    command -v thunar >/dev/null || { echo 'Thunar must be installed first.' >&2; return 1; }
+    command -v xdg-mime >/dev/null || { echo 'xdg-mime is required.' >&2; return 1; }
+    local mime info
+    for mime in inode/directory application/x-gnome-saved-search; do
+        if [[ "$(xdg-mime query default "$mime")" != thunar.desktop ]]; then
+            xdg-mime default thunar.desktop "$mime"
+        fi
+        [[ "$(xdg-mime query default "$mime")" == thunar.desktop ]] || {
+            echo "Could not set Thunar as default for $mime." >&2; return 1;
+        }
+    done
+    if command -v gio >/dev/null 2>&1; then
+        info="$(LC_ALL=C gio mime inode/directory)"
+        if [[ "${info%%$'\n'*}" != *": thunar.desktop" ]]; then
+            gio mime inode/directory thunar.desktop
+            info="$(LC_ALL=C gio mime inode/directory)"
+            [[ "${info%%$'\n'*}" == *": thunar.desktop" ]] || {
+                echo 'GIO directory default does not resolve to Thunar.' >&2; return 1;
+            }
+        fi
+    fi
+    echo '✓ Default file manager: Thunar (inode/directory).'
+}
+
+# Narrow, idempotent setup: no app launch/quit, preferences, custom actions,
+# browser/editor/terminal defaults or unrelated MIME associations are changed.
+if [[ "$#" == 1 && "$1" == --file-manager-only ]]; then
+    configure_file_manager
+    exit 0
+elif [[ "$#" != 0 ]]; then
+    echo "Usage: $0 [--file-manager-only]" >&2
+    exit 2
+fi
 TERMINAL_LAUNCHER_SOURCE="${SCRIPT_DIR}/launch_terminal_command.sh"
 TERMINAL_LAUNCHER_TARGET="${HOME}/.local/bin/launch-terminal-command"
 NEOVIM_LAUNCHER_SOURCE="${SCRIPT_DIR}/open_neovim.sh"
@@ -30,12 +65,7 @@ xdg-mime default firefox.desktop x-scheme-handler/https
 
 echo "==> Setting Thunar as default file manager..."
 
-xdg-mime default thunar.desktop inode/directory
-xdg-mime default thunar.desktop application/x-gnome-saved-search
-
-if command -v gio >/dev/null 2>&1; then
-    gio mime inode/directory thunar.desktop || true
-fi
+configure_file_manager
 
 echo "==> Setting Neovim as default plain-text and Markdown editor..."
 

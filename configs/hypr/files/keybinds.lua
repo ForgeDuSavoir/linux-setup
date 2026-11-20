@@ -10,6 +10,8 @@ local workspaceController = [["$HOME/.local/bin/workspace-controller"]]
 -- Applications
 
 hl.bind(mainMod .. " + RETURN", hl.dsp.exec_cmd(terminal))
+-- Resolve the default directory handler instead of hardcoding a file manager.
+hl.bind(mainMod .. " + E", hl.dsp.exec_cmd([[xdg-open "$HOME"]]))
 hl.bind(mainMod .. " + P", hl.dsp.exec_cmd([[bash -lc 'exec "$HOME/.local/bin/session-pi"']]))
 hl.bind(mainMod .. " + B", hl.dsp.exec_cmd([[bash -lc 'exec "$HOME/.local/bin/session-app-launcher" --browser']]))
 
