@@ -418,8 +418,10 @@ existing idle instances need explicit `/reload`. No shell restart/history reset.
 
 ## Default file manager
 
-**SUPER+E** opens the default directory handler at HOME via `xdg-open`, not a
-hardcoded application. Thunar is the configured XDG/GIO default. The targeted
+**SUPER+E** uses native [session-files](runtime/session-files.md) to open the confirmed
+session project root, or HOME for Neutral/no session, unavailable project or unknown/
+inconsistent context. It calls the default directory handler via `xdg-open`, not a
+hardcoded application; the application menu and existing desktop entries are unchanged. Thunar is the configured XDG/GIO default. The targeted
 `configs/default_applications/configure_default_applications.sh --file-manager-only`
 mode verifies/sets only file-manager associations, without quitting Thunar or
 changing other application defaults. [Setup and isolated test](configs/default_applications/README.md).

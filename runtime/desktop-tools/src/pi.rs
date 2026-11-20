@@ -1,11 +1,10 @@
 //! Session Pi routing; explicit config, fresh captured origin, literal terminal argv.
 use crate::{
     Result,
-    core::{Sessions, Source},
+    core::{self, Sessions, Source},
     notify::Context,
     process,
 };
-use serde::Deserialize;
 use std::{
     path::{Path, PathBuf},
     process::Command,
@@ -16,15 +15,6 @@ use std::{
 pub struct Plan {
     pub directory: PathBuf,
     pub expected: Option<String>,
-}
-#[derive(Deserialize)]
-struct Project {
-    name: String,
-    path: PathBuf,
-}
-#[derive(Deserialize)]
-struct Projects {
-    projects: Vec<Project>,
 }
 pub fn validate_directory(path: &Path) -> Result<()> {
     let lexical: PathBuf = path.components().collect();
@@ -51,16 +41,7 @@ pub fn agora_root(config_root: &Path) -> Result<PathBuf> {
     Ok(path)
 }
 fn query(manager: &Path, args: &[&str]) -> Result<serde_json::Value> {
-    let output = process::run(
-        Command::new(manager).arg("--json").args(args),
-        None,
-        true,
-        Some(Duration::from_secs(35)),
-    )?;
-    if !output.status.success() {
-        return Err("Session Manager query failed; no neutral fallback".into());
-    }
-    serde_json::from_slice(&output.stdout).map_err(|_| "invalid Session Manager reply".into())
+    core::query_json(manager, args, Duration::from_secs(35))
 }
 pub fn plan(home: &Path, config_root: &Path, explicit_agora: bool) -> Result<Plan> {
     if explicit_agora {
@@ -85,14 +66,7 @@ pub fn plan(home: &Path, config_root: &Path, explicit_agora: bool) -> Result<Pla
     let directory = match &session.source {
         Source::Neutral {} => agora_root(config_root)?,
         Source::Project { project_name } => {
-            let projects: Projects = serde_json::from_value(query(&manager, &["project", "list"])?)
-                .map_err(|_| "invalid project list")?;
-            let path = projects
-                .projects
-                .into_iter()
-                .find(|p| &p.name == project_name)
-                .ok_or("active session project is no longer available")?
-                .path;
+            let path = core::project_path(&query(&manager, &["project", "list"])?, project_name)?;
             let path: PathBuf = path.components().collect();
             validate_directory(&path)?;
             path

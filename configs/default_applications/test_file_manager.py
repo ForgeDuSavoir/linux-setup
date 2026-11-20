@@ -52,12 +52,10 @@ local binds={}
 hl={bind=function(key,action) assert(not binds[key]);binds[key]=action end,
     dsp=setmetatable({exec_cmd=function(cmd) return {command=cmd} end},{__index=function() return proxy end})}
 dofile(arg[1])
-assert(binds["SUPER + E"].command==[[xdg-open "$HOME"]])
+assert(binds["SUPER + E"].command==[["$HOME/.local/bin/session-files"]])
 io.write(binds["SUPER + E"].command)
 """)
     r=subprocess.run(['lua',str(harness),str(HERE.parent/'hypr/files/keybinds.lua')],env=env,capture_output=True,text=True)
     assert r.returncode==0,r.stderr
-    for handler in ['thunar.desktop','future-default.desktop']:
-        subprocess.run(['bash','-c',r.stdout],env={**env,'DEFAULT_HANDLER':handler},check=True)
-        assert json.loads((root/'opened').read_text())==[handler,[str(root)]]
-print('Default file manager: narrow/idempotent setup, preserved other defaults, failure handling and generic literal SUPER+E with alternate handler passed; no GUI.')
+    assert r.stdout=='"$HOME/.local/bin/session-files"'
+print('Default file manager: narrow/idempotent setup, preserved other defaults, failure handling and contextual native SUPER+E binding passed; no GUI.')

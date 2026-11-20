@@ -2,6 +2,9 @@
 pub mod admin;
 pub mod core;
 pub mod desktop;
+pub mod files;
+#[cfg(test)]
+mod files_tests;
 pub mod native;
 pub mod notify;
 pub mod pi;

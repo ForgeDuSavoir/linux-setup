@@ -1,5 +1,9 @@
 # To do
 
+## Contextual file manager
+
+- [x] Implement/test/install [session-files](runtime/session-files.md) for SUPER+E: confirmed project root, HOME for Neutral/no session/unavailable or inconsistent context, standard opener/default preserved. No menu/MIME/desktop-entry/usage changes; 95 Rust tests, 28 CLI cases, real private-core routing and compatible four-to-five cohort expansion/restore pass. Movement-only live install preserves Quickshell/history/core/desktop/marker; no graphical test launch.
+
 ## Planned Python-to-Rust runtime migrations
 
 - [x] Prepare/test [R8 cohort deployment](runtime/R8-deployment.md): immutable verified generations, atomic native pointer, first-handoff lock/journal/marker guard, partial-failure and explicit restore, converted normal/caller routes, offline provisioning and real private-core login acceptance. R4/R5 guarded restore/legacy pinned hash added; R6/R7 retained. Only staging (no current pointer) and validated R4/R5 ELF refreshes applied live; desktop/core/QML/PIDs/personal entries/index unchanged.

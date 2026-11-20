@@ -13,9 +13,11 @@ This narrow mode requires installed Thunar and xdg-mime, sets/checks
 and checks GIO's directory handler when available. Already-correct defaults are
 not rewritten. It never runs the full browser/editor/terminal setup or `thunar -q`.
 
-Hyprland **SUPER+E** calls `xdg-open "$HOME"`, not Thunar directly. The shortcut
-therefore opens the configured default file manager at the home folder and follows
-future directory-handler changes. Thunar is the setup's chosen default.
+Hyprland **SUPER+E** calls native `session-files`, which opens the confirmed session
+project root through `xdg-open`. Neutral/no session, unavailable project or any
+unknown/inconsistent context falls back to HOME. Future directory-handler changes
+are respected; Thunar remains the setup default. The application menu and .desktop
+entries are unchanged. [Routing, installation and tests](../../runtime/session-files.md).
 
 Deploy the changed binding with the existing native coordinator:
 
@@ -28,6 +30,7 @@ watched QML or restart Quickshell. Do not use full Thunar/default-app configurat
 just to update this shortcut.
 
 Test: `python3 configs/default_applications/test_file_manager.py`.
-Private fake tools verify narrow/idempotent defaults and literal paths, including
-spaces/quotes, plus the actual Lua binding with an alternate default handler.
+Private fake tools verify narrow/idempotent defaults and the actual native Lua
+binding. Runtime tests additionally cover project/HOME routing, literal paths
+with spaces/quotes and an alternate default handler.
 No graphical file manager is launched as a test.

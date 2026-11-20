@@ -16,7 +16,8 @@ import time
 
 HERE=Path(__file__).resolve().parent
 SETUP=HERE.parent
-BINS=('workspace-controller','session-desktop','session-startup','agora-desktop-admin')
+BASE_BINS=('workspace-controller','session-desktop','session-startup','agora-desktop-admin')
+BINS=(*BASE_BINS,'session-files')
 spec=importlib.util.spec_from_file_location('desktop_runtime_builder',HERE/'install_notify.py')
 builder=importlib.util.module_from_spec(spec);spec.loader.exec_module(builder)
 
@@ -98,7 +99,7 @@ def verify_generation(directory):
     if directory.parent!=root()/'generations':raise RuntimeError('generation outside managed root')
     m=directory/'generation.json';validate(m)
     manifest=json.loads(m.read_text())
-    if manifest.get('version')!=1 or not set(BINS)<=set(manifest.get('files',{})):raise RuntimeError('invalid generation')
+    if manifest.get('version')!=1 or not set(BASE_BINS)<=set(manifest.get('files',{})):raise RuntimeError('invalid generation')
     for name,record in manifest['files'].items():
         if Path(name).is_absolute() or '..' in Path(name).parts:raise RuntimeError('unsafe generation member')
         p=directory/name;validate(p)
@@ -223,7 +224,7 @@ def target_plan(gm,offline,reduced):
         selected=[n for n in selected if n.startswith('.config/quickshell/') or n in critical]
     if reduced=='movement':selected=[n for n in selected if n in ['.config/hypr/keybinds.lua','.config/hypr/hyprland.lua','.config/hypr/Scripts/scratchpad.sh']]
     if reduced=='startup':selected=['.config/hypr/startup.lua']
-    targets={str(Path('.local/bin')/n):{'kind':'link','target':public_link(n)} for n in BINS}
+    targets={str(Path('.local/bin')/n):{'kind':'link','target':public_link(n)} for n in BINS if n in gm['files']}
     targets.update({n:{'kind':'file',**gm['files'][n]} for n in selected})
     return targets
 
@@ -231,11 +232,14 @@ def apply(offline=False,allow=False,reduced=None):
     guard(offline,allow,reduced)
     generation=stage();gm=verify_generation(generation);old_current=managed_current()
     home=Path.home()
+    old_bins=verify_generation(Path(old_current))['files'] if old_current else {}
     targets=target_plan(gm,offline,reduced)
     for name in BINS:
         p=home/'.local/bin'/name;s=snapshot_path(p)
         if s['kind']=='link' and s['target']!=public_link(name):raise RuntimeError('unmanaged public command symlink')
-        if old_current and s!={'kind':'link','target':public_link(name)}:raise RuntimeError('active cohort entry point was modified')
+        if old_current and s!={'kind':'link','target':public_link(name)}:
+            if name not in old_bins and s=={'kind':'absent'}:continue # Explicit additive command expansion.
+            raise RuntimeError('active cohort entry point was modified')
     if reduced:
         qml=home/'.config/quickshell/shell.qml';validate(qml)
         if 'workspace-columns.py' in qml.read_text() or 'workspace-controller' not in qml.read_text():raise RuntimeError('reduced install requires native QML already activated')

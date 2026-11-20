@@ -22,6 +22,10 @@ python3 tests/test_desktop_cohort_modes.py
 python3 tests/test_notify_parity.py
 python3 tests/test_notify_install.py
 python3 tests/test_single_restore.py
+python3 tests/test_session_files.py
+python3 tests/test_session_files_private_core.py
+python3 tests/test_cohort_files_expansion.py
+python3 ../configs/default_applications/test_file_manager.py
 python3 ../configs/session-manager/test-session-pi.py
 python3 tests/test_pi_private_core.py
 python3 tests/test_pi_install.py

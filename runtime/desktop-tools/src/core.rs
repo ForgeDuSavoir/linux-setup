@@ -90,6 +90,39 @@ pub fn acknowledged_session(value: &Value) -> Result<SessionId> {
     )
     .map_err(|e| e.to_string())
 }
+#[derive(Deserialize)]
+struct Project {
+    name: String,
+    path: PathBuf,
+}
+#[derive(Deserialize)]
+struct Projects {
+    projects: Vec<Project>,
+}
+/// Public catalogue lookup shared by launchers; no cwd/registry inference.
+pub fn project_path(value: &Value, name: &str) -> Result<PathBuf> {
+    let projects: Projects =
+        serde_json::from_value(value.clone()).map_err(|_| "invalid project list")?;
+    projects
+        .projects
+        .into_iter()
+        .find(|p| p.name == name)
+        .map(|p| p.path)
+        .ok_or("active session project is no longer available".into())
+}
+/// Read-only CLI query for catalogue/launcher clients, with a caller-owned budget.
+pub fn query_json(binary: &std::path::Path, args: &[&str], timeout: Duration) -> Result<Value> {
+    let output = process::run(
+        Command::new(binary).arg("--json").args(args),
+        None,
+        true,
+        Some(timeout),
+    )?;
+    if !output.status.success() {
+        return Err("Session Manager query failed".into());
+    }
+    serde_json::from_slice(&output.stdout).map_err(|_| "invalid Session Manager reply".into())
+}
 pub const REQUEST_TIMEOUT: Duration = Duration::from_secs(35);
 pub trait Core {
     fn request(&mut self, args: &[&str], timeout: Duration) -> Result<Value>;

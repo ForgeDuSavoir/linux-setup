@@ -152,6 +152,15 @@ migration; no repair, replay or rollback was attempted. Immediate coordinator
 snapshots cover only their controlled interval. User clarification/normal-flow
 acceptance remains separate.
 
+## Compatible command expansion
+
+The later [session-files](session-files.md) feature adds a fifth managed command.
+The original four remain the minimum generation ABI; target plans derive available
+commands from each generation, so original manifests still restore correctly.
+Expansion adds only a missing new command, never replaces a personal command;
+rollback removes the added entry and restores the previous binding/generation.
+The historical four-command activation above remains the deployment record for R8.
+
 ## Evidence and still-open acceptance
 
 `bash runtime/check.sh` retains **87 Rust tests**, strict fmt/Clippy/offline release,

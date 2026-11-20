@@ -57,8 +57,19 @@ The direct CLI accepts:
 The binary currently resolves native `hyprctl` from PATH just like Python;
 tests replace it with strict fixtures.
 
+## Contextual file manager
+
+[session-files](session-files.md) adds SUPER+E project-or-HOME routing through the
+standard opener, with no menu/MIME change. It is included as a fifth managed native
+entry; original four-command generations and backups remain compatible. Eight new
+unit tests bring the workspace total to 95; CLI/private-core/expansion-restore tests
+are included in `check.sh`.
+
 ## Library boundary
 
+- `files.rs` / `bin/session-files.rs`: confirmed project root or HOME, readonly
+  bounded probes, final context/directory recheck, one literal standard opener.
+  Shared catalogue lookup/transport resides in `core.rs`; menu entries unchanged.
 - `pi.rs` / `bin/session-pi.rs`: public-v3 routing, native TOML configuration,
   fresh 2 s capture with stale inheritance removed, literal env argv, no core
   mutation/stats. `install_pi.py --apply` deploys the launcher only.
