@@ -1,11 +1,66 @@
-# Miniatures PhotoCraft
+# PhotoCraft thumbnails — native Rust
 
-`photocraft-thumbnail '/chemin/vers/dossier'` prend **exactement deux** images du dossier (PNG, JPEG, WebP, TIFF ou BMP) sans dépendre de leurs noms ; les sous-dossiers sont ignorés. Après le recadrage, il mesure la luminosité moyenne au centre de chaque image (hors dirigeant à gauche et panneau à droite). L'image nettement **plus sombre**, censée contenir le dirigeant, devient le calque supérieur. La différence doit atteindre 15 niveaux sur 255 et représenter au moins 25 % de la luminosité de l'image claire. Sinon le script s'arrête **sans créer de projet**, plutôt que de deviner. Pour un cas ambigu, choisir explicitement le calque supérieur avec `photocraft-thumbnail '/chemin/vers/dossier' --top 'nom-exact-de-l-image.png'`.
+`photocraft-thumbnail DIRECTORY [--top EXACT_FILENAME]` takes exactly two immediate
+PNG/JPG/JPEG/WebP/TIF/TIFF/BMP files and creates `miniature.pcraft` beside them.
+It never changes source images or overwrites a preexisting/concurrent output.
+Directory paths, image names and command arguments remain literal.
 
-Chaque image doit être au format exact 16:10 et mesurer au moins 1920 px de large. Le script retire la même hauteur en haut et en bas pour obtenir 16:9, puis réduit chaque image à **1920 × 1080** (filtre Lanczos). Par exemple, 2880 × 1800 donne un recadrage 2880 × 1620 (90 px retirés de chaque côté), et 2304 × 1440 donne 2304 × 1296 (72 px de chaque côté). Aucune image source n'est modifiée.
+Each image must be exact 16:10, >=1920 pixels wide and center-croppable to integer
+16:9. FFmpeg performs the original center crop and Lanczos/RGBA resize to 1920×1080.
+Central 32×32 gray luminance selects the darker screenshot for the upper layer
+only with a gap >=15 and dark <=75% of bright. Otherwise fail and request explicit
+`--top`, naming exactly one input image.
 
-Le résultat est `miniature.pcraft` dans le même dossier : **deux calques pixel éditables**, nommés d'après les fichiers d'origine, embarqués dans le projet. Le calque supérieur (dirigeant) reçoit automatiquement le **masque raster exact**, dégradé compris, prélevé sur le projet de référence `Kadjar War rectify/Miniature/miniature.pcraft`. Le fichier `photocraft-thumbnail-mask.zip` contient seulement ce masque en niveaux de gris et ses tuiles compressées : aucune image du projet de référence. Les pixels du masque sont copiés à l'identique sur le canevas fixe 1920 × 1080, sans recalculer ni approximer le dégradé. Si le format de projet PhotoCraft devient incompatible, le script s'arrête sans publier de projet. Le script ne crée **pas** d'export YouTube et n'écrase jamais un projet existant. Les fichiers temporaires sont supprimés après vérification du projet ; en cas d'échec, les originaux restent intacts.
+The result has two editable embedded pixel layers, named after the inputs.
+Only the exact reviewed Grayscale/U8 raster mask and its compressed tiles are
+copied from `photocraft-thumbnail-mask.zip`; never reference-project image pixels.
+No YouTube export or GUI opening is added. Final headless CLI inspection checks
+size, bounds, ordering and mask before atomic no-overwrite hardlink publication.
+Handled failures clean the operation's own private local temporary directory.
 
-Dans Thunar, faire un clic droit sur **un seul dossier** puis choisir **Créer une miniature PhotoCraft**. L'action passe automatiquement le chemin complet du dossier au script (y compris si le nom contient des espaces) et ouvre le terminal configuré par défaut via `launch-terminal-command` pour lire le résultat ou l'erreur. Ce lanceur utilise `xdg-terminal-exec` s'il est disponible, sinon `x-terminal-emulator` ; dans la configuration actuelle de `linux-setup`, ce dernier lance Kitty. L'action Thunar ne dépend pas du nom d'un terminal. Si la détection automatique hésite, relancer manuellement avec `--top`. L'action est définie dans `configs/thunar/files/uca.xml` et installée sans écraser les autres actions personnalisées.
+## Install / restore
 
-`install_photocraft-thumbnail.sh` est appelé par `scripts/install_scripts.sh` ; il installe aussi le gabarit de masque à côté du script. Dépendances : Python 3, FFmpeg (`ffmpeg` et `ffprobe`) et `photocraft-cli`.
+```sh
+bash scripts/photocraft-thumbnail/install_photocraft-thumbnail.sh  # existing apply route
+python3 runtime/install_thumbnail.py                            # no-effect plan
+python3 runtime/install_thumbnail.py --apply
+python3 runtime/install_thumbnail.py --restore /absolute/private/backup
+```
+
+Build: pinned Rust 1.96.1, locked dependencies prepared once, offline thereafter;
+usual C build toolchain for the ZIP Zstandard dependency. Runtime dependencies:
+FFmpeg/ffprobe and `photocraft-cli`, **not Python**. Python remains installer/test
+infrastructure. Binary/mask are installed at `~/.local/bin/`, privately backed up,
+validated and individually atomically replaced. No toolchain/package install,
+image processing or GUI reload occurs during installation.
+
+`scripts/install_scripts.sh` still delegates to this installer, so future setup
+does not restore Python. The old `photocraft-thumbnail.py` is a historical source/
+test reference only; cleanup is R8.
+
+## Thunar
+
+Right-click **one directory**, choose **Créer une miniature PhotoCraft**.
+The existing custom action passes the full folder through `launch-terminal-command`
+and keeps a terminal open for progress/errors. It uses the configured terminal
+(`xdg-terminal-exec`, otherwise `x-terminal-emulator`), not a hardcoded terminal.
+For ambiguous images, run manually with `--top`. No action configuration change
+or reload is required by the Rust replacement; unrelated custom actions stay intact.
+
+## Validation
+
+From repository root:
+
+```sh
+bash runtime/check.sh
+bash scripts/photocraft-thumbnail/test_photocraft-thumbnail.sh
+python3 runtime/tests/benchmark_thumbnail.py
+```
+
+73 executable/oracle scenarios plus real FFmpeg/PhotoCraft with synthetic PNGs
+check exact mask/tile semantics, ordering, errors, cleanup and publication races.
+Normal/corrupt ZIP codecs, installer/restore and malformed inputs are covered.
+See [full R6 contract/evidence/compatibility notes](../../runtime/R6-thumbnail.md),
+including explicit duplicate-name refusal and the legacy ZipInfo offset quirk.
+Separate measurements do **not** demonstrate a full-pipeline speedup.
+No active GUI document or personal media is used by these tests.

@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "frozen_at": "2026-11-19",
+  "description": "R0 reference only, including known closed() wait; not production",
+  "source_head": "b7218ce70ef7c5d88c1f5fe6734095cfbdb74a8c",
+  "files": [
+    {
+      "source": "configs/hypr/files/Scripts/workspace-columns.py",
+      "sha256": "199d18442439211c7eced1ce4020ed244d62cf9d096cc31e8b54d3e4145c1be8"
+    },
+    {
+      "source": "configs/session-manager/agora-notify.py",
+      "sha256": "7b259060f7c5e8b6e0420bc8a9b144305478ed5e3e9e914e23df315f12a177ac"
+    },
+    {
+      "source": "configs/session-manager/session-desktop.py",
+      "sha256": "13083dfec9f97d80b5df97a101398ed6b1f4acca021d78eab1150a66c4277a02"
+    },
+    {
+      "source": "configs/session-manager/session-pi.py",
+      "sha256": "cfdcc94333507f3a9852820d7739699d148ec150252c2fd35a44e9557b3a76f0"
+    },
+    {
+      "source": "configs/session-manager/session-startup.py",
+      "sha256": "e1521a96438638d12e35f7bb91b1ef29edeecd4723b0b3144fc567ade967837f"
+    },
+    {
+      "source": "scripts/filmcraft-patch-desktop-audio/filmcraft-patch-desktop-audio.py",
+      "sha256": "08f4ee7a889d57f52741233174ff015eaffc9d07fafdc9ccc3724570e3279fd9"
+    },
+    {
+      "source": "scripts/photocraft-thumbnail/photocraft-thumbnail-mask.zip",
+      "sha256": "ed7ed1e859fcc030c517e12c5ac8d022392cd561d02bf42839fc61f77ef6d720"
+    },
+    {
+      "source": "scripts/photocraft-thumbnail/photocraft-thumbnail.py",
+      "sha256": "c59fce75600dabb01836ab31e11108234cdc17b5286ec070a71c0bc8aa30d942"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "recorded_at": "2026-11-19",
+  "world": "tools/runtime-migration/fixtures.json",
+  "method": "warm process wall time, 31 samples; snapshot uses the identical private Python fake hyprctl for both implementations; not live desktop latency",
+  "python_process_start": {
+    "samples": 31,
+    "median_ms": 15.664,
+    "p95_ms": 18.664
+  },
+  "rust_process_version": {
+    "samples": 31,
+    "median_ms": 0.683,
+    "p95_ms": 1.118
+  },
+  "python_snapshot_cli_fake_native": {
+    "samples": 31,
+    "median_ms": 199.999,
+    "p95_ms": 218.452
+  },
+  "rust_snapshot_cli_fake_native": {
+    "samples": 31,
+    "median_ms": 153.43,
+    "p95_ms": 164.122
+  },
+  "same_r0_create_outcome": {
+    "active_workspace": 3,
+    "order": [
+      1,
+      3,
+      2
+    ],
+    "native_dispatches": 1
+  }
+}

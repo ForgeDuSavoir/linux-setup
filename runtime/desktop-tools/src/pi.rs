@@ -1,0 +1,145 @@
+//! Session Pi routing; explicit config, fresh captured origin, literal terminal argv.
+use crate::{
+    Result,
+    core::{Sessions, Source},
+    notify::Context,
+    process,
+};
+use serde::Deserialize;
+use std::{
+    path::{Path, PathBuf},
+    process::Command,
+    time::Duration,
+};
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Plan {
+    pub directory: PathBuf,
+    pub expected: Option<String>,
+}
+#[derive(Deserialize)]
+struct Project {
+    name: String,
+    path: PathBuf,
+}
+#[derive(Deserialize)]
+struct Projects {
+    projects: Vec<Project>,
+}
+pub fn validate_directory(path: &Path) -> Result<()> {
+    let lexical: PathBuf = path.components().collect();
+    if !lexical.is_absolute() || lexical.is_symlink() || !lexical.is_dir() {
+        return Err("working directory is unavailable".into());
+    }
+    Ok(())
+}
+pub fn agora_root(config_root: &Path) -> Result<PathBuf> {
+    if !config_root.is_absolute() {
+        return Err("XDG_CONFIG_HOME must be absolute".into());
+    }
+    let config = config_root.join("agora-workflow/config.toml");
+    let content = std::fs::read_to_string(&config)
+        .map_err(|e| format!("configure a valid agora_root in {}: {e}", config.display()))?;
+    let value: toml::Value = toml::from_str(&content).map_err(|_| "invalid workflow TOML")?;
+    let path = value
+        .get("agora_root")
+        .and_then(toml::Value::as_str)
+        .filter(|s| !s.is_empty())
+        .ok_or("agora_root must be an absolute directory path")?;
+    let path: PathBuf = Path::new(path).components().collect();
+    validate_directory(&path)?;
+    Ok(path)
+}
+fn query(manager: &Path, args: &[&str]) -> Result<serde_json::Value> {
+    let output = process::run(
+        Command::new(manager).arg("--json").args(args),
+        None,
+        true,
+        Some(Duration::from_secs(35)),
+    )?;
+    if !output.status.success() {
+        return Err("Session Manager query failed; no neutral fallback".into());
+    }
+    serde_json::from_slice(&output.stdout).map_err(|_| "invalid Session Manager reply".into())
+}
+pub fn plan(home: &Path, config_root: &Path, explicit_agora: bool) -> Result<Plan> {
+    if explicit_agora {
+        return Ok(Plan {
+            directory: agora_root(config_root)?,
+            expected: None,
+        });
+    }
+    let manager = home.join(".local/bin/session-manager");
+    let sessions = Sessions::parse(&query(&manager, &["session", "list"])?)?;
+    let Some(active) = sessions.active_session_id else {
+        return Ok(Plan {
+            directory: agora_root(config_root)?,
+            expected: Some("neutral".into()),
+        });
+    };
+    let session = sessions
+        .sessions
+        .iter()
+        .find(|s| s.id == active)
+        .ok_or("active session is missing")?;
+    let directory = match &session.source {
+        Source::Neutral {} => agora_root(config_root)?,
+        Source::Project { project_name } => {
+            let projects: Projects = serde_json::from_value(query(&manager, &["project", "list"])?)
+                .map_err(|_| "invalid project list")?;
+            let path = projects
+                .projects
+                .into_iter()
+                .find(|p| &p.name == project_name)
+                .ok_or("active session project is no longer available")?
+                .path;
+            let path: PathBuf = path.components().collect();
+            validate_directory(&path)?;
+            path
+        }
+    };
+    Ok(Plan {
+        directory,
+        expected: Some(format!("session:{}", active.0)),
+    })
+}
+pub fn accepted_context(output: &str, expected: Option<&str>) -> Context {
+    let value = output.trim();
+    match Context::parse(value) {
+        Ok(context) if expected.is_none_or(|e| e == value) => context,
+        _ => Context::Global,
+    }
+}
+pub fn capture(home: &Path, expected: Option<&str>) -> Context {
+    let result = process::run(
+        Command::new(home.join(".local/bin/agora-notify"))
+            .arg("capture")
+            .env_remove("AGORA_NOTIFICATION_CONTEXT"),
+        None,
+        true,
+        Some(Duration::from_secs(2)),
+    );
+    match result {
+        Ok(output) if output.status.success() => String::from_utf8(output.stdout)
+            .map(|value| accepted_context(&value, expected))
+            .unwrap_or(Context::Global),
+        _ => Context::Global,
+    }
+}
+pub fn launch(home: &Path, plan: &Plan, context: &Context) -> Result<()> {
+    let context = context.label();
+    let status = Command::new(home.join(".local/bin/launch-terminal-command"))
+        .arg(&plan.directory)
+        .args([
+            "env",
+            &format!("AGORA_NOTIFICATION_CONTEXT={context}"),
+            "pi",
+        ])
+        .env("AGORA_NOTIFICATION_CONTEXT", context)
+        .status()
+        .map_err(|e| format!("terminal launch failed: {e}"))?;
+    if !status.success() {
+        return Err("terminal launch failed; no retry".into());
+    }
+    Ok(())
+}

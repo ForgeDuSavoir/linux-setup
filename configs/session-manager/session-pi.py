@@ -2,6 +2,7 @@
 """Open Pi in the active session's current project directory, without a picker."""
 import json
 import os
+import re
 from pathlib import Path
 import tomllib
 import subprocess
@@ -9,6 +10,7 @@ import sys
 
 MANAGER = Path.home() / '.local/bin/session-manager'
 TERMINAL = Path.home() / '.local/bin/launch-terminal-command'
+NOTIFY = Path.home() / '.local/bin/agora-notify'
 def workflow_config():
     root = Path(os.environ.get('XDG_CONFIG_HOME') or Path.home() / '.config')
     if not root.is_absolute():
@@ -46,17 +48,17 @@ def query(*args):
     return json.loads(result.stdout)
 
 
-def launch_command():
+def launch_plan():
     state = query('session', 'list')
     active = state.get('active_session_id')
     session = next((item for item in state['sessions'] if item['id'] == active), None)
     if session is None:
         if active is not None:
             raise ValueError('active session is missing from the session list')
-        return terminal_command(agora_root())
+        return terminal_command(agora_root()), 'neutral'
     source = session.get("source")
     if source == {"kind": "neutral"}:
-        return terminal_command(agora_root())
+        return terminal_command(agora_root()), 'session:' + active
     if (not isinstance(source, dict) or set(source) != {"kind", "project_name"}
             or source["kind"] != "project" or not isinstance(source["project_name"], str)):
         raise ValueError("invalid v3 session source")
@@ -66,17 +68,43 @@ def launch_command():
         raise ValueError('active session project is no longer available')
     path = Path(project['path'])
     # An active session never falls back to Agora if its project is missing.
-    return terminal_command(path)
+    return terminal_command(path), 'session:' + active
+
+
+def launch_command():
+    # Keep the routing interface used by isolated callers; main adds launch metadata.
+    return launch_plan()[0]
+
+
+def capture_context(expected, env):
+    try:
+        result = subprocess.run([str(NOTIFY), 'capture'], env=env, check=True,
+                                capture_output=True, text=True, timeout=2)
+        value = result.stdout.strip()
+        valid = value in ('global', 'neutral') or re.fullmatch(
+            r'session:[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}', value)
+        if valid and (expected is None or value == expected):
+            return value
+    except (OSError, ValueError, subprocess.SubprocessError):
+        pass
+    return 'global'  # Never guess the originating UUID from a project path/name.
 
 
 def main():
     if sys.argv[1:] == ['--agora']:
-        command = terminal_command(agora_root())
+        command, expected = terminal_command(agora_root()), None
     elif not sys.argv[1:]:
-        command = launch_command()
+        command, expected = launch_plan()
     else:
         raise ValueError('usage: session-pi [--agora]')
-    subprocess.run(command, check=True)
+    env = os.environ.copy()
+    # A new terminal has a new launch origin; do not reuse the caller's job tag.
+    env.pop('AGORA_NOTIFICATION_CONTEXT', None)
+    context = capture_context(expected, env)
+    env['AGORA_NOTIFICATION_CONTEXT'] = context
+    # Command arguments survive terminal-server reuse even when its environment does not.
+    command = [*command[:2], 'env', 'AGORA_NOTIFICATION_CONTEXT=' + context, *command[2:]]
+    subprocess.run(command, check=True, env=env)
 
 
 if __name__ == '__main__':

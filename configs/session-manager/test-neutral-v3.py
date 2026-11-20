@@ -41,24 +41,39 @@ with tempfile.TemporaryDirectory(prefix='neutral-v3-') as directory:
            'XDG_CONFIG_HOME': str(root / 'config'), 'XDG_DATA_HOME': str(root / 'data'),
            'XDG_DATA_DIRS': str(root / 'data'), 'XDG_STATE_HOME': str(root / 'state'),
            'XDG_RUNTIME_DIR': str(root / 'runtime'), 'SESSION_MANAGER_BIN': str(BINARY),
-           'SESSION_COLUMNS_SCRIPT': str(HERE.parent / 'hypr/files/Scripts/workspace-columns.py')}
+           'SESSION_COLUMNS_SCRIPT': str(HERE.parent / 'hypr/files/Scripts/workspace-columns.py'),
+           'RUSTUP_HOME': os.environ.get('RUSTUP_HOME', str(Path.home()/'.rustup')),
+           'CARGO_HOME': os.environ.get('CARGO_HOME', str(Path.home()/'.cargo')),
+           'CARGO_NET_OFFLINE': 'true'}
     with patch.dict(os.environ, env, clear=True):
         desktop = load('neutral_desktop', HERE / 'session-desktop.py')
         pi = load('neutral_pi', HERE / 'session-pi.py')
-        launcher = load('neutral_launcher', HERE / 'session-app-launcher.py')
-        pi.MANAGER = launcher.MANAGER = BINARY
+        pi.MANAGER = BINARY
+        (root / '.local/bin/session-manager').symlink_to(BINARY)
+        launcher_binary = HERE / 'app-launcher/target/release/session-app-launcher'
+        fake_gtk = root / 'bin/gtk-launch'
+        fake_gtk.write_text('#!/bin/sh\nprintf "%s\\n" "$@" > "$HOME/browser-args"\n')
+        fake_gtk.chmod(0o700)
         active = [1]
         clients = [{'workspace': {'id': 1, 'name': '1'}}]
         monitor = {'focused': True, 'activeWorkspace': {'id': 1}, 'specialWorkspace': {'name': ''}}
         def query(key):
-            return {'monitors': [monitor], 'clients': clients,
+            return {'instances': [{'instance': os.environ.get('HYPRLAND_INSTANCE_SIGNATURE', 'fixture-login')}],
+                    'monitors': [monitor], 'clients': clients,
                     'workspaces': [{'id': active[0]}, {'id': 1}]}[key]
+        native_file = root / 'native-monitor.json'
+        native_file.write_text(json.dumps([monitor]))
+        hypr = root / 'bin/hyprctl'
+        hypr.write_text('#!/usr/bin/python3\nimport os\nfrom pathlib import Path\nprint("[]" if "instances" in __import__("sys").argv else (Path(os.environ["HOME"])/"native-monitor.json").read_text())\n')
+        hypr.chmod(0o700)
         def focus(ws):
             active[0] = ws
             monitor['activeWorkspace']['id'] = ws
+            native_file.write_text(json.dumps([monitor]))
         desktop.columns.query = query
         desktop.columns.active = lambda: active[0]
         desktop.columns.focus = focus
+        desktop.columns.focus_empty = focus
         desktop.columns.dispatch = lambda _: (_ for _ in ()).throw(AssertionError('no real dispatcher'))
         daemon = subprocess.Popen([str(BINARY), 'daemon'], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
         try:
@@ -73,7 +88,9 @@ with tempfile.TemporaryDirectory(prefix='neutral-v3-') as directory:
             assert a['name'] == 'Neutral-1' and b['name'] == 'Neutral-2'
             assert len({a['id'], p['id'], b['id']}) == 3
             state = desktop.columns.load()
-            assert state['owners'] == {'1': 'neutral', '2': a['id'], '3': p['id'], '4': b['id']}
+            assert state['owners'] == {'1': 'neutral', '4': b['id']}
+            assert state['order'] == [1, 4], 'departed empty workspaces are not reserved'
+            assert [s['id'] for s in desktop.request('list')['sessions']] == [a['id'], p['id'], b['id']]
             assert clients == [{'workspace': {'id': 1, 'name': '1'}}]
             assert desktop.status()['context_confirmed']
             assert desktop.status()['displayed_context'] == b['id']
@@ -91,8 +108,9 @@ with tempfile.TemporaryDirectory(prefix='neutral-v3-') as directory:
             # Current neutral launchers must not consult an unavailable project source.
             (root / 'projects').rename(root / 'detached-projects')
             assert pi.launch_command()[1:] == [str(root / 'Agora'), 'pi']
-            assert launcher.selected_project_path() is None
-            assert launcher.query('application', 'list')['applications'][0]['origin'] == 'installed'
+            subprocess.run([str(launcher_binary), '--browser'], env=env, check=True, timeout=8)
+            assert (root / 'browser-args').read_text() == 'firefox.desktop\n'
+            assert desktop.request('list')['active_session_id'] == b['id']
             notify = load('neutral_notify', HERE / 'agora-notify.py')
             # Use the read-only confirmed snapshot, not application identity or a shared bucket.
             snapshot = desktop.status()
@@ -102,8 +120,41 @@ with tempfile.TemporaryDirectory(prefix='neutral-v3-') as directory:
             desktop.invoke('deactivate')
             assert desktop.status()['displayed_context'] == 'neutral'
             assert desktop.status()['active_session_id'] is None
-            assert desktop.columns.load()['owners']['4'] == b['id']
+            assert '4' not in desktop.columns.load()['owners']
+            assert b['id'] in [s['id'] for s in desktop.request('list')['sessions']]
             assert clients[1]['workspace']['name'] == 'special:session-ai'
+            desktop.invoke('switch', b['id'])
+            desktop.invoke('stop', b['id'])
+            after_stop = desktop.status()
+            assert after_stop['active_session_id'] == p['id'] and after_stop['context_confirmed']
+            assert [s['id'] for s in after_stop['sessions']] == [p['id']]
+            original = desktop.request('list')
+            try:
+                desktop.invoke('stop', p['id'])
+                raise AssertionError('last graphical session must not be stopped')
+            except RuntimeError as error:
+                assert 'last open session' in str(error)
+            assert desktop.request('list') == original, 'refused stop must be revision-stable'
+            startup = load('neutral_startup', HERE / 'session-startup.py')
+            startup.desktop = desktop
+            startup.columns = desktop.columns
+            with patch.dict(os.environ, {'HYPRLAND_INSTANCE_SIGNATURE': 'fixture-login'}):
+                assert startup.initialize()
+                fresh = desktop.request('list')
+                assert len(fresh['sessions']) == 1
+                assert fresh['sessions'][0]['name'] == 'Neutral-1'
+                assert fresh['sessions'][0]['source'] == {'kind': 'neutral'}
+                assert desktop.status()['context_confirmed']
+                assert not startup.initialize()
+                assert desktop.request('list') == fresh, 'repeat startup must not change revision'
+            with patch.dict(os.environ, {'HYPRLAND_INSTANCE_SIGNATURE': 'fixture-relogin'}):
+                assert startup.initialize()
+                relogin = desktop.request('list')
+                assert len(relogin['sessions']) == 1 and relogin['sessions'][0]['name'] == 'Neutral-1'
+                assert relogin['active_session_id'] != fresh['active_session_id']
+                assert desktop.status()['context_confirmed']
+            assert clients == [{'workspace': {'id': 1, 'name': '1'}},
+                               {'workspace': {'id': -9, 'name': 'special:session-ai'}}]
         finally:
             if daemon.poll() is None:
                 daemon.send_signal(signal.SIGTERM)
@@ -112,6 +163,7 @@ with tempfile.TemporaryDirectory(prefix='neutral-v3-') as directory:
 
         # Production installation is deliberately blocked on v2, before copying clients/QML.
         manager = root / '.local/bin/session-manager'
+        manager.unlink()  # Remove the owned fixture symlink; never write through it to BINARY.
         manager.write_text('#!/bin/sh\necho "session-manager fixture (protocol 2)"\n')
         manager.chmod(0o700)
         for script in [HERE / 'configure_session_manager.sh', HERE / 'install_desktop_integration.sh',
@@ -122,6 +174,10 @@ with tempfile.TemporaryDirectory(prefix='neutral-v3-') as directory:
         assert not (root / '.local/bin/session-desktop').exists()
 
         # Exercise the actual targeted installers against a staged v3 stack only.
+        personal=root/'detached-projects/P/.session-manager/apps/session-pi.desktop'
+        personal.parent.mkdir(parents=True,exist_ok=True)
+        personal.write_text('[Desktop Entry]\nType=Application\nName=Personal Pi\nExec=session-pi\n')
+        personal_bytes=personal.read_bytes()
         manager.unlink()
         manager.symlink_to(BINARY)
         (root / 'detached-projects').rename(root / 'projects')
@@ -129,12 +185,15 @@ with tempfile.TemporaryDirectory(prefix='neutral-v3-') as directory:
         systemctl.write_text('#!/bin/sh\ncase "$*" in *MainPID*) echo 0;; esac\nexit 0\n')
         systemctl.chmod(0o700)
         result = subprocess.run(['bash', str(HERE / 'configure_session_manager.sh')],
-                                env={**env, 'SESSION_MANAGER_PROJECT_SOURCE': str(root / 'projects')},
+                                env={**env, 'SESSION_MANAGER_PROJECT_SOURCE': str(root / 'projects'),'AGORA_DESKTOP_OFFLINE':'1'},
                                 capture_output=True, text=True, timeout=20)
         assert result.returncode == 0, result.stdout + result.stderr
         for name in ['SessionMenu.qml', 'SessionStrip.qml', 'SessionService.qml', 'NotificationStore.qml']:
             assert (root / '.config/quickshell' / name).read_bytes() == (HERE.parent / 'quickshell/files' / name).read_bytes()
-        assert (root / '.local/bin/session-desktop').read_bytes() == (HERE / 'session-desktop.py').read_bytes()
+        assert (root / '.local/bin/session-desktop').is_symlink()
+        assert (root / '.local/bin/session-desktop').read_bytes()[:4]==b'\x7fELF'
+        assert (root/'.local/bin/session-pi').read_bytes()==(HERE.parents[1]/'runtime/target/release/session-pi').read_bytes()
+        assert (root/'projects/P/.session-manager/apps/session-pi.desktop').read_bytes()==personal_bytes
         systemctl.write_text('#!/bin/sh\necho ' + str(os.getpid()) + '\n')
         result = subprocess.run(['bash', str(HERE / 'install_desktop_integration.sh')],
                                 env=env, capture_output=True, text=True, timeout=10)

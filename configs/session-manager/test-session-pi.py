@@ -66,3 +66,28 @@ with patch.object(module, 'query', side_effect=RuntimeError('daemon unavailable'
         pass
 
 print('Pi routing: active project, neutral Agora, no Yazi and no fallback on API failure: passed.')
+
+# Launch metadata is literal argv as well as environment (terminal servers may
+# retain their own environment). No actual terminal/helper is executed here.
+A='session:11111111-1111-1111-1111-111111111111'
+B='session:22222222-2222-2222-2222-222222222222'
+import subprocess
+for output,expected in [(A,A),(B,'global'),('invalid','global'),('neutral','global')]:
+    with patch.object(module.subprocess,'run',return_value=subprocess.CompletedProcess([],0,output,'')):
+        assert module.capture_context(A,{})==expected
+for error in [subprocess.TimeoutExpired('fake',2),subprocess.CalledProcessError(1,'fake'),FileNotFoundError()]:
+    with patch.object(module.subprocess,'run',side_effect=error):
+        assert module.capture_context(A,{})=='global'
+with patch.object(module,'launch_plan',return_value=([str(module.TERMINAL),'/fixture','pi'],A)),patch.object(module.sys,'argv',['session-pi']),patch.dict(os.environ,{'AGORA_NOTIFICATION_CONTEXT':B}),patch.object(module.subprocess,'run') as run:
+    def capture(expected,env):
+        assert expected==A and 'AGORA_NOTIFICATION_CONTEXT' not in env
+        return A
+    with patch.object(module,'capture_context',side_effect=capture): module.main()
+    command=run.call_args.args[0]
+    assert command==[str(module.TERMINAL),'/fixture','env','AGORA_NOTIFICATION_CONTEXT='+A,'pi']
+    assert run.call_args.kwargs['env']['AGORA_NOTIFICATION_CONTEXT']==A
+print('Historical Pi launch context: expected UUID, literal env argv, stale-parent removal and safe global fallback passed.')
+
+# Exercise the replacement, not just the historical import oracle above.
+import runpy
+runpy.run_path(str(Path(__file__).resolve().parents[2]/'runtime/tests/test_pi_parity.py'),run_name='__main__')

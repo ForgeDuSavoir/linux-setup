@@ -15,7 +15,7 @@ with tempfile.TemporaryDirectory() as directory:
     module.RUNTIME = Path(directory)
     module.STATE = module.RUNTIME / 'state.json'
     for name in ('global', 'session-ai', 'sm-12345678-1234-1234-1234-123456789abc-notes'):
-        for args in (['cycle'], ['toggle-row'], ['focus-column', '2']):
+        for args in (['cycle'], ['create-empty'], ['focus-workspace', '2']):
             monitors = [{'focused': True, 'specialWorkspace': {'name': 'special:' + name}}]
             calls = []
             with patch.object(module, 'query', return_value=monitors), \
@@ -36,11 +36,11 @@ with tempfile.TemporaryDirectory() as directory:
         module.main()
         cycle.assert_called_once_with({})
         dispatch.assert_not_called()
-    # No scratchpad: the requested row navigation still runs normally.
+    # No scratchpad: the requested empty-workspace insertion still runs normally.
     with patch.object(module, 'query', return_value=[{'specialWorkspace': {'name': ''}}]), \
          patch.object(module, 'load', return_value={}), \
-         patch.object(module, 'toggle_row') as toggle, \
-         patch.object(sys, 'argv', [str(source), 'toggle-row']):
+         patch.object(module, 'create_empty') as toggle, \
+         patch.object(sys, 'argv', [str(source), 'create-empty']):
         module.main()
         toggle.assert_called_once_with({})
 

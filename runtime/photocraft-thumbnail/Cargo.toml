@@ -1,0 +1,11 @@
+[package]
+name = "photocraft-thumbnail"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+libc.workspace = true
+serde_json.workspace = true
+zip.workspace = true

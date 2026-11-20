@@ -74,8 +74,17 @@ _G.__workflow_window_close_subscription = hl.on("window.close", function(window)
     local workspace = window and window.workspace
     local id = workspace and workspace.id
     if type(id) == "number" and id > 0 then
-        hl.dispatch(hl.dsp.exec_cmd(os.getenv("HOME") .. "/.config/hypr/Scripts/workspace-columns.py closed " .. tostring(id)))
+        hl.dispatch(hl.dsp.exec_cmd([["$HOME/.local/bin/workspace-controller" closed ]] .. tostring(id)))
     end
+end)
+
+-- Prune departed empty workspaces even for mouse/native/session switches.
+-- Cleanup is serialized with navigation and never focuses or moves a window.
+_G.__workflow_workspace_active_subscription = hl.on("workspace.active", function()
+    hl.dispatch(hl.dsp.exec_cmd([["$HOME/.local/bin/workspace-controller" cleanup]]))
+end)
+_G.__workflow_workspace_removed_subscription = hl.on("workspace.removed", function()
+    hl.dispatch(hl.dsp.exec_cmd([["$HOME/.local/bin/workspace-controller" cleanup]]))
 end)
 
 --------------------------------

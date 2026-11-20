@@ -1,0 +1,848 @@
+{
+  "version": 1,
+  "method": "literal references; dynamic imports require the reviewed README map",
+  "files": [
+    {
+      "path": "configs/hypr/files/Scripts/workspace-columns.py",
+      "kind": "runtime",
+      "references": [
+        {
+          "line": 348,
+          "text": "raise SystemExit(\"usage: workspace-columns.py cycle|create-empty|isolate-or-previous|move-next|cleanup|snapshot|migrate|closed ID|focus-workspace ID\")"
+        }
+      ]
+    },
+    {
+      "path": "configs/hypr/files/hyprland.lua",
+      "kind": "runtime",
+      "references": [
+        {
+          "line": 77,
+          "text": "hl.dispatch(hl.dsp.exec_cmd(os.getenv(\"HOME\") .. \"/.config/hypr/Scripts/workspace-columns.py closed \" .. tostring(id)))"
+        },
+        {
+          "line": 84,
+          "text": "hl.dispatch(hl.dsp.exec_cmd(os.getenv(\"HOME\") .. \"/.config/hypr/Scripts/workspace-columns.py cleanup\"))"
+        },
+        {
+          "line": 87,
+          "text": "hl.dispatch(hl.dsp.exec_cmd(os.getenv(\"HOME\") .. \"/.config/hypr/Scripts/workspace-columns.py cleanup\"))"
+        }
+      ]
+    },
+    {
+      "path": "configs/hypr/files/keybinds.lua",
+      "kind": "runtime",
+      "references": [
+        {
+          "line": 12,
+          "text": "hl.bind(mainMod .. \" + P\", hl.dsp.exec_cmd([[bash -lc 'exec \"$HOME/.local/bin/session-pi\"']]))"
+        },
+        {
+          "line": 35,
+          "text": "hl.dispatch(hl.dsp.exec_cmd([[bash -lc 'exec \"$HOME/.local/bin/session-desktop\" close ]] .. tostring(ws.id) .. \"'\"))"
+        },
+        {
+          "line": 40,
+          "text": "hl.bind(mainMod .. \" + TAB\", hl.dsp.exec_cmd(hyprScripts .. \"/workspace-columns.py create-empty\"))"
+        },
+        {
+          "line": 41,
+          "text": "hl.bind(mainMod .. \" + SHIFT + TAB\", hl.dsp.exec_cmd(hyprScripts .. \"/workspace-columns.py isolate-or-previous\"))"
+        },
+        {
+          "line": 97,
+          "text": "hl.bind(mainMod .. \" + S\", hl.dsp.exec_cmd(hyprScripts .. \"/workspace-columns.py cycle\"))"
+        },
+        {
+          "line": 98,
+          "text": "hl.bind(mainMod .. \" + SHIFT + S\", hl.dsp.exec_cmd(hyprScripts .. \"/workspace-columns.py move-next\"))"
+        }
+      ]
+    },
+    {
+      "path": "configs/hypr/files/startup.lua",
+      "kind": "runtime",
+      "references": [
+        {
+          "line": 24,
+          "text": "hl.exec_cmd('if [ -x \"$HOME/.local/bin/session-startup\" ]; then exec \"$HOME/.local/bin/session-startup\"; else exec quickshell; fi')"
+        }
+      ]
+    },
+    {
+      "path": "configs/hypr/install_workspace_navigation.py",
+      "kind": "installer",
+      "references": [
+        {
+          "line": 19,
+          "text": "CONTROLLER = HERE / 'files/Scripts/workspace-columns.py'"
+        },
+        {
+          "line": 22,
+          "text": "'.config/hypr/Scripts/workspace-columns.py', '.local/bin/session-desktop',"
+        },
+        {
+          "line": 23,
+          "text": "'.config/quickshell/shell.qml', '.config/hypr/startup.lua', '.local/bin/session-startup']"
+        },
+        {
+          "line": 70,
+          "text": "files = [path for path in FILES if path not in (\".config/hypr/hyprland.lua\", \".config/quickshell/shell.qml\", \".config/hypr/startup.lua\", \".local/bin/session-startup\")] if movement_only else FILES"
+        },
+        {
+          "line": 117,
+          "text": "startup_file = HERE.parent / 'session-manager/session-startup.py'"
+        }
+      ]
+    },
+    {
+      "path": "configs/hypr/tests/navigation_scratchpad_test.py",
+      "kind": "test",
+      "references": [
+        {
+          "line": 9,
+          "text": "source = Path(__file__).resolve().parents[1] / 'files/Scripts/workspace-columns.py'"
+        }
+      ]
+    },
+    {
+      "path": "configs/hypr/tests/workspace_columns_test.py",
+      "kind": "test",
+      "references": [
+        {
+          "line": 13,
+          "text": "SOURCE = Path(__file__).resolve().parents[1] / 'files/Scripts/workspace-columns.py'"
+        }
+      ]
+    },
+    {
+      "path": "configs/hypr/tests/workspace_install_test.py",
+      "kind": "test",
+      "references": [
+        {
+          "line": 69,
+          "text": "assert (home/'.config/hypr/Scripts/workspace-columns.py').read_bytes()==(HERE/'files/Scripts/workspace-columns.py').read_bytes()"
+        },
+        {
+          "line": 70,
+          "text": "assert (home/'.local/bin/session-desktop').stat().st_mode & 0o111"
+        },
+        {
+          "line": 71,
+          "text": "assert (home/'.local/bin/session-startup').read_bytes()==(HERE.parent/'session-manager/session-startup.py').read_bytes()"
+        },
+        {
+          "line": 72,
+          "text": "assert json.loads((home/'runtime/hyprland/session-startup.json').read_text())['phase']=='deferred'"
+        }
+      ]
+    },
+    {
+      "path": "configs/obs/scripts-lua/obs-post-record-gaming.lua",
+      "kind": "runtime",
+      "references": [
+        {
+          "line": 11,
+          "text": "local pipe = io.popen(\"/usr/bin/timeout 2s /usr/bin/env agora-notify capture 2>/dev/null\")"
+        }
+      ]
+    },
+    {
+      "path": "configs/obs/scripts-lua/obs-post-record.lua",
+      "kind": "runtime",
+      "references": [
+        {
+          "line": 11,
+          "text": "local pipe = io.popen(\"/usr/bin/timeout 2s /usr/bin/env agora-notify capture 2>/dev/null\")"
+        }
+      ]
+    },
+    {
+      "path": "configs/obs/scripts-sh/obs-post-record-gaming.sh",
+      "kind": "runtime",
+      "references": [
+        {
+          "line": 9,
+          "text": "if command -v agora-notify >/dev/null 2>&1; then"
+        },
+        {
+          "line": 10,
+          "text": "agora-notify send --app-name \"OBS Automation\" \"$@\" || true"
+        }
+      ]
+    },
+    {
+      "path": "configs/obs/scripts-sh/obs-post-record.sh",
+      "kind": "runtime",
+      "references": [
+        {
+          "line": 9,
+          "text": "if command -v agora-notify >/dev/null 2>&1; then"
+        },
+        {
+          "line": 10,
+          "text": "agora-notify send --app-name \"OBS Automation\" \"$@\" || true"
+        }
+      ]
+    },
+    {
+      "path": "configs/pi/session-notifications/index.ts",
+      "kind": "runtime",
+      "references": [
+        {
+          "line": 12,
+          "text": "const helper = join(homedir(), \".local/bin/agora-notify\");"
+        }
+      ]
+    },
+    {
+      "path": "configs/pi/session-notifications/install.py",
+      "kind": "installer",
+      "references": [
+        {
+          "line": 42,
+          "text": "(CONFIGS / 'session-manager/agora-notify.py', home / '.local/bin/agora-notify', 0o755),"
+        },
+        {
+          "line": 44,
+          "text": "launcher = home / '.local/bin/session-pi'"
+        },
+        {
+          "line": 48,
+          "text": "mappings.append((CONFIGS / 'session-manager/session-pi.py', launcher, 0o755))"
+        },
+        {
+          "line": 85,
+          "text": "print('Plan: verify Pi agent_settled support; back up/install only the Agora notification extension/helper and existing session-pi launcher. No reload or notification. Use --apply.')"
+        }
+      ]
+    },
+    {
+      "path": "configs/pi/session-notifications/test-install.py",
+      "kind": "test",
+      "references": [
+        {
+          "line": 19,
+          "text": "old_launcher=root/'.local/bin/session-pi';old_launcher.write_text('# old launcher\\n')"
+        },
+        {
+          "line": 30,
+          "text": "assert (root/'.local/bin/agora-notify').read_bytes()==(HERE.parents[1]/'session-manager/agora-notify.py').read_bytes()"
+        },
+        {
+          "line": 31,
+          "text": "assert old_launcher.read_bytes()==(HERE.parents[1]/'session-manager/session-pi.py').read_bytes()"
+        },
+        {
+          "line": 35,
+          "text": "assert (backups[0]/'.local/bin/session-pi').read_text()=='# old launcher\\n'"
+        }
+      ]
+    },
+    {
+      "path": "configs/quickshell/files/SessionService.qml",
+      "kind": "runtime",
+      "references": [
+        {
+          "line": 25,
+          "text": "readonly property string desktop: Quickshell.env(\"HOME\") + \"/.local/bin/session-desktop\""
+        }
+      ]
+    },
+    {
+      "path": "configs/quickshell/files/shell.qml",
+      "kind": "runtime",
+      "references": [
+        {
+          "line": 40,
+          "text": "command: [\"python3\", Quickshell.env(\"HOME\") + \"/.config/hypr/Scripts/workspace-columns.py\", \"snapshot\"]"
+        },
+        {
+          "line": 59,
+          "text": "command: [\"python3\", Quickshell.env(\"HOME\") + \"/.config/hypr/Scripts/workspace-columns.py\", \"focus-workspace\", String(workspaceId)]"
+        }
+      ]
+    },
+    {
+      "path": "configs/session-manager/agora-notify.py",
+      "kind": "runtime",
+      "references": [
+        {
+          "line": 22,
+          "text": "client = Path.home() / '.local/bin/session-desktop'"
+        },
+        {
+          "line": 75,
+          "text": "print(f'agora-notify: {error}', file=sys.stderr)"
+        }
+      ]
+    },
+    {
+      "path": "configs/session-manager/configure_session_manager.sh",
+      "kind": "installer",
+      "references": [
+        {
+          "line": 19,
+          "text": "DESKTOP_SOURCE=\"${SCRIPT_DIR}/session-desktop.py\""
+        },
+        {
+          "line": 20,
+          "text": "DESKTOP_TARGET=\"${HOME}/.local/bin/session-desktop\""
+        },
+        {
+          "line": 23,
+          "text": "PI_SOURCE=\"${SCRIPT_DIR}/session-pi.py\""
+        },
+        {
+          "line": 24,
+          "text": "PI_TARGET=\"${HOME}/.local/bin/session-pi\""
+        },
+        {
+          "line": 25,
+          "text": "NOTIFY_SOURCE=\"${SCRIPT_DIR}/agora-notify.py\""
+        },
+        {
+          "line": 26,
+          "text": "NOTIFY_TARGET=\"${HOME}/.local/bin/agora-notify\""
+        },
+        {
+          "line": 27,
+          "text": "PI_DESKTOP_SOURCE=\"${SCRIPT_DIR}/session-pi.desktop\""
+        },
+        {
+          "line": 28,
+          "text": "PI_DESKTOP_TARGET=\"${XDG_DATA_HOME:-${HOME}/.local/share}/applications/session-pi.desktop\""
+        }
+      ]
+    },
+    {
+      "path": "configs/session-manager/install_desktop_integration.sh",
+      "kind": "installer",
+      "references": [
+        {
+          "line": 36,
+          "text": "\"session-manager/session-startup.py|${HOME}/.local/bin/session-startup\" \\"
+        },
+        {
+          "line": 37,
+          "text": "\"session-manager/session-desktop.py|${HOME}/.local/bin/session-desktop\" \\"
+        },
+        {
+          "line": 39,
+          "text": "\"hypr/files/Scripts/workspace-columns.py|${HOME}/.config/hypr/Scripts/workspace-columns.py\" \\"
+        },
+        {
+          "line": 52,
+          "text": "hypr/files/keybinds.lua|hypr/files/Scripts/workspace-columns.py|session-manager/session-desktop.py) ;;"
+        }
+      ]
+    },
+    {
+      "path": "configs/session-manager/install_session_startup.py",
+      "kind": "installer",
+      "references": [
+        {
+          "line": 28,
+          "text": "startup = load('startup_install_policy', HERE / 'session-startup.py')"
+        },
+        {
+          "line": 30,
+          "text": "mappings = [(HERE / 'session-startup.py', '.local/bin/session-startup', 0o755),"
+        },
+        {
+          "line": 31,
+          "text": "(HERE / 'session-desktop.py', '.local/bin/session-desktop', 0o755),"
+        },
+        {
+          "line": 51,
+          "text": "base = Path(os.environ.get('XDG_STATE_HOME') or home / '.local/state') / 'linux-setup/session-startup'"
+        }
+      ]
+    },
+    {
+      "path": "configs/session-manager/session-desktop.py",
+      "kind": "runtime",
+      "references": [
+        {
+          "line": 12,
+          "text": "COLUMNS = Path(os.environ.get(\"SESSION_COLUMNS_SCRIPT\", str("
+        },
+        {
+          "line": 13,
+          "text": "Path.home() / \".config/hypr/Scripts/workspace-columns.py\")))"
+        },
+        {
+          "line": 200,
+          "text": "raise RuntimeError(\"usage: session-desktop start --neutral|start --project NAME|switch UUID|deactivate|stop UUID\")"
+        },
+        {
+          "line": 219,
+          "text": "raise RuntimeError(\"usage: session-desktop start --neutral|start --project NAME|switch UUID|deactivate|stop UUID\")"
+        },
+        {
+          "line": 275,
+          "text": "raise RuntimeError(\"usage: session-desktop start --neutral|start --project NAME|switch UUID|deactivate|close [WORKSPACE_ID]|stop UUID\")"
+        },
+        {
+          "line": 283,
+          "text": "print(f\"session-desktop: {exc}\", file=sys.stderr)"
+        }
+      ]
+    },
+    {
+      "path": "configs/session-manager/session-pi.desktop",
+      "kind": "runtime",
+      "references": [
+        {
+          "line": 6,
+          "text": "Exec=session-pi --agora"
+        },
+        {
+          "line": 7,
+          "text": "TryExec=session-pi"
+        }
+      ]
+    },
+    {
+      "path": "configs/session-manager/session-pi.py",
+      "kind": "runtime",
+      "references": [
+        {
+          "line": 13,
+          "text": "NOTIFY = Path.home() / '.local/bin/agora-notify'"
+        },
+        {
+          "line": 99,
+          "text": "raise ValueError('usage: session-pi [--agora]')"
+        }
+      ]
+    },
+    {
+      "path": "configs/session-manager/session-startup.py",
+      "kind": "runtime",
+      "references": [
+        {
+          "line": 20,
+          "text": "DESKTOP = HERE / 'session-desktop.py'"
+        },
+        {
+          "line": 22,
+          "text": "DESKTOP = HERE / 'session-desktop'"
+        },
+        {
+          "line": 42,
+          "text": "return columns.RUNTIME / 'session-startup.json'"
+        },
+        {
+          "line": 63,
+          "text": "fd, name = tempfile.mkstemp(prefix='.session-startup-', dir=columns.RUNTIME)"
+        },
+        {
+          "line": 133,
+          "text": "backup = Path(tempfile.mkdtemp(prefix='session-startup-backup-', dir=columns.RUNTIME))"
+        },
+        {
+          "line": 169,
+          "text": "raise SystemExit('usage: session-startup (Hyprland startup only)')"
+        },
+        {
+          "line": 174,
+          "text": "print(f'session-startup: {error}', file=sys.stderr)"
+        },
+        {
+          "line": 177,
+          "text": "message = f'session-startup failed: {error}; use the menu to recover; no automatic retry'"
+        },
+        {
+          "line": 180,
+          "text": "subprocess.run(['logger', '-t', 'session-startup', '--', message], timeout=2, check=False)"
+        }
+      ]
+    },
+    {
+      "path": "configs/session-manager/test-agora-notify.py",
+      "kind": "test",
+      "references": [
+        {
+          "line": 10,
+          "text": "SOURCE = Path(__file__).with_name('agora-notify.py')"
+        },
+        {
+          "line": 15,
+          "text": "with tempfile.TemporaryDirectory(prefix='agora-notify-') as directory:"
+        },
+        {
+          "line": 19,
+          "text": "helper = binary / 'agora-notify'"
+        },
+        {
+          "line": 25,
+          "text": "status = binary / 'session-desktop'"
+        }
+      ]
+    },
+    {
+      "path": "configs/session-manager/test-app-usage.py",
+      "kind": "test",
+      "references": [
+        {
+          "line": 212,
+          "text": "env={**f.env,'SESSION_COLUMNS_SCRIPT':str(HERE.parent/'hypr/files/Scripts/workspace-columns.py')}"
+        },
+        {
+          "line": 213,
+          "text": "code='import importlib.util,json; s=importlib.util.spec_from_file_location(\"status\",'+repr(str(HERE/'session-desktop.py'))+');m=importlib.util.module_from_spec(s);s.loader.exec_module(m);print(json.dumps(m.status()))'"
+        }
+      ]
+    },
+    {
+      "path": "configs/session-manager/test-neutral-v3.py",
+      "kind": "test",
+      "references": [
+        {
+          "line": 44,
+          "text": "'SESSION_COLUMNS_SCRIPT': str(HERE.parent / 'hypr/files/Scripts/workspace-columns.py'),"
+        },
+        {
+          "line": 49,
+          "text": "desktop = load('neutral_desktop', HERE / 'session-desktop.py')"
+        },
+        {
+          "line": 50,
+          "text": "pi = load('neutral_pi', HERE / 'session-pi.py')"
+        },
+        {
+          "line": 114,
+          "text": "notify = load('neutral_notify', HERE / 'agora-notify.py')"
+        },
+        {
+          "line": 138,
+          "text": "startup = load('neutral_startup', HERE / 'session-startup.py')"
+        },
+        {
+          "line": 174,
+          "text": "assert not (root / '.local/bin/session-desktop').exists()"
+        },
+        {
+          "line": 189,
+          "text": "assert (root / '.local/bin/session-desktop').read_bytes() == (HERE / 'session-desktop.py').read_bytes()"
+        }
+      ]
+    },
+    {
+      "path": "configs/session-manager/test-notification-store.py",
+      "kind": "test",
+      "references": [
+        {
+          "line": 171,
+          "text": "subprocess.run(['/usr/bin/python3', str(Path(__file__).with_name('agora-notify.py')),"
+        }
+      ]
+    },
+    {
+      "path": "configs/session-manager/test-session-desktop.py",
+      "kind": "test",
+      "references": [
+        {
+          "line": 13,
+          "text": "SOURCE = Path(__file__).with_name('session-desktop.py')"
+        },
+        {
+          "line": 14,
+          "text": "os.environ['SESSION_COLUMNS_SCRIPT'] = str(SOURCE.parents[1] / 'hypr/files/Scripts/workspace-columns.py')"
+        },
+        {
+          "line": 19,
+          "text": "with tempfile.TemporaryDirectory(prefix='session-desktop-') as directory:"
+        }
+      ]
+    },
+    {
+      "path": "configs/session-manager/test-session-pi.py",
+      "kind": "test",
+      "references": [
+        {
+          "line": 10,
+          "text": "spec = importlib.util.spec_from_file_location('session_pi', Path(__file__).with_name('session-pi.py'))"
+        },
+        {
+          "line": 81,
+          "text": "with patch.object(module,'launch_plan',return_value=([str(module.TERMINAL),'/fixture','pi'],A)),patch.object(module.sys,'argv',['session-pi']),patch.dict(os.environ,{'AGORA_NOTIFICATION_CONTEXT':B}),patch.object(module.subprocess,'run') as run:"
+        }
+      ]
+    },
+    {
+      "path": "configs/session-manager/test-session-qml.py",
+      "kind": "test",
+      "references": [
+        {
+          "line": 18,
+          "text": "binary = root / '.local/bin/session-desktop'"
+        }
+      ]
+    },
+    {
+      "path": "configs/session-manager/test-session-startup.py",
+      "kind": "test",
+      "references": [
+        {
+          "line": 15,
+          "text": "os.environ['SESSION_COLUMNS_SCRIPT'] = str(HERE.parent/'hypr/files/Scripts/workspace-columns.py')"
+        },
+        {
+          "line": 20,
+          "text": "spec=importlib.util.spec_from_file_location('startup_test',HERE/'session-startup.py')"
+        },
+        {
+          "line": 82,
+          "text": "temp=tempfile.TemporaryDirectory(prefix='session-startup-test-'); self.addCleanup(temp.cleanup)"
+        },
+        {
+          "line": 93,
+          "text": "self.assertEqual(f.marker()['phase'],'ready'); self.assertTrue(list(f.root.glob('session-startup-backup-*/core-before.json')))"
+        },
+        {
+          "line": 211,
+          "text": "with patch.dict(os.environ,{'HYPRLAND_INSTANCE_SIGNATURE':f.instance}),patch.object(f.m.sys,'argv',['session-startup']),patch.object(f.m.sys,'stderr'),patch.object(f.m.subprocess,'run') as log,patch.object(f.m.os,'execvp',side_effect=LookupError('fake recovery bar')):"
+        },
+        {
+          "line": 215,
+          "text": "with patch.dict(os.environ,{'HYPRLAND_INSTANCE_SIGNATURE':f.instance}),patch.object(f.m.sys,'argv',['session-startup']),patch.object(f.m.sys,'stderr'),patch.object(f.m.os,'execvp') as launch:"
+        },
+        {
+          "line": 224,
+          "text": "with patch.dict(os.environ,{'HYPRLAND_INSTANCE_SIGNATURE':f.instance}),patch.object(f.m.sys,'argv',['session-startup']),patch.object(f.m.os,'execvp',side_effect=launch):"
+        },
+        {
+          "line": 226,
+          "text": "with patch.dict(os.environ,{'HYPRLAND_INSTANCE_SIGNATURE':f.instance}),patch.object(f.m.sys,'argv',['session-startup']),patch.object(f.m.os,'execvp') as launch:"
+        }
+      ]
+    },
+    {
+      "path": "configs/session-manager/test-session-status.py",
+      "kind": "test",
+      "references": [
+        {
+          "line": 10,
+          "text": "source = Path(__file__).with_name('session-desktop.py')"
+        },
+        {
+          "line": 11,
+          "text": "os.environ['SESSION_COLUMNS_SCRIPT'] = str(source.parents[1] / 'hypr/files/Scripts/workspace-columns.py')"
+        }
+      ]
+    },
+    {
+      "path": "configs/session-manager/test-session-stop.py",
+      "kind": "test",
+      "references": [
+        {
+          "line": 10,
+          "text": "SOURCE = Path(__file__).with_name('session-desktop.py')"
+        },
+        {
+          "line": 11,
+          "text": "os.environ['SESSION_COLUMNS_SCRIPT'] = str(SOURCE.parents[1]/'hypr/files/Scripts/workspace-columns.py')"
+        }
+      ]
+    },
+    {
+      "path": "configs/session-manager/test-startup-install.py",
+      "kind": "test",
+      "references": [
+        {
+          "line": 16,
+          "text": "shutil.copyfile(HERE.parent/'hypr/files/Scripts/workspace-columns.py',home/'.config/hypr/Scripts/workspace-columns.py')"
+        },
+        {
+          "line": 17,
+          "text": "shutil.copyfile(HERE/'session-desktop.py',home/'.local/bin/session-desktop')"
+        },
+        {
+          "line": 63,
+          "text": "marker=json.loads((home/'runtime/hyprland/session-startup.json').read_text())"
+        },
+        {
+          "line": 65,
+          "text": "for source,target in [(HERE/'session-startup.py',home/'.local/bin/session-startup'),"
+        },
+        {
+          "line": 66,
+          "text": "(HERE/'session-desktop.py',home/'.local/bin/session-desktop'),"
+        },
+        {
+          "line": 69,
+          "text": "assert (home/'.local/bin/session-startup').stat().st_mode & 0o111"
+        },
+        {
+          "line": 70,
+          "text": "installed=subprocess.run([str(home/'.local/bin/session-startup')],env=env,capture_output=True,text=True,timeout=5)"
+        },
+        {
+          "line": 75,
+          "text": "backups=list((home/'state/linux-setup/session-startup').iterdir())"
+        }
+      ]
+    },
+    {
+      "path": "scripts/filmcraft-patch-desktop-audio/filmcraft-patch-desktop-audio.py",
+      "kind": "runtime",
+      "references": [
+        {
+          "line": 4,
+          "text": "Usage: filmcraft-patch-desktop-audio recording.mkv premontage.fcproj"
+        },
+        {
+          "line": 46,
+          "text": "fail(\"Usage : filmcraft-patch-desktop-audio recording.mkv premontage.fcproj\")"
+        }
+      ]
+    },
+    {
+      "path": "scripts/filmcraft-patch-desktop-audio/install_filmcraft-patch-desktop-audio.sh",
+      "kind": "installer",
+      "references": [
+        {
+          "line": 5,
+          "text": "SCRIPT_NAME=\"filmcraft-patch-desktop-audio\""
+        }
+      ]
+    },
+    {
+      "path": "scripts/install_scripts.sh",
+      "kind": "installer",
+      "references": [
+        {
+          "line": 20,
+          "text": "bash \"${SCRIPT_DIR}/photocraft-thumbnail/install_photocraft-thumbnail.sh\""
+        },
+        {
+          "line": 21,
+          "text": "bash \"${SCRIPT_DIR}/filmcraft-patch-desktop-audio/install_filmcraft-patch-desktop-audio.sh\""
+        }
+      ]
+    },
+    {
+      "path": "scripts/photocraft-thumbnail/install_photocraft-thumbnail.sh",
+      "kind": "installer",
+      "references": [
+        {
+          "line": 8,
+          "text": "echo \"✗ $tool is required for photocraft-thumbnail.\" >&2"
+        },
+        {
+          "line": 12,
+          "text": "if [[ ! -s \"$SCRIPT_DIR/photocraft-thumbnail-mask.zip\" ]]; then"
+        },
+        {
+          "line": 17,
+          "text": "install -m 0644 \"$SCRIPT_DIR/photocraft-thumbnail-mask.zip\" \"${HOME}/.local/bin/photocraft-thumbnail-mask.zip\""
+        },
+        {
+          "line": 18,
+          "text": "install -m 0755 \"$SCRIPT_DIR/photocraft-thumbnail.py\" \"${HOME}/.local/bin/photocraft-thumbnail\""
+        },
+        {
+          "line": 19,
+          "text": "echo \"✓ photocraft-thumbnail and reference mask installed to ${HOME}/.local/bin/\""
+        }
+      ]
+    },
+    {
+      "path": "scripts/photocraft-thumbnail/photocraft-thumbnail.py",
+      "kind": "runtime",
+      "references": [
+        {
+          "line": 15,
+          "text": "MASK_TEMPLATE = Path(__file__).with_name(\"photocraft-thumbnail-mask.zip\")"
+        },
+        {
+          "line": 22,
+          "text": "raise SystemExit(f\"photocraft-thumbnail: {message}\")"
+        },
+        {
+          "line": 131,
+          "text": "with tempfile.TemporaryDirectory(prefix=\".photocraft-thumbnail-\", dir=directory) as temp_dir:"
+        }
+      ]
+    },
+    {
+      "path": "scripts/photocraft-thumbnail/test_photocraft-thumbnail.sh",
+      "kind": "test",
+      "references": [
+        {
+          "line": 5,
+          "text": "TMP=\"$(mktemp -d -t photocraft-thumbnail-test-XXXXXX)\""
+        },
+        {
+          "line": 22,
+          "text": "\"$SCRIPT_DIR/photocraft-thumbnail.py\" \"$DIR\""
+        },
+        {
+          "line": 24,
+          "text": "python3 - \"$DIR/miniature.pcraft\" \"$SCRIPT_DIR/photocraft-thumbnail-mask.zip\" <<'PY'"
+        },
+        {
+          "line": 40,
+          "text": "if \"$SCRIPT_DIR/photocraft-thumbnail.py\" \"$DIR\" > \"$TMP/error\" 2>&1; then"
+        },
+        {
+          "line": 46,
+          "text": "if \"$SCRIPT_DIR/photocraft-thumbnail.py\" \"$DIR\" > \"$TMP/error\" 2>&1; then"
+        },
+        {
+          "line": 54,
+          "text": "\"$SCRIPT_DIR/photocraft-thumbnail.py\" \"$DIR\""
+        },
+        {
+          "line": 63,
+          "text": "if \"$SCRIPT_DIR/photocraft-thumbnail.py\" \"$DIR\" > \"$TMP/error\" 2>&1; then"
+        },
+        {
+          "line": 68,
+          "text": "\"$SCRIPT_DIR/photocraft-thumbnail.py\" \"$DIR\" --top 'Alpha dark.png'"
+        },
+        {
+          "line": 74,
+          "text": "if \"$SCRIPT_DIR/photocraft-thumbnail.py\" \"$TMP/missing\" > \"$TMP/error\" 2>&1; then"
+        }
+      ]
+    },
+    {
+      "path": "scripts/pre-edit/pre-edit.sh",
+      "kind": "runtime",
+      "references": [
+        {
+          "line": 28,
+          "text": "if command -v agora-notify >/dev/null 2>&1; then"
+        },
+        {
+          "line": 29,
+          "text": "AGORA_NOTIFICATION_CONTEXT=\"$(agora-notify capture)\" || AGORA_NOTIFICATION_CONTEXT=global"
+        },
+        {
+          "line": 42,
+          "text": "if command -v agora-notify >/dev/null 2>&1; then"
+        },
+        {
+          "line": 43,
+          "text": "agora-notify send \"$@\" || true"
+        },
+        {
+          "line": 124,
+          "text": "if ! command -v filmcraft-patch-desktop-audio >/dev/null 2>&1; then"
+        },
+        {
+          "line": 125,
+          "text": "filmcraft_failed \"filmcraft-patch-desktop-audio introuvable\""
+        },
+        {
+          "line": 127,
+          "text": "if ! filmcraft-patch-desktop-audio \"$INPUT\" \"$FILMCRAFT_PROJECT\"; then"
+        }
+      ]
+    }
+  ]
+}

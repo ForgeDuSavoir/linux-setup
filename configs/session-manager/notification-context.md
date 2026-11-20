@@ -4,7 +4,7 @@
 
 This is a downstream `linux-setup` contract. Session Manager is unchanged: it owns UUIDs, lifecycle and ordered logical sessions, not notifications, history, attention or desktop confirmation. `SessionService.qml` supplies its confirmed graphical context. `NotificationStore.qml` contains the **existing single** notification server and in-memory history, extracted from `NotificationService.qml` for isolated testing. `NotificationService.qml` inherits that store and renders its eligible notifications. This is not a second daemon, server or history.
 
-Untagged notifications continue to use global presentation. Stage 3's helper and the versioned OBS/pre-edit scripts now support explicit captured contexts (see inventory below); Beeper remains deliberately global after a static audit of its installed 4.3.123 package, and FilmCraft render completion is deferred.
+Untagged notifications continue to use global presentation. Stage 3's helper, the versioned OBS/pre-edit scripts and Pi's completion extension now support explicit captured contexts (see inventory below); Beeper remains deliberately global after a static audit of its installed 4.3.123 package, and FilmCraft render completion is deferred.
 
 ## Standard notification hint
 
@@ -29,7 +29,7 @@ A well-formed UUID absent from a fresh session list is marked orphaned and prese
 
 ## Emission helper and script inventory (stage 3, first two tasks)
 
-`configure_session_manager.sh` installs `agora-notify` in `~/.local/bin`.
+`configure_session_manager.sh` installs the Rust `agora-notify` ELF in `~/.local/bin` via `runtime/install_notify.py`. R4 was deployed independently without a shell reload; [contracts, compatibility and evidence](../../runtime/R4-notify.md). The public capture/send interface and existing single server/history are unchanged; Pi's targeted installer uses the same validated build rather than restoring Python. [R5](../../runtime/R5-pi.md) also ports the Pi launcher, retaining fresh capture with stale inheritance removed, coherent origin/global fallback and literal terminal `env` argv; both setup paths now deploy the validated Rust launcher.
 It uses standard `notify-send`, not Quickshell IPC or a core notification method.
 Capture uses the existing read-only `session-desktop status`, so it works with
 another notification server and does not depend on Quickshell being active.
@@ -68,7 +68,8 @@ Inventory of actual repository emitters and installed scripts:
 | `configs/kdenlive/scripts-sh/kdenlive-post-render.sh` | Existing completion-only hook lacks a render-start snapshot; remain global. Never capture the currently selected session at render completion. |
 | `configs/pi/{photocraft,filmcraft}/launch_*_ai.sh` | Immediate launcher errors remain global. No FilmCraft render-completion integration is added. |
 | Installed `~/.local/bin/obs-pre-edit`, `test-notification` | Legacy/local-only scripts absent from this repository; inventoried, left unmodified/global rather than silently replacing personal files. Current versioned OBS hooks are the integration targets above. |
-| Pi `ctx.ui.notify` calls | In-terminal UI messages, not desktop D-Bus notifications; outside this integration. |
+| Pi [`session-notifications`](../pi/session-notifications/README.md) extension | `session-pi` passes confirmed launch context as environment and literal terminal command arguments. Capture once at `agent_start` (preserving that inherited origin), retain across retries/continuations, emit at `agent_settled`, not `agent_end`. No late active-context lookup; explicit global fallback, abort/reload suppression, distinct generic error title. Existing Pi requires idle `/reload`; new processes auto-load. |
+| Pi `ctx.ui.notify` calls | In-terminal UI messages, not desktop D-Bus notifications; unchanged and not the completion emitter. |
 
 No global notifications are silently reclassified as project notifications.
 Beeper policy: keep untagged notifications global. A static inspection of the
@@ -144,4 +145,4 @@ metadata or a real recording/render completion.
 - `python3 configs/session-manager/test-notification-store.py`: actual Quickshell server and actual `Notify`, replacement, expiry and `CloseNotification` calls on a **private D-Bus**, offscreen; fake session state and synthetic payloads. Tests actual red case borders and clearing without opening a real desktop window. It never connects to the user's notification bus or reads personal content.
 - Existing session-service/menu/controller tests and Qt 6 QML lint remain required. Wayland popup rendering is a separate visual acceptance check; the offscreen test exercises the store and strip, not a PanelWindow.
 
-The targeted installer copies policy/store/service together with the shell and session components. Changing watched files normally reloads Quickshell and resets in-memory history: obtain approval before live installation. Do not test live session switching/window moves as an implicit part of deployment. Actual scripts and Beeper remain unchanged until stage 3.
+The targeted installer copies policy/store/service together with the shell and session components. Changing watched files normally reloads Quickshell and resets in-memory history: obtain approval before live installation. Do not test live session switching/window moves as an implicit part of deployment. The stage-3 inventory above records the implemented script/Pi integrations; Beeper's emitter remains unchanged/global and FilmCraft rendering remains deferred.

@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "desktop": {"version": 3, "order": [1, 2], "owners": {"1": "11111111-1111-1111-1111-111111111111", "2": "22222222-2222-2222-2222-222222222222"}, "preferred": {}, "next_id": 3},
+  "sessions": {"revision": 7, "active_session_id": "11111111-1111-1111-1111-111111111111", "sessions": [{"id": "11111111-1111-1111-1111-111111111111", "source": {"kind": "neutral"}, "number": 1}, {"id": "22222222-2222-2222-2222-222222222222", "source": {"kind": "project", "project_name": "synthetic-project"}, "number": 1}]},
+  "native": {"activeworkspace": {"id": 1}, "activewindow": {}, "workspaces": [{"id": 1}, {"id": 2}], "clients": [{"address": "0xa", "workspace": {"id": 1}}, {"address": "0xb", "workspace": {"id": 2}}], "monitors": [{"focused": true, "activeWorkspace": {"id": 1}, "specialWorkspace": {"name": ""}}]},
+  "snapshot": {"active_workspace_id": 1, "workspaces": [{"id": 1, "name": "1"}]},
+  "marker": {"version": 1, "instance": "r0-synthetic-compositor", "phase": "deferred"},
+  "clip": {"clip": 9, "start": 0, "duration": 1001, "sourceIn": 2002, "link": 3, "item": 10},
+  "clip_signature": [9, 0, 1001, 2002, 3]
+}

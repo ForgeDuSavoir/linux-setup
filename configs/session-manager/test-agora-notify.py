@@ -7,8 +7,9 @@ import shutil
 import subprocess
 import tempfile
 
-SOURCE = Path(__file__).with_name('agora-notify.py')
-SETUP = SOURCE.resolve().parents[2]
+SETUP = Path(__file__).resolve().parents[2]
+SOURCE = Path(os.environ.get('AGORA_NOTIFY_TEST_BIN', str(SETUP / 'runtime/target/release/agora-notify')))
+assert SOURCE.is_file(), 'Build the Rust notification helper first'
 A = '11111111-1111-1111-1111-111111111111'
 B = '22222222-2222-2222-2222-222222222222'
 

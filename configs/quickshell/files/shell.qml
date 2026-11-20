@@ -36,25 +36,16 @@ Scope {
 
     Process {
         id: workspaceListProcess
-        // Both the list and active ID must come from Hyprland. The Quickshell
-        // workspace objects can retain their old ID after change_id.
-        command: ["bash", "-c", "hyprctl -j workspaces | jq -c . && hyprctl -j activeworkspace | jq -c ."]
+        // IDs are stable identities; the controller owns order and session scope.
+        command: [Quickshell.env("HOME") + "/.local/bin/workspace-controller", "snapshot"]
         stdout: StdioCollector {
             onStreamFinished: {
                 try {
-                    const lines = text.trim().split("\n");
-                    if (lines.length !== 2)
-                        return;
-                    const occupiedColumns = {};
-                    for (const workspace of JSON.parse(lines[0])) {
-                        if (workspace.id > 0 && workspace.windows > 0) {
-                            const column = Math.ceil(workspace.id / 2);
-                            occupiedColumns[column] = { id: column, name: String(column) };
-                        }
-                    }
-                    root.workspaceRows = Object.values(occupiedColumns).sort((a, b) => a.id - b.id);
-                    const activeId = JSON.parse(lines[1]).id;
-                    root.focusedWorkspaceId = activeId > 0 ? Math.ceil(activeId / 2) : 0;
+                    const result = JSON.parse(text);
+                    if (!Array.isArray(result.workspaces) || !Number.isInteger(result.active_workspace_id))
+                        throw new Error("invalid workspace snapshot");
+                    root.workspaceRows = result.workspaces;
+                    root.focusedWorkspaceId = result.active_workspace_id;
                 } catch (error) {
                     console.warn("Unable to refresh Hyprland workspaces:", error);
                 }
@@ -65,7 +56,7 @@ Scope {
     Process {
         id: workspaceFocusProcess
         property int workspaceId: 0
-        command: ["python3", Quickshell.env("HOME") + "/.config/hypr/Scripts/workspace-columns.py", "focus-column", String(workspaceId)]
+        command: [Quickshell.env("HOME") + "/.local/bin/workspace-controller", "focus-workspace", String(workspaceId)]
     }
 
     Connections {
@@ -83,7 +74,7 @@ Scope {
         onTriggered: root.refreshWorkspaces()
     }
 
-    // Fallback for ID changes which Hyprland does not announce on socket2.
+    // Fallback for metadata/order changes not announced by the compositor.
     Timer {
         interval: 2000
         running: true
@@ -133,12 +124,13 @@ Scope {
         ["SUPER+O", "Control center"],
         ["SUPER+H", "Keybinds"],
         ["SUPER+L", "Lock screen"],
-        ["SUPER+Q", "Close window"],
+        ["SUPER+Q", "Close visible window / stop empty session"],
         ["SUPER+F", "Fullscreen"],
-        ["SUPER+Tab", "Next workspace"],
-        ["SUPER+Shift+Tab", "Move window to next workspace"],
+        ["SUPER+S", "Next workspace"],
+        ["SUPER+Shift+Tab", "Isolate window / join previous workspace"],
+        ["SUPER+Shift+S", "Move window to next existing workspace"],
         ["SUPER+G / Shift+G", "Global scratchpad / move window"],
-        ["SUPER+S / Shift+S", "Alternate row / move window to other row"],
+        ["SUPER+Tab", "New workspace / return if empty"],
         ["SUPER+1..5", "Session scratchpads"],
         ["SUPER+Shift+1..5", "Move window to/from session scratchpad"],
         ["Print", "Region screenshot"],

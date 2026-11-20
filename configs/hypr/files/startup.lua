@@ -20,7 +20,8 @@ hl.env("ELECTRON_OZONE_PLATFORM_HINT", "wayland")
 -- Startup applications
 
 hl.on("hyprland.start", function () 
-    hl.exec_cmd("quickshell")
+    -- One initialization per compositor instance; the helper starts Quickshell afterwards.
+    hl.exec_cmd('if [ -x "$HOME/.local/bin/session-startup" ]; then exec "$HOME/.local/bin/session-startup"; else exec quickshell; fi')
     hl.exec_cmd("hypridle")
     hl.exec_cmd("hyprpaper")
     hl.exec_cmd("wl-clip-persist --clipboard regular")

@@ -168,7 +168,7 @@ Scope {
             assert not find(neutral)['unread'] and not find(neutral)['popup']
             ipc('remove', find(background)['key'])
             assert all(item['id'] != background for item in state()['history'])
-            subprocess.run(['/usr/bin/python3', str(Path(__file__).with_name('agora-notify.py')),
+            subprocess.run([str(Path(__file__).resolve().parents[2] / 'runtime/target/release/agora-notify'),
                             'send', '--context', 'session:' + A, '--app-name', 'Helper fixture',
                             'Synthetic helper test', 'Literal private-bus payload'], env=env, check=True, timeout=15)
             emitted = state()['history'][0]

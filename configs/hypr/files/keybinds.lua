@@ -5,6 +5,7 @@ local mainMod = "SUPER"
 local terminal = "kitty"
 local editor = "mousepad"
 local hyprScripts = os.getenv("HOME") .. "/.config/hypr/Scripts"
+local workspaceController = [["$HOME/.local/bin/workspace-controller"]]
 
 -- Applications
 
@@ -28,11 +29,17 @@ hl.bind(mainMod .. " + H", hl.dsp.exec_cmd("quickshell ipc call keybinds toggle"
 
 -- Window Management
 
-hl.bind(mainMod .. " + Q", hl.dsp.window.close())
+hl.bind(mainMod .. " + Q", function()
+    local ws = hl.get_active_workspace()
+    if ws and ws.id > 0 then
+        -- Freeze the keypress workspace: a queued second Q must not act on the survivor.
+        hl.dispatch(hl.dsp.exec_cmd([[bash -lc 'exec "$HOME/.local/bin/session-desktop" close ]] .. tostring(ws.id) .. "'"))
+    end
+end)
 hl.bind(mainMod .. " + F", hl.dsp.window.fullscreen())
 
-hl.bind(mainMod .. " + TAB", hl.dsp.exec_cmd(hyprScripts .. "/workspace-columns.py cycle"))
-hl.bind(mainMod .. " + SHIFT + TAB", hl.dsp.exec_cmd(hyprScripts .. "/workspace-columns.py move-next"))
+hl.bind(mainMod .. " + TAB", hl.dsp.exec_cmd(workspaceController .. " create-empty"))
+hl.bind(mainMod .. " + SHIFT + TAB", hl.dsp.exec_cmd(workspaceController .. " isolate-or-previous"))
 
 hl.bind(mainMod .. " + LEFT", hl.dsp.focus({ direction = "left" }))
 hl.bind(mainMod .. " + RIGHT", hl.dsp.focus({ direction = "right" }))
@@ -88,8 +95,8 @@ hl.bind(mainMod .. " + BRACKETLEFT", hl.dsp.layout("prev"))
 hl.bind(mainMod .. " + G", hl.dsp.exec_cmd(hyprScripts .. "/scratchpad.sh toggle global"))
 hl.bind(mainMod .. " + SHIFT + G", hl.dsp.exec_cmd(hyprScripts .. "/scratchpad.sh move global"))
 
-hl.bind(mainMod .. " + S", hl.dsp.exec_cmd(hyprScripts .. "/workspace-columns.py toggle-row"))
-hl.bind(mainMod .. " + SHIFT + S", hl.dsp.exec_cmd(hyprScripts .. "/workspace-columns.py move-row"))
+hl.bind(mainMod .. " + S", hl.dsp.exec_cmd(workspaceController .. " cycle"))
+hl.bind(mainMod .. " + SHIFT + S", hl.dsp.exec_cmd(workspaceController .. " move-next"))
 
 -- Five session scratchpads.
 for slot = 1, 5 do

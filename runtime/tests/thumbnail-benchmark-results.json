@@ -1,0 +1,78 @@
+{
+  "fixture": "two generated solid-color 2304x1440 RGB PNGs; warm local runs; no personal media",
+  "startup_help_no_tools": {
+    "python": {
+      "samples": 31,
+      "median_ms": 48.176,
+      "p95_ms": 56.061
+    },
+    "rust": {
+      "samples": 31,
+      "median_ms": 0.441,
+      "p95_ms": 0.552
+    }
+  },
+  "zip_mask_only_in_process_with_private_io": {
+    "python": {
+      "samples": 31,
+      "median_ms": 0.841,
+      "p95_ms": 1.01
+    },
+    "rust": {
+      "samples": 31,
+      "median_ms": 0.243,
+      "p95_ms": 0.503
+    }
+  },
+  "real_instrumented_pipeline": {
+    "python": {
+      "end_to_end": {
+        "samples": 3,
+        "median_ms": 593.735,
+        "p95_ms": 637.66
+      },
+      "external_by_tool": {
+        "ffmpeg": {
+          "samples": 3,
+          "median_ms": 269.118,
+          "p95_ms": 276.999
+        },
+        "ffprobe": {
+          "samples": 3,
+          "median_ms": 62.497,
+          "p95_ms": 62.92
+        },
+        "photocraft-cli": {
+          "samples": 3,
+          "median_ms": 86.212,
+          "p95_ms": 118.388
+        }
+      }
+    },
+    "rust": {
+      "end_to_end": {
+        "samples": 3,
+        "median_ms": 636.657,
+        "p95_ms": 707.819
+      },
+      "external_by_tool": {
+        "ffmpeg": {
+          "samples": 3,
+          "median_ms": 284.186,
+          "p95_ms": 353.601
+        },
+        "ffprobe": {
+          "samples": 3,
+          "median_ms": 67.9,
+          "p95_ms": 75.259
+        },
+        "photocraft-cli": {
+          "samples": 3,
+          "median_ms": 110.455,
+          "p95_ms": 119.735
+        }
+      }
+    }
+  },
+  "limitations": "ZIP benchmark excludes process startup; real external times are sums per run via perf_counter in Python timing wrappers, excluding wrapper startup. Instrumented end-to-end includes wrapper startup (~8 extra Python processes); it is not uninstrumented user latency. Three pipeline samples are illustrative only. Do not subtract medians, promise FFmpeg acceleration or infer live user latency."
+}

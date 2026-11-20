@@ -99,6 +99,9 @@ rm -f "$LEGACY_HEADER_EXTENSION_FILE"
 install -m 0644 "$SOURCE_FOOTER_EXTENSION_FILE" "$FOOTER_EXTENSION_FILE"
 install -m 0644 "$SOURCE_CONVERSATION_NAVIGATION_EXTENSION_FILE" "$CONVERSATION_NAVIGATION_EXTENSION_FILE"
 
+echo "==> Installing ${APP_NAME} session-aware completion notifications..."
+python3 "${SCRIPT_DIR}/../../../configs/pi/session-notifications/install.py" --apply
+
 echo "==> Installing ${APP_NAME} keybindings..."
 mkdir -p "$AGENT_DIR"
 install -m 0644 "$SOURCE_KEYBINDINGS_FILE" "$KEYBINDINGS_FILE"

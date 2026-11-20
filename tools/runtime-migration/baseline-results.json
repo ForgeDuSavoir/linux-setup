@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "python": "3.14.7",
+  "kind": "R0 baseline, not a Rust comparison",
+  "python_process_start": {
+    "samples": 31,
+    "median_ms": 17.501,
+    "p95_ms": 18.991
+  },
+  "hyprctl_process_and_read_ipc": {
+    "samples": 31,
+    "median_ms": 5.12,
+    "p95_ms": 7.771
+  },
+  "core_client_process_and_read_ipc": {
+    "samples": 31,
+    "median_ms": 5.08,
+    "p95_ms": 5.281
+  },
+  "snapshot_in_process_fake_native": {
+    "samples": 31,
+    "median_ms": 0.034,
+    "p95_ms": 0.068
+  },
+  "snapshot_native_queries_per_call": 5,
+  "create_empty_in_process_fake_native": {
+    "samples": 31,
+    "median_ms": 0.216,
+    "p95_ms": 0.475
+  },
+  "create_empty_native_queries_per_call": 9,
+  "create_empty_native_dispatches_per_call": 1,
+  "closed_remaining_window_virtual": {
+    "polls": 40,
+    "requested_wait_ms": 2000
+  },
+  "closed_remaining_window_real_wait": {
+    "samples": 1,
+    "median_ms": 2007.167,
+    "p95_ms": 2007.167
+  },
+  "private_lock_contended_75ms": {
+    "samples": 1,
+    "median_ms": 75.463,
+    "p95_ms": 75.463
+  },
+  "recorded_at": "2026-11-19"
+}

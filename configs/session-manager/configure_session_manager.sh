@@ -11,18 +11,21 @@ if [[ "${INSTALL_DESKTOP}" != 0 && "${INSTALL_DESKTOP}" != 1 ]]; then
     echo '✗ SESSION_MANAGER_INSTALL_DESKTOP must be 0 or 1.' >&2
     exit 1
 fi
+if [[ "${INSTALL_DESKTOP}" == 1 ]]; then
+    bash "${SCRIPT_DIR}/install_desktop_integration.sh" --preflight
+fi
 CONFIG_DIR="${XDG_CONFIG_HOME:-${HOME}/.config}/session-manager"
 CONFIG_FILE="${CONFIG_DIR}/config-v2.toml"
 UNIT_SOURCE="${SCRIPT_DIR}/session-manager.service"
-LAUNCHER_SOURCE="${SCRIPT_DIR}/session-app-launcher.py"
+LAUNCHER_INSTALLER="${SCRIPT_DIR}/install_app_launcher.sh"
 LAUNCHER_TARGET="${HOME}/.local/bin/session-app-launcher"
-DESKTOP_SOURCE="${SCRIPT_DIR}/session-desktop.py"
+DESKTOP_INSTALLER="${SCRIPT_DIR}/../../runtime/install_desktop.py"
 DESKTOP_TARGET="${HOME}/.local/bin/session-desktop"
 FIREFOX_SOURCE="${SCRIPT_DIR}/agora-project-firefox.sh"
 FIREFOX_TARGET="${HOME}/.local/bin/agora-project-firefox"
-PI_SOURCE="${SCRIPT_DIR}/session-pi.py"
+PI_INSTALLER="${SCRIPT_DIR}/../../runtime/install_pi.py"
 PI_TARGET="${HOME}/.local/bin/session-pi"
-NOTIFY_SOURCE="${SCRIPT_DIR}/agora-notify.py"
+NOTIFY_INSTALLER="${SCRIPT_DIR}/../../runtime/install_notify.py"
 NOTIFY_TARGET="${HOME}/.local/bin/agora-notify"
 PI_DESKTOP_SOURCE="${SCRIPT_DIR}/session-pi.desktop"
 PI_DESKTOP_TARGET="${XDG_DATA_HOME:-${HOME}/.local/share}/applications/session-pi.desktop"
@@ -37,7 +40,7 @@ if [[ ! -x "${HOME}/.local/bin/session-manager" ]]; then
     echo '✗ Install Session Manager before configuring it.' >&2
     exit 1
 fi
-for source in "${UNIT_SOURCE}" "${LAUNCHER_SOURCE}" "${DESKTOP_SOURCE}" "${FIREFOX_SOURCE}" "${PI_SOURCE}" "${PI_DESKTOP_SOURCE}" "${NOTIFY_SOURCE}"; do
+for source in "${UNIT_SOURCE}" "${LAUNCHER_INSTALLER}" "${DESKTOP_INSTALLER}" "${FIREFOX_SOURCE}" "${PI_INSTALLER}" "${PI_DESKTOP_SOURCE}" "${NOTIFY_INSTALLER}"; do
     if [[ ! -f "${source}" ]]; then
         echo "✗ Missing Session Manager integration: ${source}" >&2
         exit 1
@@ -48,17 +51,12 @@ if ! command -v python3 >/dev/null 2>&1 || ! command -v systemctl >/dev/null 2>&
     exit 1
 fi
 
-if ! /usr/bin/python3 -c 'from gi.repository import Gio; assert Gio.DesktopAppInfo' >/dev/null 2>&1; then
-    echo '✗ python-gobject (Gio desktop metadata) is required for the application launcher.' >&2
-    exit 1
-fi
-
 # The integration's neutral directory is user-owned configuration, not a
 # location embedded in the Pi launcher or inferred from project_source.
 python3 "${SCRIPT_DIR}/configure_agora_workflow.py"
 
 mkdir -p "${CONFIG_DIR}" "${UNIT_DIR}"
-if [[ -L "${CONFIG_FILE}" || -L "${UNIT_FILE}" || -L "${LAUNCHER_TARGET}" || -L "${DESKTOP_TARGET}" || -L "${FIREFOX_TARGET}" || -L "${PI_TARGET}" || -L "${PI_DESKTOP_TARGET}" || -L "${NOTIFY_TARGET}" ]]; then
+if [[ -L "${CONFIG_FILE}" || -L "${UNIT_FILE}" || -L "${LAUNCHER_TARGET}" || -L "${FIREFOX_TARGET}" || -L "${PI_TARGET}" || -L "${PI_DESKTOP_TARGET}" || -L "${NOTIFY_TARGET}" ]]; then
     echo '✗ Refusing a symlinked Session Manager configuration or service unit.' >&2
     exit 1
 fi
@@ -88,11 +86,12 @@ if [[ -e "${UNIT_FILE}" ]] && ! cmp -s "${UNIT_SOURCE}" "${UNIT_FILE}"; then
     echo "==> Saved existing unit to ${BACKUP}"
 fi
 install -m 0644 "${UNIT_SOURCE}" "${UNIT_FILE}"
-install -m 0755 "${LAUNCHER_SOURCE}" "${LAUNCHER_TARGET}"
-install -m 0755 "${DESKTOP_SOURCE}" "${DESKTOP_TARGET}"
+bash "${LAUNCHER_INSTALLER}" --apply
+# Never replace a cohort entry point independently, including in clients-only mode.
+# The coordinator below owns desktop/controller/startup/admin and all dependent config.
 install -m 0755 "${FIREFOX_SOURCE}" "${FIREFOX_TARGET}"
-install -m 0755 "${PI_SOURCE}" "${PI_TARGET}"
-install -m 0755 "${NOTIFY_SOURCE}" "${NOTIFY_TARGET}"
+python3 "${PI_INSTALLER}" --apply
+python3 "${NOTIFY_INSTALLER}" --apply
 install -Dm0644 "${PI_DESKTOP_SOURCE}" "${PI_DESKTOP_TARGET}"
 if command -v update-desktop-database >/dev/null 2>&1; then
     update-desktop-database "$(dirname -- "${PI_DESKTOP_TARGET}")"
@@ -102,7 +101,7 @@ systemctl --user enable session-manager.service
 if [[ "${INSTALL_DESKTOP}" == 1 ]]; then
     bash "${SCRIPT_DIR}/install_desktop_integration.sh"
 else
-    echo '==> Desktop files deferred; preserving the running shell and its notification history.'
+    echo '==> Desktop cohort deferred; preserving all existing helpers, QML and notification history.'
 fi
 
 echo '✓ Session Manager enabled for the next user login.'

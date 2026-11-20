@@ -125,7 +125,7 @@ if ! command -v filmcraft-patch-desktop-audio >/dev/null 2>&1; then
   filmcraft_failed "filmcraft-patch-desktop-audio introuvable"
 fi
 if ! filmcraft-patch-desktop-audio "$INPUT" "$FILMCRAFT_PROJECT"; then
-  filmcraft_failed "correctif du son du bureau échoué ; projet FilmCraft non patché"
+  filmcraft_failed "correctif du son du bureau échoué ou publication incertaine ; inspecter projet, WAV et sauvegarde signalés avant reprise"
 fi
 
 # Le nom d'export par défaut vient de la séquence, pas du nom du projet.

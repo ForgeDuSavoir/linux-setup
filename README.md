@@ -72,7 +72,92 @@ For the Fire Emblem: Fortune’s Weave tool:
 - `packages/programming/pnpm/install_pnpm.sh` installs pnpm globally through npm when it is absent. It requires Node.js and npm to be available first and can be run repeatedly without reinstalling pnpm.
 - `packages/programming/tauri/install_tauri_dependencies.sh` installs the Arch Linux/CachyOS system dependencies required to develop Tauri applications. It follows the dependency list published in the [Tauri prerequisites documentation](https://v2.tauri.app/start/prerequisites/) and uses `pacman --needed` so it can be rerun safely.
 
+## Python-to-Rust runtime migration — R1–R7 installed
+
+The remaining desktop/session and selected media helpers have an audited
+[compatibility/caller map, architecture and reproducible reference baseline](tools/runtime-migration/README.md).
+R0 includes frozen synthetic oracles, dependency/API feasibility and separate
+startup/IPC/lock-wait measurements. The [R1 Rust controller](runtime/README.md)
+now implements the workspace library/CLI with 21 Rust tests, 61 differential
+scenarios and 19 actual-CLI tests. [R2 desktop/SUPER+Q](runtime/R2-desktop.md)
+adds the typed v3 client and graphical actions, with 33 Rust tests total, 52 R2
+differential scenarios, 12 CLI tests and a private-core scenario. These were initially validated
+in isolation, before the R8 deployment. [R3 startup and pure admin](runtime/R3-startup.md)
+complete the isolated desktop runtime cohort: 41 Rust tests total, 23 R3
+startup scenarios, 11 CLI/admin cases and private-core relogin pass. Activation
+is prepared by [R8 cohort deployment](runtime/R8-deployment.md), including installer/caller conversion,
+private failure/restore tests and inactive generation staging. Live activation followed separate Quickshell RAM-history-reset approval on
+2026-11-20; normal-flow user acceptance remains open. [R4 notifications](runtime/R4-notify.md)
+is installed independently as the Rust helper, with compatible capture/send and
+no shell reload. [R5 Pi routing](runtime/R5-pi.md) is also independently installed:
+57 Rust tests total, 60 R5 differential cases and a private-core/stale-terminal-server
+scenario pass. Fresh launch origin, explicit Agora and literal argv are preserved.
+Pi and normal configuration installers now deploy validated Rust for both commands.
+[R6 thumbnail](runtime/R6-thumbnail.md) is also independently installed: separate
+media crate, exact versioned mask and no-overwrite publication; 71 Rust tests total,
+73 differential cases and real FFmpeg/headless PhotoCraft with synthetic images
+pass. Normal/targeted installers and explicit restore are tested. No active document
+or personal media was touched; separate measurements do not prove a pipeline speedup.
+[R7 FilmCraft desktop audio](runtime/R7-filmcraft.md) is independently installed too:
+87 Rust tests total, 57 differential cases and real private rational-FPS/PTS/padding
+integration pass. WAV no-clobber/retention and atomic project exchange with retained
+original explicitly harden publication; no two-file transaction or auto-rollback.
+Pre-edit now reports uncertain publication honestly. No live project/recording is
+used for tests; final coordinated desktop activation/acceptance remains R8.
+The native cohort is active on this machine, with matching Lua/QML and a complete
+private journal. Immediate snapshots matched; later observed changes are recorded
+without attributing their origin. See R8's current deployment record. Updated R4/R5 installers add guarded explicit restore
+(including pinned-hash legacy backups) and deployed validated ELF refreshes only.
+Quickshell's explicit Python controller calls are a later coordinated activation
+gate, and the known close-handler wait is a separate functional fix.
+
 ## Session Manager
+
+### Rust application launcher — deployed
+
+`configs/session-manager/app-launcher/` now builds the contextual launcher in Rust
+1.96.1. The installed command and SUPER+D / SUPER+B interfaces are unchanged;
+Rofi remains the menu, Gio supplies metadata, and literal GTK/Gio commands launch
+entries. No Python/PyGObject dependency for this component. The former Python
+implementation is a frozen test fixture only. Version 0.2.1 records accepted
+SUPER+D menu selections only (SUPER+B / --browser does not feed statistics) in private project-local history, or separate Neutral/unowned
+state files. Frequency decays with a seven-day half-life; Rofi filters without
+re-sorting. Context/entry revalidation, bounded atomic storage and exact local Git
+exclusion protect scopes and data; invalid statistics never block a valid launch.
+Installed without changing sessions/windows or restarting the shell/core; no
+personal history was seeded for validation. See [contracts, build, tests and targeted install/restore](configs/session-manager/app-launcher/README.md).
+
+
+### Fresh graphical login — installed for the next connection
+
+Each new Hyprland instance (PC boot or logout/login) now forgets old open logical
+sessions through the existing core API and creates exactly one Neutral-1 on a
+fresh empty workspace before starting Quickshell. Reused compositor IDs never
+inherit old UUID ownership. No project/application is restored or window moved.
+Config/Quickshell/core reload within the same login does not reset sessions.
+Current live sessions were explicitly deferred during installation; the shell,
+core and notification history were left untouched. See [the startup policy,
+installer and isolated tests](configs/session-manager/session-startup.md).
+
+### Single workspaces — deployed
+
+The desktop controller now removes the two-row column model: SUPER+S cycles
+session workspaces, SUPER+Tab inserts/focuses a fresh empty workspace after an
+occupied current one or returns to the preceding workspace when the current one is empty, SUPER+Shift+Tab isolates or joins the preceding occupied workspace without wrap,
+and SUPER+Shift+S moves to the next existing workspace with wrap. Temporary
+vertical animation switching remains removed. Existing real workspace
+IDs/windows are preserved; explicit list order replaces ID arithmetic. Empty
+workspaces are forgotten when left without stopping logical sessions.
+
+Implementation and isolated tests passed; the coordinated deployment completed
+on 2026-11-17 after explicit Quickshell history-reset approval. Real windows,
+workspace IDs and monitor context were preserved, without restarting or mutating
+the core service. Future changes must use the dedicated coordinated installer,
+not a partial copy of the controller over an incompatible bar/helper. The later
+Shift-action revision uses the coordinator’s movement-only mode: no Quickshell
+restart/history reset; source help text waits for the next full QML deployment. See
+[the single-workspace contract and installation gate](configs/hypr/workspace-navigation.md).
+
 
 ### Multiple neutral sessions — v3 deployed
 
@@ -125,7 +210,7 @@ silently opening the wrong profile. `SUPER+A` opens the global Rofi drun applica
 session's project using `session-pi`, without the former project picker or Yazi. The new menu uses `session-desktop` to start in a fresh empty column, return to
 the retained unowned desktop without stopping running sessions, switch to the selected
 session's columns, and refuse graphical stop while session windows/scratchpads
-remain. A visible scratchpad is hidden before a menu action; its windows stay
+remain. Graphical stop also refuses the last open session; stopping the active one first selects/focuses the next survivor in opening order, wrapping, rather than returning to the unowned desktop. Explicit Deselect session and direct core CLI/API behavior are unchanged. A visible scratchpad is hidden before a menu action; its windows stay
 open, and a nonempty session still cannot be stopped through the menu. The menu
 closes after success and stays open to display an action error. In the menu,
 open sessions receive keyboard focus first, with a fallback to projects if none
@@ -146,7 +231,7 @@ for project-local desktop files, never shell-evaluates their `Exec`. Each curren
 immediate project has a local `.session-manager/apps/firefox.desktop` overriding
 `firefox.desktop` in its application list with `Name=Firefox` and
 `GenericName=Web Browser`, without the project name. The application bridge uses
-Gio (`python-gobject`, checked at configuration time) to read localized desktop
+Gio through Rust bindings (system Gio/GLib libraries, no PyGObject) to read localized desktop
 names, GenericName and Keywords from the selected installed/local entry. Like
 Rofi drun, it renders the generic description in smaller italic parentheses;
 keywords and comments are searchable through Rofi's hidden `meta` field. Text is
@@ -278,12 +363,23 @@ global rather than guessing the recording's originating session. Test with
 `python3 configs/session-manager/test-agora-notify.py`; this only uses temporary
 media, fake editors/OBS and a fake notification sender.
 
+### Guarded window / empty-session close
+
+`SUPER+Q` closes only the confirmed visible window (ordinary workspace or visible
+scratchpad) by explicit address with a compositor-side visibility/context guard.
+Without a visible target, a wholly empty UUID session is stopped through the
+same next-survivor policy as the menu. A blank workspace with windows elsewhere
+in its session does not authorize stop; the last session remains protected.
+The keypress workspace ID is retained so queued Q presses cannot close the
+survivor. See [contract and isolated evidence](configs/hypr/workspace-navigation.md#guarded-superq-2026-11-19).
+Deploy through the movement-only installer; no Quickshell reload is needed.
+
 ### Pi in the current session
 
 Each immediate project's `.session-manager/apps/session-pi.desktop` runs
 `session-pi`, installed by the Session Manager configuration script. It queries
 the active session and current project list, then calls
-`launch-terminal-command <project-directory> pi` with literal arguments. It opens
+`launch-terminal-command <project-directory> env AGORA_NOTIFICATION_CONTEXT=<captured-context> pi` with literal arguments. It opens
 neither Rofi nor Yazi and does not fall back to Agora when AGENTS.md is absent.
 With no active session it opens Pi at the user-configured `agora_root`; a missing
 project or unavailable daemon still fails rather than silently choosing another
@@ -309,6 +405,16 @@ The configuration script also installs `session-pi.desktop` globally with
 `SUPER+D`; without a session, the installed entry opens Agora directly.
 The terminal helper and Pi must already be installed. `SUPER+P` invokes
 `session-pi` directly and follows the same neutral-Agora/active-project policy.
+
+Pi's global [completion extension](configs/pi/session-notifications/README.md)
+uses `agent_settled`, not the premature low-level `agent_end`. It retains the
+launch/start context across retries/continuations and sends one generic desktop
+notification through `agora-notify`; aborted tasks/reloads do not notify and
+errors have a distinct title. No prompt/answer or path is exposed. The existing
+Quickshell popup/background-attention policy remains authoritative. Install only
+this integration with `python3 configs/pi/session-notifications/install.py --apply`;
+the normal Pi package installer delegates to it. New Pi processes auto-load it;
+existing idle instances need explicit `/reload`. No shell restart/history reset.
 
 ## Webapps
 

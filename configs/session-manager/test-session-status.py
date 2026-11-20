@@ -39,4 +39,14 @@ with tempfile.TemporaryDirectory() as directory:
         monitor['specialWorkspace']['name'] = f'special:sm-{UUID}-ai'
         assert not module.status()['context_confirmed']
         assert module.columns.STATE.read_bytes() == before
+        state = {'version': 3, 'order': [1, 2], 'owners': {'1': 'neutral', '2': UUID},
+                 'preferred': {}, 'origins': {}, 'next_id': 3}
+        module.columns.STATE.write_text(json.dumps(state))
+        before = module.columns.STATE.read_bytes()
+        monitor['activeWorkspace']['id'] = 2
+        monitor['specialWorkspace']['name'] = ''
+        reply['active_session_id'] = UUID
+        assert module.status()['context_confirmed']
+        assert module.status()['displayed_context'] == UUID
+        assert module.columns.STATE.read_bytes() == before
 print('Desktop status confirms logical/spatial agreement without migration or dispatch: passed.')

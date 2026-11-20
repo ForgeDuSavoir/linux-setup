@@ -4,6 +4,11 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 TMP="$(mktemp -d -t photocraft-thumbnail-test-XXXXXX)"
 trap 'rm -rf -- "$TMP"' EXIT
+# Test the native implementation with its adjacent versioned asset, never the GUI.
+mkdir -p "$TMP/tool"
+TOOL="$TMP/tool/photocraft-thumbnail"
+cp -- "${PHOTOCRAFT_THUMBNAIL_BIN:-$SCRIPT_DIR/../../runtime/target/release/photocraft-thumbnail}" "$TOOL"
+cp -- "$SCRIPT_DIR/photocraft-thumbnail-mask.zip" "$TMP/tool/"
 DIR="$TMP/screenshots with spaces"
 mkdir -p "$DIR"
 python3 - "$DIR" <<'PY'
@@ -19,7 +24,7 @@ for name, rgb in [('Alpha image.png', (210, 35, 25)), ('Zeta image.png', (20, 45
     (folder / name).write_bytes(data)
 PY
 before="$(sha256sum "$DIR"/*.png)"
-"$SCRIPT_DIR/photocraft-thumbnail.py" "$DIR"
+"$TOOL" "$DIR"
 [[ "$before" == "$(sha256sum "$DIR"/*.png)" ]]
 python3 - "$DIR/miniature.pcraft" "$SCRIPT_DIR/photocraft-thumbnail-mask.zip" <<'PY'
 import json, subprocess, sys, zipfile
@@ -37,13 +42,13 @@ with zipfile.ZipFile(file) as result,zipfile.ZipFile(template) as reference:
         assert result.read(path) == reference.read(path)
 PY
 hash="$(sha256sum "$DIR/miniature.pcraft" | cut -d' ' -f1)"
-if "$SCRIPT_DIR/photocraft-thumbnail.py" "$DIR" > "$TMP/error" 2>&1; then
+if "$TOOL" "$DIR" > "$TMP/error" 2>&1; then
     echo 'An existing project was overwritten' >&2; exit 1
 fi
 [[ "$hash" == "$(sha256sum "$DIR/miniature.pcraft" | cut -d' ' -f1)" ]]
 rm "$DIR/miniature.pcraft"
 cp "$DIR/Alpha image.png" "$DIR/Third image.png"
-if "$SCRIPT_DIR/photocraft-thumbnail.py" "$DIR" > "$TMP/error" 2>&1; then
+if "$TOOL" "$DIR" > "$TMP/error" 2>&1; then
     echo 'Three images were accepted' >&2; exit 1
 fi
 [[ ! -e "$DIR/miniature.pcraft" ]]
@@ -51,7 +56,7 @@ rm "$DIR/Third image.png"
 # Dark image first alphabetically: the heuristic must not use filename order.
 mv "$DIR/Alpha image.png" "$DIR/Zebra bright.png"
 mv "$DIR/Zeta image.png" "$DIR/Alpha dark.png"
-"$SCRIPT_DIR/photocraft-thumbnail.py" "$DIR"
+"$TOOL" "$DIR"
 python3 - "$DIR/miniature.pcraft" <<'PY'
 import json, subprocess, sys
 info = json.loads(subprocess.check_output(['photocraft-cli', 'info', sys.argv[1], '--compact'], text=True))
@@ -60,18 +65,18 @@ PY
 rm "$DIR/miniature.pcraft"
 # Identical images are ambiguous. Fail safely, then allow an explicit choice.
 cp "$DIR/Zebra bright.png" "$DIR/Alpha dark.png"
-if "$SCRIPT_DIR/photocraft-thumbnail.py" "$DIR" > "$TMP/error" 2>&1; then
+if "$TOOL" "$DIR" > "$TMP/error" 2>&1; then
     echo 'An ambiguous pair was assigned an arbitrary order' >&2; exit 1
 fi
 [[ ! -e "$DIR/miniature.pcraft" ]]
 grep -q -- '--top' "$TMP/error"
-"$SCRIPT_DIR/photocraft-thumbnail.py" "$DIR" --top 'Alpha dark.png'
+"$TOOL" "$DIR" --top 'Alpha dark.png'
 python3 - "$DIR/miniature.pcraft" <<'PY'
 import json, subprocess, sys
 info = json.loads(subprocess.check_output(['photocraft-cli', 'info', sys.argv[1], '--compact'], text=True))
 assert [layer['name'] for layer in info['layers']] == ['Alpha dark.png', 'Zebra bright.png']
 PY
-if "$SCRIPT_DIR/photocraft-thumbnail.py" "$TMP/missing" > "$TMP/error" 2>&1; then
+if "$TOOL" "$TMP/missing" > "$TMP/error" 2>&1; then
     echo 'Missing directory was accepted' >&2; exit 1
 fi
 echo '✓ PhotoCraft thumbnail tests passed (exact reference mask, ordering, fallback, two layers, no overwrite).'

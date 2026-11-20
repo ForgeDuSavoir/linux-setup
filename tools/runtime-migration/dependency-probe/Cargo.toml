@@ -1,0 +1,20 @@
+[package]
+name = "runtime-migration-dependency-probe"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.96.1"
+publish = false
+
+[dependencies]
+libc = "=0.2.189"
+serde = { version = "=1.0.229", features = ["derive"] }
+serde_json = { version = "=1.0.151", features = ["arbitrary_precision", "preserve_order"] }
+toml = { version = "=0.8.23", default-features = false, features = ["parse"] }
+zip = { version = "=9.7.3", default-features = false, features = ["deflate-flate2-zlib-rs"] }
+num-bigint = "=0.4.6"
+num-rational = { version = "=0.4.2", features = ["num-bigint"] }
+num-traits = "=0.2.19"
+hound = "=3.5.1"
+
+[profile.release]
+strip = true
