@@ -16,6 +16,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 "$SCRIPT_DIR/rofi/install_rofi_config.sh"
 if [[ -d "${SESSION_MANAGER_PROJECT_SOURCE:-${HOME}/Obsidian/Agora/2 Projects}" ]]; then
     "$SCRIPT_DIR/session-manager/configure_session_manager.sh"
+    bash "$SCRIPT_DIR/obsidian/configure_obsidian.sh"
 else
     echo '⚠ Session Manager configuration skipped: Agora projects directory is absent.'
 fi

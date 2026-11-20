@@ -1,5 +1,12 @@
 # To do
 
+- [x] Move specialized OBS FDS/QMK entries to project-local `com.obsproject.Studio.desktop` overrides; remove backed-up exact legacy global aliases, retain generic OBS elsewhere. Reproducible normal/targeted installation, canonical Gaming filenames and uninstaller name, literal Gio/private-core tests, personal/symlink/race/fault guards. Live `--launchers-only` preserves both installed helpers (FDS hardware behavior deliberately unchanged), OBS settings/other profiles/usage/index; second run is a no-op. [Details](configs/obs/README.md).
+
+## Contextual Obsidian
+
+- [x] Implement/test/install [session-obsidian](runtime/session-obsidian.md): exact registered project vault or Agora, explicit requests preserved, same menu ID/metadata/MIME/history, no CLI activation/registration/window transfer. 103 Rust tests total and complete runtime suite pass; 25 ELF cases, real private-core routing, genuine Gio dispatch, idempotence and guarded partial-install return. Registry/config/index and shell/core PIDs unchanged; observed active-session revision +1 is recorded without attribution or repair.
+- [ ] User normal-flow Obsidian validation: cold start, already-running app, existing/nested vault; URI focus/reuse is not per-session window isolation. Register new vaults once via Obsidian itself.
+
 ## Contextual file manager
 
 - [x] Implement/test/install [session-files](runtime/session-files.md) for SUPER+E: confirmed project root, HOME for Neutral/no session/unavailable or inconsistent context, standard opener/default preserved. No menu/MIME/desktop-entry/usage changes; 95 Rust tests, 28 CLI cases, real private-core routing and compatible four-to-five cohort expansion/restore pass. Movement-only live install preserves Quickshell/history/core/desktop/marker; no graphical test launch.

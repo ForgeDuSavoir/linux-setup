@@ -416,6 +416,24 @@ this integration with `python3 configs/pi/session-notifications/install.py --app
 the normal Pi package installer delegates to it. New Pi processes auto-load it;
 existing idle instances need explicit `/reload`. No shell restart/history reset.
 
+## Project-specific OBS launchers
+
+The FDS and QMK launchers are now project-local overrides of
+`com.obsproject.Studio.desktop`, not global menu aliases. Installed helpers and
+recording settings can be preserved with
+`bash configs/obs/configure_obs.sh --launchers-only`. Normal helper installers
+reproduce the same placement; missing projects and personal edits are protected.
+[Installation, migration guards and isolated tests](configs/obs/README.md).
+
+## Contextual Obsidian
+
+The existing Obsidian menu entry uses native [session-obsidian](runtime/session-obsidian.md):
+registered vault exactly at the confirmed project root, otherwise the configured
+Agora vault. Explicit URI/file requests are preserved. No CLI activation, vault
+creation/registration or window transfer. Install with
+`bash configs/obsidian/configure_obsidian.sh`; normal configuration includes it.
+Private tests pass; cold/warm GUI reuse behavior awaits normal user acceptance.
+
 ## Default file manager
 
 **SUPER+E** uses native [session-files](runtime/session-files.md) to open the confirmed

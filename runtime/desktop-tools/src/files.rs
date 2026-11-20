@@ -68,7 +68,8 @@ fn directory_identity(path: &Path) -> Result<(u64, u64)> {
     let meta = fs::metadata(path).map_err(|_| "project directory unavailable")?;
     Ok((meta.dev(), meta.ino()))
 }
-fn project_directory(home: &Path) -> Result<PathBuf> {
+/// Fresh, confirmed project only. Callers own their fallback policy.
+pub fn project_directory(home: &Path) -> Result<PathBuf> {
     let first = project_context(&status(home)?)?.ok_or("no project context")?;
     let catalogue = core::query_json(
         &home.join(".local/bin/session-manager"),

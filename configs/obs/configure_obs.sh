@@ -7,8 +7,10 @@ CONFIG_NAME="OBS"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 if [[ "${1:-}" == --scripts-only && $# -eq 1 ]]; then
     exec bash "${SCRIPT_DIR}/install_obs_scripts.sh"
+elif [[ "${1:-}" == --launchers-only && $# -eq 1 ]]; then
+    exec python3 "${SCRIPT_DIR}/install_project_launchers.py" --apply --desktop-only
 elif [[ $# -ne 0 ]]; then
-    echo "Usage: $0 [--scripts-only]" >&2
+    echo "Usage: $0 [--scripts-only|--launchers-only]" >&2
     exit 2
 fi
 
@@ -42,5 +44,6 @@ echo "==> Copying OBS config..."
 cp -r "${SOURCE_CONFIG_DIR}" "${TARGET_CONFIG_DIR}"
 
 bash "${SCRIPT_DIR}/install_obs_scripts.sh"
+python3 "${SCRIPT_DIR}/install_project_launchers.py" --apply
 
 echo "✓ ${CONFIG_NAME} config installed successfully."

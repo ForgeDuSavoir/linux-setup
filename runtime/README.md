@@ -57,6 +57,14 @@ The direct CLI accepts:
 The binary currently resolves native `hyprctl` from PATH just like Python;
 tests replace it with strict fixtures.
 
+## Contextual Obsidian
+
+[session-obsidian](session-obsidian.md) routes the existing Obsidian menu identity
+to an exact registered project vault or Agora through official URIs. Literal
+explicit requests bypass routing; no registry write/CLI activation/window move.
+Targeted installer/private return, actual Gio dispatch and genuine private-core
+routing are tested. Eight new invariants bring the workspace total to 103.
+
 ## Contextual file manager
 
 [session-files](session-files.md) adds SUPER+E project-or-HOME routing through the

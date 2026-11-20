@@ -22,6 +22,11 @@ python3 tests/test_desktop_cohort_modes.py
 python3 tests/test_notify_parity.py
 python3 tests/test_notify_install.py
 python3 tests/test_single_restore.py
+python3 ../configs/obs/test_project_launchers.py
+python3 ../configs/obs/test_project_launchers_core.py
+python3 tests/test_obsidian.py
+python3 tests/test_obsidian_private_core.py
+python3 tests/test_obsidian_install.py
 python3 tests/test_session_files.py
 python3 tests/test_session_files_private_core.py
 python3 tests/test_cohort_files_expansion.py

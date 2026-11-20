@@ -7,6 +7,9 @@ pub mod files;
 mod files_tests;
 pub mod native;
 pub mod notify;
+pub mod obsidian;
+#[cfg(test)]
+mod obsidian_tests;
 pub mod pi;
 #[cfg(test)]
 mod pi_tests;
