@@ -108,6 +108,7 @@ pub fn launch(home: &Path, plan: &Plan, context: &Context) -> Result<()> {
             "env",
             &format!("AGORA_NOTIFICATION_CONTEXT={context}"),
             "pi",
+            "--continue",
         ])
         .env("AGORA_NOTIFICATION_CONTEXT", context)
         .status()

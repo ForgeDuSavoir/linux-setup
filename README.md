@@ -379,8 +379,12 @@ Deploy through the movement-only installer; no Quickshell reload is needed.
 Each immediate project's `.session-manager/apps/session-pi.desktop` runs
 `session-pi`, installed by the Session Manager configuration script. It queries
 the active session and current project list, then calls
-`launch-terminal-command <project-directory> env AGORA_NOTIFICATION_CONTEXT=<captured-context> pi` with literal arguments. It opens
+`launch-terminal-command <project-directory> env AGORA_NOTIFICATION_CONTEXT=<captured-context> pi --continue` with literal arguments. It opens
 neither Rofi nor Yazi and does not fall back to Agora when AGENTS.md is absent.
+Pi natively resumes the latest conversation grouped by that directory, or starts
+a new one if none exists. `/new` still starts fresh. This is per project path,
+not per logical UUID; Neutral/no-session launches share Agora's group. No existing
+window reuse or protection against concurrent opens of one conversation is added.
 With no active session it opens Pi at the user-configured `agora_root`; a missing
 project or unavailable daemon still fails rather than silently choosing another
 directory. There is no built-in Agora path. On first installation, supply it

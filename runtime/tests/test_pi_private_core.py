@@ -30,9 +30,9 @@ env={**os.environ,'AGORA_NOTIFICATION_CONTEXT':'stale-server'}
 subprocess.run(sys.argv[2:],cwd=sys.argv[1],env=env,check=True)
 """);terminal.chmod(0o700)
     stub=root/'bin/pi';stub.write_text("""#!/usr/bin/python3
-import json,os
+import json,os,sys
 from pathlib import Path
-Path(os.environ['HOME']+'/stub').write_text(json.dumps([os.getcwd(),os.environ['AGORA_NOTIFICATION_CONTEXT']]))
+Path(os.environ['HOME']+'/stub').write_text(json.dumps([os.getcwd(),os.environ['AGORA_NOTIFICATION_CONTEXT'],sys.argv[1:]]))
 """);stub.chmod(0o700)
     env={'HOME':str(root),'XDG_CONFIG_HOME':str(root/'config'),'XDG_STATE_HOME':str(root/'state'),'XDG_DATA_HOME':str(root/'data'),'XDG_DATA_DIRS':str(root/'data'),'XDG_RUNTIME_DIR':str(root/'run'),'PATH':str(root/'bin')+':/usr/bin:/bin','DESKTOP_WORLD':str(native),'SESSION_MANAGER_BIN':str(CORE),'PYTHONDONTWRITEBYTECODE':'1','AGORA_NOTIFICATION_CONTEXT':'session:aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'}
     def core(*args):return json.loads(subprocess.check_output([str(CORE),'--json','session',*args],env=env,text=True))
@@ -43,8 +43,8 @@ Path(os.environ['HOME']+'/stub').write_text(json.dumps([os.getcwd(),os.environ['
         logical=core('list');raw=metadata.read_bytes()
         result=subprocess.run([str(BIN),*args],env=env,capture_output=True,text=True,timeout=8)
         assert result.returncode==0,result.stderr
-        assert json.loads((root/'stub').read_text())==[str(path),tag]
-        assert json.loads((root/'terminal').read_text())==[[str(path),'env','AGORA_NOTIFICATION_CONTEXT='+tag,'pi'],tag]
+        assert json.loads((root/'stub').read_text())==[str(path),tag,['--continue']]
+        assert json.loads((root/'terminal').read_text())==[[str(path),'env','AGORA_NOTIFICATION_CONTEXT='+tag,'pi','--continue'],tag]
         assert core('list')==logical and metadata.read_bytes()==raw
         assert json.loads(native.read_text())['clients']==world['clients']
         assert not list(root.rglob('app-usage.json'))
@@ -74,4 +74,4 @@ Path(os.environ['HOME']+'/stub').write_text(json.dumps([os.getcwd(),os.environ['
         daemon.terminate()
         try:daemon.communicate(timeout=5)
         except subprocess.TimeoutExpired:daemon.kill();daemon.communicate()
-print('R5 private real core/R4/R2: project, Neutral UUID, unowned, explicit Agora and mismatch; stale terminal server overridden by literal env argv; no real Pi/model/desktop.')
+print('R5 private real core/R4/R2: project, Neutral UUID, unowned, explicit Agora and mismatch; pi --continue in the routed directory; stale terminal server overridden by literal env argv; no real Pi/model/desktop.')

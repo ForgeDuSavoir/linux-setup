@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""R5 black-box oracle parity. Private HOME and fake core/capture/terminal only."""
+"""R5 oracle parity except the explicit later --continue delta. Private tools only."""
 import copy
 import json
 import os
@@ -52,6 +52,15 @@ def execute(program,world,root,args=()):
     result=subprocess.run([*program,*args],env=env,capture_output=True,text=True,timeout=8)
     records=[json.loads(line) for line in log.read_text().splitlines()] if log.exists() else []
     return result,records
+
+def continued_calls(records):
+    # Preserve the frozen R0 oracle; the sole intentional argv extension is checked here.
+    records=copy.deepcopy(records)
+    for row in records:
+        if row[0]=='launch-terminal-command':
+            assert row[1][-1]=='pi'
+            row[1].append('--continue')
+    return records
 
 def main():
     count=0
@@ -113,11 +122,11 @@ def main():
             new,new_calls=execute([str(BIN)],world,root,args)
             assert (old.returncode==0)==ok,(name,old.stderr)
             assert (new.returncode==0)==ok,(name,new.stderr)
-            assert old_calls==new_calls,(name,old_calls,new_calls,new.stderr)
+            assert continued_calls(old_calls)==new_calls,(name,old_calls,new_calls,new.stderr)
             terminals=[row for row in new_calls if row[0]=='launch-terminal-command']
             if terminals:
                 assert len(terminals)==1
-                row=terminals[0];assert row[1][1]=='env' and row[1][3]=='pi'
+                row=terminals[0];assert row[1][1]=='env' and row[1][3:]==['pi','--continue']
                 assert row[1][2]=='AGORA_NOTIFICATION_CONTEXT='+row[2] and row[3]=='literal $value; no shell'
                 assert next(r for r in new_calls if r[0]=='agora-notify')[2] is None
             count+=1
@@ -126,13 +135,13 @@ def main():
         world=copy.deepcopy(normal)
         old,old_calls=execute(['/usr/bin/python3',str(ORACLE)],world,root)
         new,new_calls=execute([str(BIN)],world,root)
-        assert old.returncode==new.returncode==0 and old_calls==new_calls
+        assert old.returncode==new.returncode==0 and continued_calls(old_calls)==new_calls
         assert new_calls[-1][2]=='global'
         (bin/'capture-disabled').rename(helper)
         terminal=bin/'launch-terminal-command';terminal.rename(bin/'terminal-disabled')
         old,old_calls=execute(['/usr/bin/python3',str(ORACLE)],world,root)
         new,new_calls=execute([str(BIN)],world,root)
-        assert old.returncode==new.returncode==1 and old_calls==new_calls
+        assert old.returncode==new.returncode==1 and continued_calls(old_calls)==new_calls
         (bin/'terminal-disabled').rename(terminal)
         # Entry points keep their existing public command names; no desktop writes.
         keybind=(ROOT.parent/'configs/hypr/files/keybinds.lua').read_text()
@@ -150,5 +159,5 @@ def main():
             world=copy.deepcopy(normal);mutate(world)
             result,calls=execute([str(BIN)],world,root)
             assert result.returncode==1 and not any(row[0]=='launch-terminal-command' for row in calls)
-        print(f'R5: {count} differential CLI cases + 3 strict-v3 refusals passed; missing helper/terminal, literal cwd/env/argv, frozen origin, no real Pi.')
+        print(f'R5: {count} differential CLI cases + 3 strict-v3 refusals passed; missing helper/terminal, literal cwd/env/argv, frozen origin, explicit --continue delta, no real Pi.')
 if __name__=='__main__':main()

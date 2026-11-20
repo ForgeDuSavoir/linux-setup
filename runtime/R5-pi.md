@@ -4,6 +4,35 @@ Implemented, validated and installed on 2026-11-19. R1–R3 remain development-o
 R4 remains installed. R5 changes only the Pi launcher, not Pi itself, its settings,
 models, global extension, desktop/session state or graphical hooks.
 
+## Automatic continuation — installed 2026-11-20
+
+Session-aware launches now append the native Pi `--continue` option. Pi selects
+its most recent saved conversation for the routed working directory, or starts
+a new conversation if none exists. Project/Neutral/unowned/explicit-Agora routing,
+notification origin, terminal environment and failure policies are unchanged.
+Plain manual `pi` commands are not globally modified; `/new` remains available.
+
+Storage/selection is owned by Pi (including its existing storage overrides), not
+a new project registry or a parser of personal transcripts. Grouping is by project
+path, not logical session UUID; Neutral and no-session launches share Agora's
+conversation group. Renamed paths and simultaneous opens of the same conversation
+are not solved here; no automatic focus, instance lock or transcript migration.
+
+The R0 Python oracle remains frozen. Differential tests compare its original
+calls with exactly one intentional added argv token, `--continue`; all routing,
+origin, failure and literal-argument behavior remains checked. The private real
+core/terminal test confirms the stub Pi actually receives `['--continue']` in
+the chosen directory even with a stale terminal-server environment. 73 desktop
+Rust unit tests, fmt/strict Clippy/offline release, 60 differential cases, private
+core and targeted installer tests pass; no real Pi/model/conversation was opened.
+
+Deployed only via `runtime/install_pi.py --apply`, backup
+`~/.local/state/linux-setup/session-pi-upgrades/20261120T151708-zker7ism`.
+Installed bytes equal the tested release; other helpers, metadata/marker,
+QML/keybinds, personal desktop overrides, index and shell/core PIDs were verified
+unchanged. No reload or personal conversation inspection. Normal user acceptance
+through SUPER+P or the Pi menu entry remains separate.
+
 ## Contract
 
 The public command remains `~/.local/bin/session-pi [--agora]`.
@@ -32,7 +61,7 @@ The public command remains `~/.local/bin/session-pi [--agora]`.
   any valid fresh origin. Missing/failing/timed-out/malformed/UTF-8-invalid or
   inconsistent capture falls back to explicit `global`, never to a guessed UUID.
 - Invoke absolute `~/.local/bin/launch-terminal-command DIR env
-  AGORA_NOTIFICATION_CONTEXT=VALUE pi`. Set the same environment variable and
+  AGORA_NOTIFICATION_CONTEXT=VALUE pi --continue`. Set the same environment variable and
   preserve other inherited environment values. No shell evaluation; spaces,
   Unicode, quotes and metacharacters remain literal. The argv prefix survives
   stale environments in reused terminal servers. Terminal stdio is inherited,
