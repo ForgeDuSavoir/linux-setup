@@ -32,6 +32,8 @@ python3 tests/test_startup_private_core.py
 python3 tests/test_desktop_cohort.py
 python3 tests/test_desktop_cohort_modes.py
 python3 tests/test_visuals_mode.py
+python3 tests/test_visuals_mode.py inputs
+python3 tests/test_touchpad_gestures.py
 python3 tests/test_notify_parity.py
 python3 tests/test_notify_install.py
 python3 tests/test_single_restore.py
@@ -66,3 +68,4 @@ node ../configs/session-manager/test-session-attention.js
 python3 ../configs/session-manager/test-session-attention-qml.py
 node ../configs/session-manager/test-notification-policy.js
 python3 ../configs/session-manager/test-notification-store.py
+python3 ../configs/session-manager/test-notification-bar-position.py

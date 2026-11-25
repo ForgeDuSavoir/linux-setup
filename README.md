@@ -169,6 +169,12 @@ finds no ordinary or scoped-scratchpad windows in the old session. Nonempty or
 unconfirmed old context remains; Switch never triggers replacement. No upfront
 emptiness probe or inactive-session sweep. [Contract, concurrency limits and tests](runtime/empty-session-replacement.md).
 
+### Touchpad gesture shortcuts — removed
+
+Three-finger workspace swipe and tile/float pinches are disabled. No compositor
+swipe/pinch shortcuts remain; scrolling, clicks and other touchpad settings are
+unchanged. [Configuration and targeted install](configs/hypr/touchpad-gestures.md).
+
 ### Window opening and closing — applied
 
 Windows use full **popin** at opening and its centered contraction at closing,

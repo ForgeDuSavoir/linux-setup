@@ -31,12 +31,12 @@ NotificationStore {
 
                 anchors {
                     top: true
-                    right: true
+                    left: true
                 }
 
                 margins {
                     top: 44
-                    right: 12
+                    left: 12
                 }
 
                 implicitWidth: root.popupWidth

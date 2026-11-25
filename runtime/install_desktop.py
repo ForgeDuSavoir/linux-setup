@@ -217,7 +217,7 @@ def journal(backup,manifest,phase):
     manifest['phase']=phase;write_json(backup/'manifest.json',manifest)
 
 def target_plan(gm,offline,reduced):
-    if reduced not in [None,'movement','startup','visuals']:raise RuntimeError('unknown cohort mode')
+    if reduced not in [None,'movement','startup','visuals','inputs']:raise RuntimeError('unknown cohort mode')
     selected=[n for n in gm['files'] if n not in BINS]
     if not offline:
         critical=['.config/hypr/hyprland.lua','.config/hypr/keybinds.lua','.config/hypr/startup.lua','.config/hypr/Scripts/scratchpad.sh']
@@ -225,6 +225,7 @@ def target_plan(gm,offline,reduced):
     if reduced=='movement':selected=[n for n in selected if n in ['.config/hypr/keybinds.lua','.config/hypr/hyprland.lua','.config/hypr/Scripts/scratchpad.sh']]
     if reduced=='startup':selected=['.config/hypr/startup.lua']
     if reduced=='visuals':selected=['.config/hypr/visuals.lua']
+    if reduced=='inputs':selected=['.config/hypr/inputs.lua']
     targets={str(Path('.local/bin')/n):{'kind':'link','target':public_link(n)} for n in BINS if n in gm['files']}
     targets.update({n:{'kind':'file',**gm['files'][n]} for n in selected})
     return targets
@@ -337,17 +338,17 @@ def main(argv=None):
     p=argparse.ArgumentParser(description=__doc__)
     action=p.add_mutually_exclusive_group();action.add_argument('--apply',action='store_true');action.add_argument('--stage',action='store_true');action.add_argument('--restore',type=Path)
     p.add_argument('--preflight',action='store_true');p.add_argument('--allow-notification-history-reset',action='store_true');p.add_argument('--offline',action='store_true')
-    mode=p.add_mutually_exclusive_group();mode.add_argument('--movement-only',action='store_true');mode.add_argument('--startup-only',action='store_true');mode.add_argument('--visuals-only',action='store_true')
+    mode=p.add_mutually_exclusive_group();mode.add_argument('--movement-only',action='store_true');mode.add_argument('--startup-only',action='store_true');mode.add_argument('--visuals-only',action='store_true');mode.add_argument('--inputs-only',action='store_true')
     a=p.parse_args(argv)
     if a.preflight:
-        guard(a.offline,a.allow_notification_history_reset,'movement' if a.movement_only else 'startup' if a.startup_only else 'visuals' if a.visuals_only else None)
+        guard(a.offline,a.allow_notification_history_reset,'movement' if a.movement_only else 'startup' if a.startup_only else 'visuals' if a.visuals_only else 'inputs' if a.inputs_only else None)
         print('Preflight only; no files, state or shell changed.');return
     if not any([a.apply,a.stage,a.restore]):
         print('Plan only. Stage immutable cohort without activation: --stage. Full activation: --apply --allow-notification-history-reset, or explicitly offline with no compositor. Reduced updates require already native cohort/QML. No reset/window action.');return
     os.umask(0o077)
     if a.stage:print('Staged only, no live pointer/files/marker/QML change:',stage());return
     if a.restore:restore(a.restore,a.offline,a.allow_notification_history_reset)
-    else:apply(a.offline,a.allow_notification_history_reset,'movement' if a.movement_only else 'startup' if a.startup_only else 'visuals' if a.visuals_only else None)
+    else:apply(a.offline,a.allow_notification_history_reset,'movement' if a.movement_only else 'startup' if a.startup_only else 'visuals' if a.visuals_only else 'inputs' if a.inputs_only else None)
 
 if __name__=='__main__':
     try:main()

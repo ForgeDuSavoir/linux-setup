@@ -1,5 +1,32 @@
 # Session notification integration (stage 2)
 
+## Popup placement — installed 2026-11-25
+
+`NotificationService.qml` now anchors popup panels at top-left on each screen,
+retaining top margin 44, side margin 12 and width 380. Only screen placement
+changed: history drawer, attribution, expiry, acknowledgement and store unchanged.
+qmllint, policy JS and private D-Bus/store regressions pass. Candidate generation
+`27a90c97be219231b5034f88` activated after explicit reload/RAM-history reset approval.
+Complete backup `desktop-cohort/20261125T125529-hp0qe1hf`. Installed QML matches,
+shell PID changed; exact core/desktop/metadata/marker/core PID/index/keybinds/helpers
+preserved. No real notification or session action emitted for testing.
+
+## Bar widget placement — installed 2026-11-25
+
+The history button is now the leftmost bar widget (x=12, width 28), followed by
+SessionStrip with an 8px gap. Battery/tray stay in the right group, now anchored
+directly to Power instead of the moved button. History popup opens left-aligned
+under the button (relativeX=notificationButton.x), not off-screen to its left.
+Popup notification positioning and all store/policy behavior remain unchanged.
+
+Actual anchor snippets execute in a private offscreen Qt test (button/session/
+battery geometry), qmllint/private D-Bus/store/service tests pass. Generation
+`e29f449a7bc67bfbfc38060e` activated after explicit shell restart/RAM-history reset
+approval, complete backup `desktop-cohort/20261125T130004-sxa1kzol`. Actual QML
+matches; shell PID changed, exact state/marker/core PID/index/keybinds/helpers,
+NotificationStore and NotificationService bytes preserved. No real notification,
+session action or history clear command used for validation.
+
 ## Ownership and compatibility
 
 This is a downstream `linux-setup` contract. Session Manager is unchanged: it owns UUIDs, lifecycle and ordered logical sessions, not notifications, history, attention or desktop confirmation. `SessionService.qml` supplies its confirmed graphical context. `NotificationStore.qml` contains the **existing single** notification server and in-memory history, extracted from `NotificationService.qml` for isolated testing. `NotificationService.qml` inherits that store and renders its eligible notifications. This is not a second daemon, server or history.

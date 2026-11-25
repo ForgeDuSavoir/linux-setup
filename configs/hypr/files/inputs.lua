@@ -23,22 +23,4 @@ hl.config({ input = {
     },
 }})
 
-hl.gesture({
-    fingers = 3,
-    direction = "horizontal",
-    action = "workspace",
-})
-
-hl.gesture({
-    fingers = 3,
-    direction = "pinchin",
-    action = "float",
-    arg = "tile",
-})
-
-hl.gesture({
-    fingers = 3,
-    direction = "pinchout",
-    action = "float",
-    arg = "float",
-})
+-- No compositor swipe/pinch shortcuts; ordinary touchpad input remains enabled.

@@ -670,7 +670,7 @@ Scope {
                         height: 24
 
                         anchors {
-                            right: notificationButton.left
+                            right: power.left
                             rightMargin: 8
                             verticalCenter: parent.verticalCenter
                         }
@@ -688,8 +688,8 @@ Scope {
 
                     SessionStrip {
                         anchors {
-                            left: parent.left
-                            leftMargin: 12
+                            left: notificationButton.right
+                            leftMargin: 8
                             verticalCenter: parent.verticalCenter
                         }
                         width: Math.min(300, parent.width * 0.25)
@@ -774,8 +774,8 @@ Scope {
                         height: 24
 
                         anchors {
-                            right: power.left
-                            rightMargin: 8
+                            left: parent.left
+                            leftMargin: 12
                             verticalCenter: parent.verticalCenter
                         }
 
@@ -835,7 +835,7 @@ Scope {
 
                     visible: root.notificationHistoryVisible
                     parentWindow: barWindow
-                    relativeX: notificationButton.x + notificationButton.width - width
+                    relativeX: notificationButton.x
                     relativeY: notificationButton.y + notificationButton.height + 6
                     implicitWidth: 420
                     implicitHeight: 460
