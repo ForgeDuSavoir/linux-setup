@@ -1,49 +1,102 @@
-# Fresh session at Hyprland login
+# Empty session state and chooser at Hyprland login
 
-## Policy
+## Current policy — installed 2026-11-21
 
-At each new Hyprland compositor instance (PC boot or logout/login), forget the previously open logical sessions and select exactly one **Neutral-1**, on a fresh empty UUID-owned ordinary workspace. Do not restore projects, launch their applications, move/close windows or modify project files/browser profiles.
+Each new compositor instance (boot or graphical logout/login) forgets the previous
+open logical sessions through the public core API, verifies zero sessions and no
+active UUID, and starts Quickshell with a one-shot request to show the chooser.
+**No automatic Neutral-1, project, app, focus switch or extra workspace is created.**
+The user may select a project, deliberately start Neutral, or close the menu and
+remain on the unowned desktop. Existing ordinary windows remain unowned; they
+are not closed/moved/adopted.
 
-This replaces the previous desktop policy of retaining open instances across graphical logins. It does **not** change the core's persistence/API contract: sessions remain durable across a core daemon restart within the same graphical login. The reset is a downstream initialization action, not a daemon `ExecStartPost` action.
+The core's persistence/API is unchanged. This is downstream new-login policy,
+not an ExecStartPost action: core/bar/config reload never authorizes another reset.
+The `hyprland.start` hook and missing-helper plain Quickshell fallback remain.
 
-- `startup.lua` invokes `session-startup` on **`hyprland.start`**, not configuration reload. When the helper is absent (an installation without Session Manager), retain the old Quickshell autostart fallback.
-- `session-startup` waits for the existing v3 service, reads its open instances, stops that exact snapshot through the core API, verifies the list is empty, then starts one built-in Neutral instance. This is an explicit new-login exception to the ordinary graphical last-session stop guard. No persistent runtime file is deleted or rewritten externally.
-- Existing ordinary windows in the new compositor remain unowned. Old desktop ownership metadata is archived privately and replaced by a fresh projection of the **new** compositor's IDs; reused IDs never inherit an old UUID. Select a newly allocated, compositor-guarded empty workspace for the new neutral session.
-- Check the resulting logical session/source/number and visible desktop before starting Quickshell, so its first menu snapshot has a matching context. Other existing autostarts (wallpaper, idle/clipboard services) remain independent; initialization launches no user application.
-- Exactly one compositor and the existing single-monitor policy are required. Already-present UUID-scoped scratchpad windows fail closed rather than losing their associations. Shared/global and legacy unowned windows are never closed or adopted.
+## Initialization and readiness
 
-## Once per graphical instance
+The existing bounded readonly registration/IPC/core readiness checks, exactly-one
+compositor/monitor guard, scoped-scratchpad refusal, private raw state/core backup,
+desktop lock and guarded stop acknowledgements remain. The previous owners/
+allocator are not inherited across compositor signatures. Current ordinary IDs
+are projected as unowned; the active ordinary workspace stays unchanged.
 
-`${XDG_RUNTIME_DIR}/hyprland/session-startup.json` records version 1, `HYPRLAND_INSTANCE_SIGNATURE` and a phase, under the shared `workspace-columns.lock`.
+After stopping only the captured old instances, require an empty/no-active core
+reply and unchanged ordinary workspace/no visible special workspace. Unexpected
+concurrent state is reported, never repaired or deleted. No mutating call is
+retried after an uncertain acknowledgement. Failed initialization still exposes
+the recovery bar once; manual SUPER+ESC remains available.
 
-- `initializing` is published before attempting the reset; success records `ready` and the new session UUID.
-- A successful repeat in the same instance does nothing, even if the user subsequently opened other sessions or stopped the original neutral instance. It does not start another bar.
-- A different compositor signature authorizes a fresh initialization, including logout/login within one OS boot when the runtime directory survives.
-- Core/Quickshell restart, config reload, screen lock and suspend/resume do not reset sessions. No systemd unit change or core restart is needed.
-- Live installation records the current compositor as **`deferred`**, not initialized: all its sessions, windows, ownership and core revision stay intact. Only the next graphical instance uses the new policy.
+The earlier late-registration `hyprctl instances -j` malformed-JSON fix remains:
+[R3 readiness diagnosis/tests](../../runtime/R3-startup.md).
 
-## Failures and concurrency
+## Once-per-instance marker and menu handoff
 
-Only initial read-only availability checks are retried (a bounded readiness wait with two-second query timeouts). Mutating calls are never replayed after a lost/invalid acknowledgement. Failed/crashed attempts are recorded as `failed`/`initializing` and cannot automatically reset the same login again. Independent direct core clients do not share the desktop lock: unexpected remaining sessions or final selection/source mismatches are reported, not fixed by deleting newly created concurrent sessions or moving windows.
+`${XDG_RUNTIME_DIR}/hyprland/session-startup.json` remains schema 1, protected by
+the existing workspace lock:
+- Write `initializing` before the attempt; successful empty startup writes
+  `ready` with **`startup_menu: "pending"`**, not a session UUID.
+- Ready/deferred same-login startup reentry does nothing and starts no extra bar.
+  Failed/initializing reentry remains blocked. Different signature permits a new
+  startup. Installers preserve existing same-signature markers, including failure.
+- Quickshell's actual SessionMenu component starts a Process invoking
+  **`session-startup --claim-menu`**. This mode only validates/claims the marker:
+  no initializer, native/core queries, workspace changes, backup or bar launch.
+- Only a matching-instance ready/pending request becomes `consumed`, durably
+  under the lock, before returning `{"show":true}`. Missing/legacy/deferred/
+  failed/initializing/wrong-instance/consumed markers return false unchanged.
+  Malformed requests or failed publication return errors, never authorization.
+- After a true reply, the menu discards in-flight old status and waits for a fresh
+  confirmed empty/unowned snapshot. It calls its own `showMenu()` directly, with
+  project search focused. No startup IPC availability race or fixed-delay timer.
+  A manually opened menu or user-created session takes precedence.
+- Closing/Escape and later polls/reloads/restarts do not reopen the request.
+  SUPER+ESC is always an explicit manual alternative.
 
-A first-attempt failure is logged to stderr and the user journal (`journalctl --user -t session-startup`, or `journalctl -t session-startup` depending on journal routing); Quickshell still starts for manual menu recovery. A repeated failed attempt does not start a duplicate bar. There is no automatic rollback or claim that an uncertain stop did not commit. Private pre-reset core/desktop metadata backups live under the runtime directory, mode-0700 `session-startup-backup-*` directories; they are diagnostic only, never automatically restored.
+This is **at-most-once automatic presentation**, not a transaction with GUI
+mapping. A crash after durable consumption but before showing can lose the
+automatic opening; no potentially destructive initialization is replayed to fix
+that. Startup errors do not manufacture ready menu requests.
 
-## Install for the next login
+## Deployment and compatibility
 
+Use the full coordinated deployment to publish matching startup ELF and QML:
 ```sh
-python3 configs/session-manager/install_session_startup.py          # plan only
-python3 configs/session-manager/install_session_startup.py --apply  # current desktop untouched
+python3 runtime/install_desktop.py --apply --allow-notification-history-reset
 ```
+The explicit flag requires user consent to Quickshell restart/RAM notification
+history loss. Reduced/helper-only deployment does not activate the UI integration.
+The normal configuration route uses the same coordinator; do not manually copy
+QML or run the initializer to test this on current sessions.
 
-The dedicated installer requires protocol 3 and the single-workspace model, backs up the startup/helper files and private snapshots, installs `session-startup`, `session-desktop` and `startup.lua`, defers the current instance under the desktop lock and reloads only Hyprland configuration. It never invokes initialization, starts/stops/switches a real session, queries/restarts Quickshell or replaces QML. Core and desktop snapshots and workspace metadata must remain unchanged. Private installation backups are under `${XDG_STATE_HOME:-$HOME/.local/state}/linux-setup/session-startup/`.
-
-Full desktop installation also ships the helper/startup hook; the coordinated full installer defers a running compositor before reload. Movement-only updates deliberately leave this separate policy untouched.
+Activated with explicit approval, generation `999b39e6c553b811c08c6944`, backup
+`~/.local/state/linux-setup/desktop-cohort/20261121T104428-_1kqq1qj`, complete journal.
+The current login had an older **ready** marker with no menu request (the earlier
+readiness fix had succeeded). It was retained byte-for-byte. Exact current
+core/desktop/ownership snapshots, personal desktop entries/history, index and core
+PID were verified unchanged; only Quickshell PID changed as authorized. No live
+initializer, session switch or artificial menu request was used for verification.
+The changed startup policy takes effect at the next genuine graphical login.
 
 ## Validation
 
-- `test-session-startup.py`: **22** isolated cases, including reset/select, logout/login with a retained runtime, same-instance no-op, live-install deferral, shared-lock concurrency, startup availability, multiple compositor/monitor and scoped-window guards, uncertain stop, failed focus, concurrent core changes and bar launch ordering/failure recovery. No actual windows or applications are used.
-- `test-startup-install.py`: real targeted installer in temporary HOME/XDG roots with fake native/core tools; dry run, current-context deferral, private backups, unchanged data and shell, installed extensionless helper execution, and no core mutation/Quickshell call. Fake Lua proves loading/reloading only registers the start callback.
-- `test-neutral-v3.py`: real private v3 daemon and fake compositor; new-login reset, exactly one Neutral-1, repeat-call revision stability and new UUID after same-boot relogin, without consulting an unavailable project directory or launching applications.
-- Existing controller, lifecycle/stop/status and full/movement-only installer regressions pass.
+Complete runtime suite passes: **110 Rust tests** (80 desktop), strict fmt/Clippy/
+offline release, existing navigation/notification/installer regressions.
+- 12 unchanged refusal/deferred cases still match frozen R0; 11 current successful
+  empty-start/new-login/reentry scenarios check no implicit start/focus/default
+  workspace and one pending request. Historical Python/oracles remain unchanged.
+- 13 CLI/admin cases include two simultaneous real claims (one true), old/wrong/
+  failed/deferred/missing markers unchanged and no init/bar side effects.
+- Real private v3 daemon/new-login/cohort tests verify zero sessions, no active UUID,
+  unowned windows, same-login preservation and another empty state on new login.
+- Exact menu-method tests cover fresh status/search, close/no reopen, manual use,
+  user sessions and errors. Genuine QML menu/service plus the actual Rust claimant
+  run on private D-Bus and temporary HOME/XDG paths. Only the native PanelWindow
+  container is replaced by an offscreen Qt Window; real controls/Process/Connections/
+  IPC remain, proving initial chooser, explicit project selection, Escape/restart
+  and legacy-marker protection without using the live desktop.
 
-Installed live for the next login on 2026-11-18. Technical checks preserve the current desktop, complete core projection/revision and core/shell PIDs, with no notification-history reset. An actual logout/reboot is deliberately not an automated validation step; next-login visual acceptance remains manual.
+Actual cold-login visuals remain normal user acceptance. The original 2026-11-18
+Neutral-1 policy and original Python-only tests are historical, not the current
+production bootstrap target.

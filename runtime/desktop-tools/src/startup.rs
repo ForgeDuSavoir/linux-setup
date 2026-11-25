@@ -1,7 +1,7 @@
 //! Per-compositor startup policy. Never a daemon/core/shell reload hook.
 use crate::{
     Result,
-    core::{Core, REQUEST_TIMEOUT, Sessions, Source, acknowledged_session},
+    core::{Core, REQUEST_TIMEOUT, Sessions},
     desktop::Desktop,
     native::Native,
     state,
@@ -66,6 +66,29 @@ pub fn defer_marker(instance: &str, previous: Option<Value>) -> Result<Value> {
     }
     Ok(json!({"changed":true,"marker":Marker::new(instance,Phase::Deferred)}))
 }
+/// Consume only this compositor's ready, explicitly requested menu.
+pub fn claim_menu<S: StartupStore>(store: &mut S, instance: &str) -> Result<bool> {
+    validate_signature(instance)?;
+    let Some(raw) = store.marker()? else {
+        return Ok(false);
+    };
+    let mut marker = Marker::parse(raw)?;
+    if marker.instance != instance || marker.phase != Phase::Ready {
+        return Ok(false);
+    }
+    match marker.extra.get("startup_menu") {
+        None => Ok(false), // Older/deferred installations never invent a request.
+        Some(Value::String(value)) if value == "consumed" => Ok(false),
+        Some(Value::String(value)) if value == "pending" => {
+            marker
+                .extra
+                .insert("startup_menu".into(), json!("consumed"));
+            store.write_marker(&marker)?;
+            Ok(true)
+        }
+        _ => Err("invalid startup menu request; inspect marker".into()),
+    }
+}
 pub trait StartupStore: Store {
     fn marker(&mut self) -> Result<Option<Value>>;
     fn write_marker(&mut self, marker: &Marker) -> Result<()>;
@@ -79,6 +102,66 @@ pub enum Failure {
 impl From<String> for Failure {
     fn from(e: String) -> Self {
         Self::Error(e)
+    }
+}
+/// Wait only on observational readiness, before any ownership reset/core mutation.
+/// Wrong instance/ambiguous topology/malformed replies fail closed, never retry resets.
+pub fn wait_for_compositor<N: Native>(
+    native: &mut N,
+    instance: &str,
+    budget: Duration,
+) -> Result<()> {
+    let deadline = Instant::now() + budget;
+    loop {
+        let mut ready = false;
+        let probe = deadline
+            .saturating_duration_since(Instant::now())
+            .min(Duration::from_secs(2))
+            .max(Duration::from_millis(1));
+        if let Some(value) = native.startup_query("instances", probe)? {
+            let rows = value.as_array().ok_or("invalid compositor instances")?;
+            if !rows.is_empty() {
+                if rows.len() != 1
+                    || rows[0].get("instance").and_then(Value::as_str) != Some(instance)
+                {
+                    return Err("startup requires exactly this one Hyprland instance".into());
+                }
+                let probe = deadline
+                    .saturating_duration_since(Instant::now())
+                    .min(Duration::from_secs(2))
+                    .max(Duration::from_millis(1));
+                if let Some(value) = native.startup_query("monitors", probe)? {
+                    let rows = value.as_array().ok_or("invalid startup monitor snapshot")?;
+                    if rows.len() > 1 {
+                        return Err(
+                            "desktop integration requires one monitor; refusing to change context"
+                                .into(),
+                        );
+                    }
+                    if let Some(monitor) = rows.first() {
+                        let active = monitor
+                            .get("activeWorkspace")
+                            .and_then(|w| w.get("id"))
+                            .and_then(Value::as_i64)
+                            .ok_or("invalid startup monitor active workspace")?;
+                        if !(0..=state::MAX_ID).contains(&active) {
+                            return Err("invalid startup monitor active workspace".into());
+                        }
+                        ready = active > 0;
+                    }
+                }
+            }
+        }
+        if ready {
+            return Ok(());
+        }
+        let remaining = deadline.saturating_duration_since(Instant::now());
+        if remaining.is_zero() {
+            return Err(
+                "Hyprland instance/IPC not ready at graphical startup; no reset performed".into(),
+            );
+        }
+        native.sleep(remaining.min(Duration::from_millis(100)));
     }
 }
 pub fn wait_for_core<N: Native, S: Store, C: Core>(
@@ -121,13 +204,11 @@ pub fn initialize<N: Native, S: StartupStore, C: Core>(
         .store
         .write_marker(&Marker::new(instance, Phase::Initializing))?;
     let result = (|| -> Result<()> {
-        let instances = desktop.workspace.native.query("instances")?;
-        let instances = instances.as_array().ok_or("invalid compositor instances")?;
-        if instances.len() != 1
-            || instances[0].get("instance").and_then(Value::as_str) != Some(instance)
-        {
-            return Err("startup requires exactly this one Hyprland instance".into());
-        }
+        wait_for_compositor(
+            &mut desktop.workspace.native,
+            instance,
+            Duration::from_secs(10),
+        )?;
         let special = desktop.visible_scratchpad()?;
         let clients = desktop.workspace.native.query("clients")?;
         if clients
@@ -154,8 +235,9 @@ pub fn initialize<N: Native, S: StartupStore, C: Core>(
             .into_iter()
             .filter(|id| *id > 0)
             .collect();
-        existing.insert(desktop.workspace.active()?);
-        let mut state = state::project(None, &existing)?;
+        let initial_workspace = desktop.workspace.active()?;
+        existing.insert(initial_workspace);
+        let state = state::project(None, &existing)?;
         desktop.workspace.store.backup(&before)?;
         desktop.workspace.store.save(&state)?;
         desktop.hide_scratchpad(&special)?;
@@ -174,28 +256,13 @@ pub fn initialize<N: Native, S: StartupStore, C: Core>(
         if !remaining.sessions.is_empty() || remaining.active_session_id.is_some() {
             return Err("sessions changed during startup; refusing further resets".into());
         }
-        let created = desktop
-            .core
-            .request(&["start", "--neutral"], REQUEST_TIMEOUT)?;
-        let sid = acknowledged_session(&created)?;
-        let target = desktop
-            .workspace
-            .fresh_workspace(&mut state, &sid.0, None)?;
-        desktop.workspace.select(&mut state, target, true, true)?;
-        let after = desktop.core.request(&["list"], REQUEST_TIMEOUT)?;
-        let parsed = Sessions::parse(&after)?;
-        if parsed.sessions.len() != 1
-            || parsed.sessions[0].id != sid
-            || parsed.active_session_id.as_ref() != Some(&sid)
-            || parsed.sessions[0].source != (Source::Neutral {})
-            || after["sessions"][0]["number"].as_i64() != Some(1)
-            || desktop.workspace.active()? != target
+        if desktop.workspace.active()? != initial_workspace
             || !desktop.visible_scratchpad()?.is_empty()
         {
-            return Err("initial neutral session/desktop not confirmed".into());
+            return Err("initial empty-session desktop not confirmed".into());
         }
         let mut ready = Marker::new(instance, Phase::Ready);
-        ready.extra.insert("session_id".into(), json!(sid));
+        ready.extra.insert("startup_menu".into(), json!("pending"));
         desktop.workspace.store.write_marker(&ready)?;
         Ok(())
     })();

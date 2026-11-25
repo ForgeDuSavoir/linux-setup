@@ -130,7 +130,10 @@ impl Native for World {
             .parse::<i64>()
             .map_err(|_| "bad target")?;
         let mode = self.value["failure"].as_str().unwrap_or("").to_owned();
-        if kind == "eval" && (self.ids().contains(&ws) || mode == "race") {
+        if kind == "eval"
+            && code.contains("workspace target already exists")
+            && (self.ids().contains(&ws) || mode == "race")
+        {
             return Err("workspace target already exists".into());
         }
         if mode == "reject" {

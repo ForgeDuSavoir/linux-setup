@@ -105,7 +105,17 @@ pub fn arguments(home: &Path, config: &Path, explicit: &[OsString]) -> Result<Ve
     Ok(vec![format!("obsidian://open?vault={id}").into()])
 }
 pub fn launch(binary: &Path, args: &[OsString]) -> Result<()> {
-    let status = Command::new(binary)
+    launch_scoped(binary, args, false)
+}
+pub fn launch_in_new_workspace(binary: &Path, args: &[OsString]) -> Result<()> {
+    launch_scoped(binary, args, true)
+}
+fn launch_scoped(binary: &Path, args: &[OsString], fresh: bool) -> Result<()> {
+    let mut command = Command::new(binary);
+    if fresh {
+        command.env_remove("HL_INITIAL_WORKSPACE_TOKEN");
+    }
+    let status = command
         .args(args)
         .status()
         .map_err(|e| format!("cannot launch Obsidian: {e}"))?;

@@ -15,6 +15,15 @@ hl.bind(mainMod .. " + E", hl.dsp.exec_cmd([["$HOME/.local/bin/session-files"]])
 hl.bind(mainMod .. " + P", hl.dsp.exec_cmd([[bash -lc 'exec "$HOME/.local/bin/session-pi"']]))
 hl.bind(mainMod .. " + B", hl.dsp.exec_cmd([[bash -lc 'exec "$HOME/.local/bin/session-app-launcher" --browser']]))
 
+-- Explicit fresh-workspace variants replace the retired Super+Tab actions.
+hl.bind(mainMod .. " + SHIFT + B", hl.dsp.exec_cmd(workspaceController .. " open-new browser"))
+hl.bind(mainMod .. " + SHIFT + P", hl.dsp.exec_cmd(workspaceController .. " open-new pi"))
+hl.bind(mainMod .. " + SHIFT + E", hl.dsp.exec_cmd(workspaceController .. " open-new files"))
+hl.bind(mainMod .. " + SHIFT + RETURN", hl.dsp.exec_cmd(workspaceController .. " open-new terminal"))
+hl.bind(mainMod .. " + SHIFT + D", hl.dsp.exec_cmd(workspaceController .. " open-new apps"))
+hl.bind(mainMod .. " + SHIFT + Y", hl.dsp.exec_cmd(workspaceController .. " open-new youtube"))
+hl.bind(mainMod .. " + SHIFT + O", hl.dsp.exec_cmd(workspaceController .. " open-new obsidian"))
+
 -- Text tools
 hl.bind(mainMod .. " + SPACE", hl.dsp.exec_cmd([[bash -lc 'exec "$HOME/.local/bin/dictation-toggle"']]))
 hl.bind(mainMod .. " + V", hl.dsp.exec_cmd([[bash -lc 'exec "$HOME/.local/bin/clipboard-menu"']]))
@@ -26,7 +35,19 @@ hl.bind(mainMod .. " + D", hl.dsp.exec_cmd([[bash -lc 'exec "$HOME/.local/bin/se
 hl.bind(mainMod .. " + F1", hl.dsp.exec_cmd("quickshell ipc call sessions nextAttention"))
 hl.bind(mainMod .. " + ESCAPE", hl.dsp.exec_cmd("quickshell ipc call sessions toggle"))
 hl.bind(mainMod .. " + L", hl.dsp.exec_cmd("hyprlock"))
-hl.bind(mainMod .. " + O", hl.dsp.exec_cmd("quickshell ipc call controlCenter toggle"))
+hl.bind(mainMod .. " + O", hl.dsp.exec_cmd([["$HOME/.local/bin/session-obsidian"]]))
+hl.bind(mainMod .. " + Y", hl.dsp.exec_cmd([[bash -lc 'exec "$HOME/.local/bin/session-app-launcher" --youtube']]))
+-- Never bind the sleep key while logind can still suspend/hibernate on it.
+local function sleepKeyIgnored(property)
+    local query = io.popen("timeout 2s busctl get-property org.freedesktop.login1 /org/freedesktop/login1 org.freedesktop.login1.Manager " .. property .. " 2>/dev/null")
+    if not query then return false end
+    local result = query:read("*a")
+    query:close()
+    return result:match('^s "ignore"%s*$') ~= nil
+end
+if sleepKeyIgnored("HandleSuspendKey") and sleepKeyIgnored("HandleSuspendKeyLongPress") then
+    hl.bind("XF86Sleep", hl.dsp.exec_cmd("quickshell ipc call controlCenter toggle"))
+end
 hl.bind(mainMod .. " + H", hl.dsp.exec_cmd("quickshell ipc call keybinds toggle"))
 
 
@@ -40,9 +61,6 @@ hl.bind(mainMod .. " + Q", function()
     end
 end)
 hl.bind(mainMod .. " + F", hl.dsp.window.fullscreen())
-
-hl.bind(mainMod .. " + TAB", hl.dsp.exec_cmd(workspaceController .. " create-empty-and-launch"))
-hl.bind(mainMod .. " + SHIFT + TAB", hl.dsp.exec_cmd(workspaceController .. " isolate-or-previous"))
 
 hl.bind(mainMod .. " + LEFT", hl.dsp.focus({ direction = "left" }))
 hl.bind(mainMod .. " + RIGHT", hl.dsp.focus({ direction = "right" }))

@@ -99,7 +99,9 @@ if transcript="$(whisper-cli \
     --no-timestamps \
     --no-prints \
     --file "${AUDIO_FILE}" | sed '/^[[:space:]]*\.\.\.[[:space:]]*$/d')"; then
-    while [[ "${transcript}" == $'\n'* ]]; do
+    # Whisper may prefix the transcription with spaces, tabs or blank lines.
+    # Trim only the start; preserve word spacing and subsequent indentation.
+    while [[ "${transcript}" == [[:space:]]* ]]; do
         transcript="${transcript:1}"
     done
 

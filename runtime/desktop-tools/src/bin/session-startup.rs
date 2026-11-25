@@ -30,17 +30,40 @@ fn initialize() -> std::result::Result<bool, Failure> {
     };
     startup::initialize(&mut desktop, &instance)
 }
+fn claim_menu() -> Result<bool, String> {
+    let instance = std::env::var("HYPRLAND_INSTANCE_SIGNATURE")
+        .map_err(|_| "Hyprland instance signature required")?;
+    startup::validate_signature(&instance)?;
+    let runtime = std::env::var_os("XDG_RUNTIME_DIR")
+        .map(PathBuf::from)
+        .filter(|p| p.is_absolute())
+        .ok_or("absolute XDG_RUNTIME_DIR required")?;
+    let mut store = LockedStore::open(&runtime.join("hyprland"))?;
+    startup::claim_menu(&mut store, &instance)
+}
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     if args == ["--version"] {
         println!(
-            "session-startup {} (marker 1; new-compositor only)",
+            "session-startup {} (marker 1; new-compositor only) [startup-menu-v1]",
             env!("CARGO_PKG_VERSION")
         );
         return;
     }
+    if args == ["--claim-menu"] {
+        match claim_menu() {
+            Ok(show) => println!("{}", serde_json::json!({"show":show})),
+            Err(error) => {
+                eprintln!("session-startup menu claim: {error}");
+                std::process::exit(1);
+            }
+        }
+        return; // Never initialization or bar execution from a UI menu claim.
+    }
     if !args.is_empty() {
-        eprintln!("usage: session-startup (Hyprland startup only)");
+        eprintln!(
+            "usage: session-startup [--claim-menu] (normal invocation: Hyprland startup only)"
+        );
         std::process::exit(1);
     }
     match initialize() {

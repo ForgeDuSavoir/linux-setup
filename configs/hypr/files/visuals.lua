@@ -103,20 +103,25 @@ hl.animation({
     style = "slide",
 })
 
+-- Full centered expansion/contraction, independent of workspace transitions.
+hl.curve("windowEase", {
+    type = "bezier",
+    points = { { 0.16, 1.0 }, { 0.3, 1.0 } },
+})
 hl.animation({
     leaf = "windowsIn",
     enabled = true,
-    speed = 6,
-    bezier = "winIn",
-    style = "slide",
+    speed = 3,
+    bezier = "windowEase",
+    style = "popin",
 })
 
 hl.animation({
     leaf = "windowsOut",
     enabled = true,
-    speed = 5,
-    bezier = "winOut",
-    style = "slide",
+    speed = 3,
+    bezier = "windowEase",
+    style = "popin",
 })
 
 hl.animation({
@@ -149,12 +154,20 @@ hl.animation({
     bezier = "default",
 })
 
-hl.animation({
+-- Shared baseline for restoring the synchronous session-only animation override.
+_G.__workflow_workspace_animation = {
     leaf = "workspaces",
     enabled = true,
     speed = 5,
     bezier = "wind",
-    style = "slide", -- Baseline restored after a vertical row transition.
+    style = "slidevert",
+}
+hl.animation(_G.__workflow_workspace_animation)
+
+-- Fast ease-out without overshoot, independent from the workspace/session curve.
+hl.curve("scratchpadEase", {
+    type = "bezier",
+    points = { { 0.16, 1.0 }, { 0.3, 1.0 } },
 })
 
 -- Session and global scratchpads are special workspaces, not ordinary rows.
@@ -163,7 +176,23 @@ hl.animation({
     enabled = true,
     speed = 6,
     bezier = "default",
-    style = "fade",
+    style = "slidefadevert",
+})
+-- Direction names refer to transition direction: opposite selectors make a
+-- panel enter from above and leave back above (not continue down the screen).
+hl.animation({
+    leaf = "specialWorkspaceIn",
+    enabled = true,
+    speed = 3,
+    bezier = "scratchpadEase",
+    style = "slidefadevert top",
+})
+hl.animation({
+    leaf = "specialWorkspaceOut",
+    enabled = true,
+    speed = 3,
+    bezier = "scratchpadEase",
+    style = "slidefadevert bottom",
 })
 -- Ref https://wiki.hypr.land/Configuring/Basics/Workspace-Rules/
 -- "Smart gaps" / "No gaps when only"

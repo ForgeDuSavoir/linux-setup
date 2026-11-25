@@ -1,6 +1,10 @@
 # CLOSE-WAIT-001 — workspace-empty polling holds the common desktop lock
 
-Status: reproduced in R0 on 2026-11-19, **not fixed**. Separate functional change,
+Current status: **fixed and installed 2026-11-25**; see [current implementation,
+private contention tests and deployment](../../runtime/close-events.md).
+The R0 reproduction and original checklist below are historical evidence.
+
+Historical status: reproduced in R0 on 2026-11-19, not fixed at that stage. Separate functional change,
 not automatic Rust-port acceptance. Reference: frozen controller SHA-256 in
 `oracles/manifest.json`; production Python remains unchanged.
 
@@ -22,7 +26,7 @@ scratchpads. The benchmark independently measures contention on a **private**
 lock, never intentionally blocks the real desktop lock. Wall time is scheduling
 and IPC dependent; 2.0 s is requested sleeping, not a strict upper bound.
 
-## Fix task (still open)
+## Original fix checklist (historical)
 
 - [ ] Inspect native close-event timing/payload in source and fake Lua callbacks;
   identify whether a just-closed address can be passed without accessing an

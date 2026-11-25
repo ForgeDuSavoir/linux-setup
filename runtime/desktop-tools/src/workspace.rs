@@ -6,7 +6,7 @@ use crate::{
     storage::Store,
 };
 use serde_json::{Value, json};
-use std::{collections::BTreeSet, time::Duration};
+use std::collections::BTreeSet;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Action {
@@ -164,13 +164,36 @@ impl<N: Native, S: Store> Controller<N, S> {
         fresh: bool,
         cleanup_after: bool,
     ) -> Result<()> {
+        self.select_mode(state, ws, fresh, cleanup_after, false)
+    }
+    pub fn select_session(
+        &mut self,
+        state: &mut State,
+        ws: i64,
+        fresh: bool,
+        cleanup_after: bool,
+    ) -> Result<()> {
+        self.select_mode(state, ws, fresh, cleanup_after, true)
+    }
+    fn select_mode(
+        &mut self,
+        state: &mut State,
+        ws: i64,
+        fresh: bool,
+        cleanup_after: bool,
+        session: bool,
+    ) -> Result<()> {
         state.preferred.insert(state.owner(ws).into(), ws);
         self.store.save(state)?;
-        let expression = native::focus(ws, fresh);
-        if let Err(e) = self
-            .native
-            .ctl(&[if fresh { "eval" } else { "dispatch" }, &expression])
-        {
+        let expression = if session {
+            native::session_focus(ws, fresh)
+        } else {
+            native::focus(ws, fresh)
+        };
+        if let Err(e) = self.native.ctl(&[
+            if fresh || session { "eval" } else { "dispatch" },
+            &expression,
+        ]) {
             if fresh {
                 self.discard_reservation(state, ws)
                     .map_err(|cleanup| format!("{e}; reservation save failed: {cleanup}"))?;
@@ -198,6 +221,37 @@ impl<N: Native, S: Store> Controller<N, S> {
             self.select(state, targets[(index + 1) % targets.len()], false, true)?;
         }
         Ok(())
+    }
+    /// Always allocate, including from an empty source; unlike legacy Tab navigation.
+    pub fn create_for_launch(
+        &mut self,
+        state: &mut State,
+        source: i64,
+        owner: &str,
+    ) -> Result<i64> {
+        if self.active()? != source || state.owner(source) != owner {
+            return Err("source workspace/context changed before creation".into());
+        }
+        let monitors = array(self.native.query("monitors")?)?;
+        if monitors.len() != 1 || monitors[0]["specialWorkspace"]["name"].as_str() != Some("") {
+            return Err("new-workspace launch requires one ordinary monitor".into());
+        }
+        self.cleanup(state)?;
+        let ws = self.fresh_workspace(state, owner, Some(source))?;
+        state.preferred.insert(owner.into(), ws);
+        self.store.save(state)?;
+        let expression = format!(
+            "local source=hl.get_active_workspace(); local special=hl.get_active_special_workspace(); if not source or source.id ~= {source} or (special and special.id ~= 0) or #hl.get_monitors() ~= 1 then error(\"source workspace changed before creation\") end; {}",
+            native::focus(ws, true)
+        );
+        if let Err(error) = self.native.ctl(&["eval", &expression]) {
+            self.discard_reservation(state, ws)
+                .map_err(|e| format!("{error}; reservation save failed: {e}"))?;
+            return Err(error);
+        }
+        self.cleanup(state)?;
+        self.native.ctl(&["eval", &native::confirm_empty(ws)])?;
+        Ok(ws)
     }
     pub fn create_empty(&mut self, state: &mut State) -> Result<()> {
         self.create_empty_result(state, false).map(|_| ())
@@ -253,11 +307,31 @@ impl<N: Native, S: Store> Controller<N, S> {
         if source == target || state.owner(source) != state.owner(target) {
             return Err("unsafe workspace transfer".into());
         }
+        self.transfer_guarded(state, source, address, target, fresh, None)
+    }
+    fn transfer_guarded(
+        &mut self,
+        state: &mut State,
+        source: i64,
+        address: &str,
+        target: i64,
+        fresh: bool,
+        shared: Option<bool>,
+    ) -> Result<()> {
+        if source == target || state.owner(source) != state.owner(target) {
+            return Err("unsafe workspace transfer".into());
+        }
         state.preferred.insert(state.owner(target).into(), target);
         self.store.save(state)?;
         let result = native::move_window(target, address, fresh).and_then(|expression| {
-            self.native
-                .ctl(&[if fresh { "eval" } else { "dispatch" }, &expression])
+            if let Some(shared) = shared {
+                let body = if fresh { expression } else { format!("if not hl.get_workspace({target}) then error(\"missing target\") end; hl.dispatch({expression})") };
+                let comparison = if shared { "<= 1" } else { "~= 1" };
+                let code = format!("local source=hl.get_workspace({source}); local active=hl.get_active_workspace(); local window=hl.get_window(\"address:{address}\"); if not source or not active or active.id ~= {source} or not window or not window.workspace or window.workspace.id ~= {source} or #hl.get_workspace_windows({source}) {comparison} then error(\"movement source/count changed\") end; {body}");
+                self.native.ctl(&["eval", &code])
+            } else {
+                self.native.ctl(&[if fresh { "eval" } else { "dispatch" }, &expression])
+            }
         });
         if let Err(e) = result {
             if fresh {
@@ -307,38 +381,32 @@ impl<N: Native, S: Store> Controller<N, S> {
             .copied()
             .filter(|id| state.owner(*id) == state.owner(ws))
             .collect();
-        if targets.len() > 1 {
-            let index = targets
+        let index = targets
+            .iter()
+            .position(|id| *id == ws)
+            .ok_or("source workspace is not registered")?;
+        if let Some(target) = targets.get(index + 1) {
+            self.transfer(state, ws, &address, *target, false)?;
+        } else {
+            let count = array(self.native.query("clients")?)?
                 .iter()
-                .position(|id| *id == ws)
-                .ok_or("source workspace is not registered")?;
-            self.transfer(
-                state,
-                ws,
-                &address,
-                targets[(index + 1) % targets.len()],
-                false,
-            )?;
+                .filter(|client| client_ws(client) == ws)
+                .count();
+            if count > 1 {
+                let owner = state.owner(ws).to_owned();
+                let target = self.fresh_workspace(state, &owner, Some(ws))?;
+                self.transfer_guarded(state, ws, &address, target, true, Some(true))?;
+            } else if count == 1 && targets.len() > 1 {
+                self.transfer_guarded(state, ws, &address, targets[0], false, Some(false))?;
+            }
         }
         Ok(())
     }
     pub fn closed(&mut self, state: &mut State, ws: i64) -> Result<()> {
+        self.closed_event(state, ws, None)
+    }
+    pub fn closed_event(&mut self, state: &mut State, ws: i64, epoch: Option<u64>) -> Result<()> {
         if ws <= 0 || !state.owners.contains_key(&ws.to_string()) {
-            return Ok(());
-        }
-        let mut empty = false;
-        for _ in 0..40 {
-            if !array(self.native.query("clients")?)?
-                .iter()
-                .any(|v| client_ws(v) == ws)
-            {
-                empty = true;
-                break;
-            }
-            // Historical CLOSE-WAIT-001: tracked separately, not silently fixed by R1.
-            self.native.sleep(Duration::from_millis(50));
-        }
-        if !empty {
             return Ok(());
         }
         let occupied = self.occupied()?;
@@ -362,7 +430,16 @@ impl<N: Native, S: Store> Controller<N, S> {
                 .rev()
                 .find(|id| candidates.contains(id))
                 .copied();
-            self.select(state, previous.unwrap_or(candidates[0]), false, true)
+            let target = previous.unwrap_or(candidates[0]);
+            if let Some(epoch) = epoch {
+                self.native.ctl(&["eval", &format!(
+                    "if _G.__workflow_navigation_epoch ~= {epoch} then error(\"stale close event\") end; local w=hl.get_active_workspace(); local sp=hl.get_active_special_workspace(); if not w or w.id ~= {ws} or (sp and sp.id ~= 0) or #hl.get_monitors() ~= 1 or #hl.get_workspace_windows({ws}) ~= 0 or not hl.get_workspace({target}) or #hl.get_workspace_windows({target}) == 0 then error(\"close context changed\") end; hl.dispatch(hl.dsp.focus({{ workspace = {target} }}))"
+                )])?;
+                state.preferred.insert(state.owner(target).into(), target);
+                self.cleanup(state)
+            } else {
+                self.select(state, target, false, true)
+            }
         } else {
             self.cleanup(state)
         }

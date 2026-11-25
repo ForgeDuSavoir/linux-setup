@@ -32,7 +32,13 @@ with tempfile.TemporaryDirectory(prefix='r2-private-core-') as directory:
             assert daemon.poll() is None,'private core exited';assert time.monotonic()<deadline;time.sleep(.02)
         a=desktop('start','--neutral')['session']['id']
         assert desktop('status')['context_confirmed']
+        # First prove empty replacement with the real private daemon.
+        replaced=a
+        a=desktop('start','--neutral')['session']['id'];assert a!=replaced
+        assert [s['id'] for s in core('list')['sessions']]==[a]
+        world=json.loads(file.read_text());world['clients'].append({'address':'0xaaa','workspace':{'id':world['active'],'name':str(world['active'])}});file.write_text(json.dumps(world))
         b=desktop('start','--neutral')['session']['id'];assert a!=b
+        world=json.loads(file.read_text());world['clients']=[c for c in world['clients'] if c.get('address')!='0xaaa'];file.write_text(json.dumps(world))
         assert [s['source'] for s in core('list')['sessions']]==[{'kind':'neutral'},{'kind':'neutral'}]
         active=json.loads(file.read_text())['active']
         desktop('close',str(active))

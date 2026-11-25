@@ -1,5 +1,30 @@
 # Default applications
 
+## Text editor — Mousepad
+
+The normal setup and targeted `--editor-only` mode use the installed system
+`org.xfce.mousepad.desktop` for `text/plain` and `text/markdown`:
+```sh
+bash configs/default_applications/configure_default_applications.sh --editor-only
+```
+No browser/file-manager/terminal/media default, GUI process or watched QML change.
+The old optional Neovim launcher files are not removed or reinstalled as defaults.
+If Fish is installed, a managed `conf.d/agora-editor.fish` sets exported global
+EDITOR/VISUAL to mousepad in new shells, overriding old universal defaults without
+executing personal Fish configuration during installation or rewriting fish_variables.
+Existing processes retain their environment until a new shell starts. If Pi is
+installed, the same editor setup also installs its [blocking Mousepad bridge and
+merges its global externalEditor setting](../../packages/programming/pi/external-editor.md).
+This avoids relying on inherited EDITOR/VISUAL in desktop-launched Pi, or restoring
+Neovim through an old hardcoded bridge. Existing project settings are not rewritten.
+
+Private prior MIME/snippet backups live under
+`$XDG_STATE_HOME/linux-setup/default-editor-upgrades`; live deployment
+`20261124T193426-7p07vCe8`. Targeted and normal routes use the same function.
+`test_text_editor.py` uses real XDG/Fish in temporary explicit HOME/XDG roots,
+checks MIME/environment/repeat setup/backups/unrelated defaults/symlink refusal,
+with a fake editor that must never execute. No GUI is launched.
+
 `configure_default_applications.sh` configures the standard browser, editor,
 terminal and media defaults. To configure **only** the directory/file-manager
 associations, without launching/quitting Thunar or changing its preferences/actions:

@@ -35,19 +35,21 @@ with tempfile.TemporaryDirectory(prefix='r3-private-core-') as directory:
         metadata=root/'run/hyprland/workspace-columns.json'
         metadata.write_text(json.dumps({'version':3,'order':[1,3],'owners':{'1':a,'3':b},'preferred':{},'next_id':40}))
         before_clients=json.loads(file.read_text())['clients']
-        startup();first=core('list');sid=first['active_session_id'];assert len(first['sessions'])==1 and first['sessions'][0]['number']==1 and first['sessions'][0]['source']=={'kind':'neutral'}
-        assert sid not in (a,b);assert json.loads(metadata.read_text())['owners']['1']=='neutral'
+        startup();first=core('list');assert first['sessions']==[] and first['active_session_id'] is None
+        assert set(json.loads(metadata.read_text())['owners'].values())=={'neutral'}
+        assert json.loads(file.read_text())['active']==1
+        assert not [event for event in json.loads(file.read_text())['events'] if event[0]=='focus']
         assert json.loads(file.read_text())['clients']==before_clients
         core('start','--project','P');logical=core('list');state_bytes=metadata.read_bytes();startup()
         assert core('list')==logical and metadata.read_bytes()==state_bytes and json.loads(file.read_text())['bar_phases']==['ready']
         # New compositor: IDs may repeat, but old UUID ownership must not.
         env['HYPRLAND_INSTANCE_SIGNATURE']='two';world=json.loads(file.read_text());world['instance']='two';world['active']=1;file.write_text(json.dumps(world))
-        startup();second=core('list');assert len(second['sessions'])==1 and second['sessions'][0]['number']==1 and second['active_session_id']!=sid
+        startup();second=core('list');assert second['sessions']==[] and second['active_session_id'] is None
         assert json.loads(file.read_text())['bar_phases']==['ready','ready'];assert json.loads(file.read_text())['clients']==before_clients
         assert len(list((root/'run/hyprland').glob('session-startup-backup-*')))==2
-        marker=json.loads((root/'run/hyprland/session-startup.json').read_text());assert marker['version']==1 and marker['phase']=='ready' and marker['instance']=='two'
+        marker=json.loads((root/'run/hyprland/session-startup.json').read_text());assert marker['version']==1 and marker['phase']=='ready' and marker['instance']=='two' and marker['startup_menu']=='pending'
     finally:
         daemon.terminate()
         try:daemon.communicate(timeout=5)
         except subprocess.TimeoutExpired:daemon.kill();daemon.communicate()
-print('R3 real private core: first login resets prior logical sessions, same-login retries preserve user state, new login gets a fresh Neutral-1, normal windows remain unowned/unchanged; no real bar/native/service touched.')
+print('R3 real private core: first login resets prior logical sessions, same-login retries preserve user state, new login has zero sessions and a one-shot menu request, no default Neutral/workspace, normal windows remain unowned/unchanged; no real bar/native/service touched.')

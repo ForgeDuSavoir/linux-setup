@@ -55,7 +55,8 @@ class Backend:
         w=self.w;f=w['flags'];w['events'].append(['focus',ws])
         if f.get('fail_focus'):raise RuntimeError('focus failed')
         if not f.get('silent_focus'):w['active']=ws
-        if f.get('late_window'):w['clients'].append({'workspace':{'id':3,'name':'3'}})
+        if f.get('late_window'):
+            ws=f.get('late_window_ws',3);w['clients'].append({'workspace':{'id':ws,'name':str(ws)}})
     def ctl(self,*args):
         kind,code=args;self.w['codes'].append([kind,code]);f=self.w['flags']
         if 'toggle_special' in code:

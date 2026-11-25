@@ -47,7 +47,7 @@ function filter(query) {
     menu.projectList.contentY = 0;
     menu.normalizeSelection();
 }
-for (const name of ['showMenu', 'focusSelection', 'ensureSelectedVisible', 'normalizeSelection', 'startArguments', 'handleKey'])
+for (const name of ['showMenu', 'focusSelection', 'ensureSelectedVisible', 'normalizeSelection', 'startArguments', 'handleKey', 'maybeShowStartupMenu', 'onUpdated'])
     vm.runInContext(method(name), menu);
 function key(code) {
     const event = {key: code, accepted: false};
@@ -55,8 +55,16 @@ function key(code) {
     assert(event.accepted);
 }
 menu.showMenu();
+assert.equal(menu.selectedSection, 'projects');
+assert.equal(menu.focusTarget, 'search');
+menu.onUpdated();
+assert.equal(menu.selectedSection, 'projects', 'fresh session rows must not move initial focus');
+assert.equal(menu.focusTarget, 'search');
+key(menu.Qt.Key_Tab);
 assert.equal(menu.selectedSection, 'sessions');
 assert.equal(menu.focusTarget, 'sessions');
+menu.onUpdated();
+assert.equal(menu.selectedSection, 'sessions', 'explicit Tab choice survives later refresh');
 key(menu.Qt.Key_Return);
 assert.deepEqual(Array.from(calls.pop()), ['switch', 'uuid-1']);
 key(menu.Qt.Key_Tab);
@@ -99,7 +107,7 @@ filter('');
 assert.equal(menu.filteredProjects.length, 10);
 menu.projects = [];
 filter('');
-assert.equal(menu.selectedSection, 'sessions');
+assert.equal(menu.selectedSection, 'projects', 'empty/loading sources must not force a session switch');
 menu.sessions = [];
 menu.normalizeSelection();
 key(menu.Qt.Key_Return);
@@ -112,16 +120,49 @@ assert.equal(menu.selectedSection, 'projects');
 assert.equal(menu.focusTarget, 'search');
 console.log('Session menu search, arrows, Tab, Enter, selection bounds and scroll: passed');
 
+for (const name of ['finishStartupClaim','maybeShowStartupMenu'])
+    vm.runInContext(method(name),menu);
+menu.sessions=[];menu.activeId='';
+let invalidations=0;
+menu.sessionService={busy:false,stale:false,contextConfirmed:true,displayedContext:'neutral',invalidateContext:()=>invalidations++};
+menu.startupMenuPending=false;menu.startupMenuUsed=false;menu.menuVisible=false;
+menu.finishStartupClaim(0,'{"show":true}','');
+assert(menu.startupMenuPending&&!menu.menuVisible);assert.equal(invalidations,1);
+menu.maybeShowStartupMenu();assert(menu.menuVisible&&menu.startupMenuUsed&&!menu.startupMenuPending);
+assert.equal(menu.focusTarget,'search');
+key(menu.Qt.Key_Escape);menu.maybeShowStartupMenu();assert(!menu.menuVisible,'Escape must not reopen startup menu');
+menu.startupMenuUsed=false;menu.finishStartupClaim(0,'{"show":false}','');menu.maybeShowStartupMenu();assert(!menu.menuVisible);
+menu.startupMenuUsed=false;menu.startupMenuPending=true;menu.sessions=[{id:'user'}];menu.activeId='user';menu.maybeShowStartupMenu();assert(!menu.menuVisible&&!menu.startupMenuPending,'user-created session wins');
+menu.sessions=[];menu.activeId='';menu.showMenu();key(menu.Qt.Key_Escape);menu.finishStartupClaim(0,'{"show":true}','');assert(!menu.startupMenuPending,'manual show/close before claim wins');
+menu.startupMenuUsed=false;menu.finishStartupClaim(1,'','failure');assert(!menu.menuVisible&&menu.status==='failure');
+menu.finishStartupClaim(0,'{"show":"yes"}','');assert(menu.status.includes('invalid'));
+console.log('Startup menu: fresh status gate, search focus, explicit native claim, Escape/no reopen, user selection/manual menu and error guards passed.');
+
 menu.projects = [{name: 'Neutral', source: {kind: 'neutral'}},
-    {name: 'Neutral', source: {kind: 'project', project_name: 'Neutral'}}];
+    {name: 'Neutral', source: {kind: 'project', project_name: 'Neutral'}},
+    {name: 'Work', source: {kind: 'project', project_name: 'Work'}}];
 menu.sessions = [];
-filter('does not match any project');
-assert.equal(menu.filteredProjects.length, 1, 'built-in source remains available during project search');
 menu.showMenu();
+filter('   ');
+assert.equal(menu.filteredProjects.length, 3);
+assert.equal(menu.filteredProjects[0].source.kind, 'neutral', 'unfiltered Neutral stays first');
 key(menu.Qt.Key_Return);
 assert.deepEqual(Array.from(calls.pop()), ['start', '--neutral']);
-filter('Neutral');
+filter(' WORK ');
+assert.equal(menu.filteredProjects.length, 1, 'Neutral obeys the same name filter as projects');
+key(menu.Qt.Key_Return);
+assert.deepEqual(Array.from(calls.pop()), ['start', '--project', 'Work']);
+filter('does not match any project');
+assert.equal(menu.filteredProjects.length, 0);
+const beforeUnmatched = calls.length;
+key(menu.Qt.Key_Return);
+assert.equal(calls.length, beforeUnmatched, 'no hidden Neutral launch on an unmatched query');
+filter(' nEuT ');
+assert.equal(menu.filteredProjects.length, 2, 'case-insensitive substring search includes both Neutral names');
+key(menu.Qt.Key_Return);
+assert.deepEqual(Array.from(calls.pop()), ['start', '--neutral']);
 menu.selectedProject = 1;
 key(menu.Qt.Key_Return);
 assert.deepEqual(Array.from(calls.pop()), ['start', '--project', 'Neutral']);
+console.log('Neutral uses ordinary name filtering, keeps unfiltered order and typed launch identity: passed.');
 assert(!source.includes('Neutral workspace (keep sessions open)'), 'no singleton neutral button');

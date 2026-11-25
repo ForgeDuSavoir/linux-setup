@@ -15,6 +15,45 @@ document or personal images. [R7 audio](R7-filmcraft.md) is also independently
 installed: exact rational timing and explicit safe partial-publication states,
 never a live-project/recording fixture.
 
+## Shift application shortcuts — installed
+
+[New-workspace launch](new-workspace-launch.md) adds five closed contextual targets
+to the controller: SUPER+Shift+B/P/E/Return/D. Always fresh allocation after the
+captured source, same owner, atomic source/target Lua guards, empty-focus
+acknowledgement and post-lock context/directory revalidation. App/browser use the
+existing expected-workspace launcher, with a new guarded browser desktop-action
+path. No shell Exec parser, stats writer, new session or window transfer. Existing
+Tab/Shift+Tab/Shift+S remain. 113 runtime Rust tests/full suite, 40 new CLI cases,
+30 launcher Rust and 33 usage cases pass. Reduced deployment applied, generation
+`d4b8a674a739f593d080d4bd`; exact state/PIDs/history/index preserved, no QML reload.
+
+## Empty-session replacement — installed
+
+[Desktop start replacement](empty-session-replacement.md) captures the current UUID,
+opens/confirms the new session, then checks the old session once and stops it only
+if empty across ordinary and scoped special workspaces. No check before opening,
+no Switch behavior change or core policy change. Full suite/113 Rust, private real
+core and 16 dedicated CLI cases pass. Reduced generation `297e10c961c723147660d3b1`
+installed with exact live state/PIDs/index/QML preserved, no shell reload.
+
+## Close-event lock contention — fixed
+
+[CLOSE-WAIT-001](close-events.md) now settles the closing address outside the
+metadata lock. Unrelated windows return immediately; stale/duplicate events are
+invalidated by a compositor navigation epoch, final focus is guarded in Lua.
+No window/session action replay. Full suite/113 Rust and private real-lock/CLI/
+Lua race tests pass; movement-only `22114c17a7f57d39e58d5bd2` installed without
+shell restart or live close/switch testing. Normal user acceptance remains open.
+
+## Shift+Y / Shift+O — installed
+
+[YouTube/Obsidian Shift launches](shift-youtube-obsidian.md) use the shared guarded
+same-owner fresh-workspace controller. YouTube accepts expected-workspace mode;
+Obsidian prepares/revalidates its exact registered URI before guarded dispatch.
+Old placement token removed, no statistics or Control Center change. Full runtime
+suite/113 Rust and 52 private workflow cases pass; matching helpers/cohort
+`ea19456a46f5456b98b69ab8` installed with state/PIDs/QML preserved, no live GUI tests.
+
 ## Build and test
 
 Rust 1.96.1 / edition 2024, exact libc/serde/serde_json/toml pins and workspace
@@ -56,6 +95,26 @@ The direct CLI accepts:
 **Do not run mutating commands against the live desktop as a development test.**
 The binary currently resolves native `hyprctl` from PATH just like Python;
 tests replace it with strict fixtures.
+
+## Empty login and one-shot session chooser — installed
+
+The [current bootstrap](../configs/session-manager/session-startup.md) now leaves
+zero sessions/no active UUID, with no automatic Neutral or new workspace. QML
+claims an explicit matching ready/pending request through native `--claim-menu`,
+then shows the chooser after fresh confirmation. Close/reload never reopens it;
+current login/session state is preserved on installation. Full suite passes (110
+Rust tests), including concurrent claims and genuine private offscreen menu tests.
+Active cohort `999b39e6c553b811c08c6944`, shell restarted with explicit approval.
+
+## Cold-start readiness repair — installed 2026-11-21
+
+[R3 startup](R3-startup.md#2026-11-21-cold-start-readiness-repair--installed) now
+waits on bounded readonly compositor registration/IPC readiness, including the
+actual hyprctl malformed-empty-registry bug. No mutating replay or global JSON
+normalization. Four new Rust tests plus real hyprctl/private Unix IPC and startup
+regressions pass (107 Rust total). Startup-only cohort installed; current failed
+marker/sessions/windows and notification server preserved. Takes effect on the
+next genuine graphical login; that user acceptance remains open.
 
 ## SUPER+F1 attention-first session navigation — installed
 

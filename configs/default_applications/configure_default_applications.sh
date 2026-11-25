@@ -29,33 +29,66 @@ configure_file_manager() {
     echo '✓ Default file manager: Thunar (inode/directory).'
 }
 
+configure_text_editor() {
+    command -v mousepad >/dev/null || { echo 'Mousepad must be installed first.' >&2; return 1; }
+    command -v xdg-mime >/dev/null || return 1
+    local config="${XDG_CONFIG_HOME:-${HOME}/.config}"
+    local state="${XDG_STATE_HOME:-${HOME}/.local/state}"
+    [[ "$config" == /* && "$state" == /* ]] || { echo 'Absolute XDG paths required.' >&2; return 1; }
+    local path backup base="${state}/linux-setup/default-editor-upgrades"
+    for path in "$config/mimeapps.list" "$config/fish/conf.d/agora-editor.fish"; do
+        [[ ! -L "$path" && ( ! -e "$path" || -f "$path" ) ]] || { echo "Unsafe editor settings target: $path" >&2; return 1; }
+    done
+    if [[ -f "$config/fish/conf.d/agora-editor.fish" ]] && ! grep -qFx '# Managed by linux-setup default editor setup.' "$config/fish/conf.d/agora-editor.fish"; then
+        echo 'Personal editor snippet exists; inspect before replacing.' >&2; return 1
+    fi
+    mkdir -p -- "$base"
+    backup="$(mktemp -d "$base/$(date -u +%Y%m%dT%H%M%S)-XXXXXXXX")"
+    chmod 700 "$backup"
+    for path in mimeapps.list fish/conf.d/agora-editor.fish; do
+        if [[ -f "$config/$path" ]]; then
+            mkdir -p -- "$backup/$(dirname "$path")"
+            cp -p -- "$config/$path" "$backup/$path"
+            chmod 600 "$backup/$path"
+        fi
+    done
+    printf 'Editor: Mousepad\n' > "$backup/change.txt"
+    local mime
+    for mime in text/plain text/markdown; do
+        xdg-mime default org.xfce.mousepad.desktop "$mime"
+        [[ "$(xdg-mime query default "$mime")" == org.xfce.mousepad.desktop ]] || return 1
+    done
+    if command -v fish >/dev/null 2>&1; then
+        mkdir -p -- "$config/fish/conf.d"
+        local temporary
+        temporary="$(mktemp "$config/fish/conf.d/agora-editor.fish.tmp.XXXXXXXX")"
+        printf '# Managed by linux-setup default editor setup.\nset -gx EDITOR mousepad\nset -gx VISUAL mousepad\n' > "$temporary"
+        chmod 600 "$temporary"
+        mv -f -- "$temporary" "$config/fish/conf.d/agora-editor.fish"
+    fi
+    if command -v pi >/dev/null 2>&1; then
+        python3 "${SCRIPT_DIR}/../../packages/programming/pi/install_external_editor.py" --apply
+    fi
+    echo "Private editor backup: $backup"
+    echo '✓ Default text/Markdown editor: Mousepad.'
+}
+
 # Narrow, idempotent setup: no app launch/quit, preferences, custom actions,
 # browser/editor/terminal defaults or unrelated MIME associations are changed.
 if [[ "$#" == 1 && "$1" == --file-manager-only ]]; then
     configure_file_manager
     exit 0
+elif [[ "$#" == 1 && "$1" == --editor-only ]]; then
+    configure_text_editor
+    exit 0
 elif [[ "$#" != 0 ]]; then
-    echo "Usage: $0 [--file-manager-only]" >&2
+    echo "Usage: $0 [--file-manager-only | --editor-only]" >&2
     exit 2
 fi
 TERMINAL_LAUNCHER_SOURCE="${SCRIPT_DIR}/launch_terminal_command.sh"
 TERMINAL_LAUNCHER_TARGET="${HOME}/.local/bin/launch-terminal-command"
-NEOVIM_LAUNCHER_SOURCE="${SCRIPT_DIR}/open_neovim.sh"
-NEOVIM_LAUNCHER_TARGET="${HOME}/.local/bin/agora-open-neovim"
-NEOVIM_DESKTOP_SOURCE="${SCRIPT_DIR}/agora-neovim.desktop"
-NEOVIM_DESKTOP_TARGET="${HOME}/.local/share/applications/agora-neovim.desktop"
 
 echo "==> Configuring default applications..."
-
-if [[ ! -f "${NEOVIM_LAUNCHER_SOURCE}" || ! -f "${NEOVIM_DESKTOP_SOURCE}" ]]; then
-    echo "✗ Neovim desktop launcher source files are missing." >&2
-    exit 1
-fi
-
-mkdir -p "${HOME}/.local/bin" "${HOME}/.local/share/applications"
-install -m 0755 "${NEOVIM_LAUNCHER_SOURCE}" "${NEOVIM_LAUNCHER_TARGET}"
-install -m 0644 "${NEOVIM_DESKTOP_SOURCE}" "${NEOVIM_DESKTOP_TARGET}"
-update-desktop-database "${HOME}/.local/share/applications" >/dev/null 2>&1 || true
 
 echo "==> Setting Firefox as default browser..."
 
@@ -67,10 +100,8 @@ echo "==> Setting Thunar as default file manager..."
 
 configure_file_manager
 
-echo "==> Setting Neovim as default plain-text and Markdown editor..."
-
-xdg-mime default agora-neovim.desktop text/plain
-xdg-mime default agora-neovim.desktop text/markdown
+echo "==> Setting Mousepad as default plain-text and Markdown editor..."
+configure_text_editor
 
 echo "==> Installing default terminal launcher..."
 
@@ -126,8 +157,6 @@ echo "==> Setting shell environment variables..."
 
 if command -v fish >/dev/null 2>&1; then
     fish -c 'set -Ux TERMINAL kitty'
-    fish -c 'set -Ux EDITOR nvim'
-    fish -c 'set -Ux VISUAL nvim'
 else
     echo "⚠ Fish is not installed, skipping universal variables."
 fi

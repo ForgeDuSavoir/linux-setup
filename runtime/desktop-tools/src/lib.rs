@@ -1,11 +1,13 @@
 //! Downstream desktop policy, independent of the Session Manager core.
 pub mod admin;
+pub mod close_event;
 pub mod core;
 pub mod desktop;
 pub mod files;
 #[cfg(test)]
 mod files_tests;
 pub mod native;
+pub mod new_workspace;
 pub mod notify;
 pub mod obsidian;
 #[cfg(test)]

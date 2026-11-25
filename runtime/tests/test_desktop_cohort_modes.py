@@ -18,14 +18,15 @@ with tempfile.TemporaryDirectory(prefix='r8-modes-') as d:
         before_clients=json.loads((f.root/'world').read_text())['clients']
         startup=f.root/'.local/bin/session-startup'
         r=subprocess.run([str(startup)],env=f.env,capture_output=True,text=True,timeout=8);assert r.returncode==0,r.stderr
-        first=f.core('list');sid=first['active_session_id'];assert len(first['sessions'])==1 and first['sessions'][0]['source']=={'kind':'neutral'}
+        first=f.core('list');assert first['active_session_id'] is None and first['sessions']==[]
         calls=(f.root/'qs.calls').read_text()
         assert subprocess.run([str(startup)],env=f.env,capture_output=True,timeout=5).returncode==0
         assert f.core('list')==first and (f.root/'qs.calls').read_text()==calls
         f.core('start','--project','P')
         f.env['HYPRLAND_INSTANCE_SIGNATURE']='login-two'
         assert subprocess.run([str(startup)],env=f.env,capture_output=True,timeout=8).returncode==0
-        second=f.core('list');assert len(second['sessions'])==1 and second['active_session_id']!=sid
+        second=f.core('list');assert second['sessions']==[] and second['active_session_id'] is None
+        assert json.loads(f.marker.read_text())['startup_menu']=='pending'
         assert json.loads((f.root/'world').read_text())['clients']==before_clients
         # Existing native startup-only update switches four ELFs as one generation.
         f.shell_start();f.reap()

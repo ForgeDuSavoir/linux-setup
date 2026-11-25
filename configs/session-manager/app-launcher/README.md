@@ -4,7 +4,21 @@ Downstream Session Manager v3 client. **0.2.1 implements project-local usage his
 
 ## User behavior
 
-- SUPER+Tab: after confirmed fresh workspace creation, the controller uses
+- SUPER+Y / `--youtube`: one eligible project YouTube desktop override, otherwise
+  YouTube URI in contextual Firefox via GIO. No arbitrary installed YouTube account
+  selection, Rofi or statistics. [Routes, tests and related O/Sleep bindings](../../../runtime/context-shortcuts.md).
+
+- SUPER+Shift+D uses the same expected-workspace protocol after unconditional fresh
+  allocation; reads ranking, never records usage. SUPER+Shift+B uses
+  `--browser --expected-workspace ID OWNER` (`[expected-browser-v1]`).
+  For a declared desktop `new-window` action, invoke it through Gio after normal
+  context/entry revalidation; otherwise preserve the selected desktop Exec, including
+  project profile wrappers. No injected flags/custom Exec rewrite or window transfer.
+  A profile/application can still reject or reuse a window; no retry/repair.
+  [Five-shortcut orchestration, deployment and limitations](../../../runtime/new-workspace-launch.md).
+
+- Historical SUPER+Tab (unbound since stage 3; protocol retained for Shift+D):
+  after confirmed fresh workspace creation, the controller uses
   `--expected-workspace ID OWNER`. Exact active workspace/owner/no-special checks
   precede Rofi and application acceptance; ranking is read but no usage is recorded.
   No menu on empty-workspace return or scratchpad dismissal.
@@ -66,13 +80,13 @@ bash configs/session-manager/install_app_launcher.sh --apply
 bash configs/session-manager/install_app_launcher.sh --restore /absolute/private/backup/session-app-launcher
 ```
 
-Same installed command `~/.local/bin/session-app-launcher`, no args / `--browser` / `--expected-workspace ID OWNER`; `--version` is a read-only health command and does not initialize statistics. Core queries have a 35-second deadline, native queries five seconds, launch helpers 30 seconds, capture bounded to four MiB per stream. Literal GTK/Gio argument vectors only; never shell-evaluate `Exec`. Rofi cancellation/nonzero retains the previous exit-0/no-launch behavior.
+Same installed command `~/.local/bin/session-app-launcher`, no args / `--browser` / `--expected-workspace ID OWNER` / `--browser --expected-workspace ID OWNER`; `--version` is a read-only health command and does not initialize statistics. Core queries have a 35-second deadline, native queries five seconds, launch helpers 30 seconds, capture bounded to four MiB per stream. Literal GTK/Gio argument vectors only; never shell-evaluate `Exec`. Rofi cancellation/nonzero retains the previous exit-0/no-launch behavior.
 
 The installer verifies the known protocol-3 stack, builds the locked pinned release, saves a private backup under `${XDG_STATE_HOME:-$HOME/.local/state}/linux-setup/app-launcher-upgrades/`, and atomically replaces only the executable. Explicit restore saves the version being replaced. No app/menu launch, core/shell restart, session/workspace change, history initialization or real Git exclusion edit is an installation check.
 
 ## Validation evidence
 
-- **28 Cargo tests**: schema/duplicates/ranges, score/clock/ties/retention/eviction, pure reads, concurrent increments, final-context rejection, directory identity, fd-safe storage, permissions/symlink/hardlink/FIFO, atomic publication/noreplace, lock/output/time bounds. Format, strict Clippy and locked offline release build pass under 1.96.1.
+- **30 Cargo tests**: schema/duplicates/ranges, score/clock/ties/retention/eviction, pure reads, concurrent increments, final-context rejection, directory identity, fd-safe storage, permissions/symlink/hardlink/FIFO, atomic publication/noreplace, lock/output/time bounds. Format, strict Clippy and locked offline release build pass under 1.96.1.
 - `../test-app-usage.py`: **33 executable cases** in owned HOME, covering project/shared/global persistence and move/reopen, ranking/selection, menu-only counting and browser non-mutation in all scopes, cancel/fail, UUID/entry/context/directory changes, post-acceptance failures, unsafe/corrupt/read-only state, symlinks/lock contention, exact Git rules/parent/worktree/special paths, tracked-data/index preservation, concurrent clients and compatibility with the existing legacy-status helper.
 - `../test-session-app-launcher.py`: **22 migration regression cases**, retaining the frozen Python oracle for unchanged rows/launch semantics; new context queries, deterministic ranking and `-no-sort` are deliberate differences. Includes localization, literal project paths, missing browser, installed symlink exports and a native run without Python on PATH.
 - `../test-neutral-v3.py`: actual private v3 daemon, fake GTK/native tools, neutral browser with an unavailable project source; full configuration installs the Rust binary in a temporary HOME.

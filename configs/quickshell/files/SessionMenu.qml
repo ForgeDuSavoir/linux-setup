@@ -11,7 +11,7 @@ Scope {
     readonly property var sessions: sessionService.sessions
     property var projects: []
     property string searchText: ""
-    readonly property var filteredProjects: projects.filter(function(project) { return project.source.kind === "neutral" || project.name.toLocaleLowerCase().includes(searchText.trim().toLocaleLowerCase()); })
+    readonly property var filteredProjects: projects.filter(function(project) { return project.name.toLocaleLowerCase().includes(searchText.trim().toLocaleLowerCase()); })
     onFilteredProjectsChanged: normalizeSelection()
     readonly property string activeId: sessionService.activeId
     readonly property string activeName: sessionService.activeName
@@ -23,7 +23,41 @@ Scope {
     property bool initialSelectionPending: false
     readonly property string binary: Quickshell.env("HOME") + "/.local/bin/session-manager"
 
-    Component.onCompleted: refresh()
+    property bool startupMenuPending: false
+    property bool startupMenuUsed: false
+
+    Component.onCompleted: {
+        refresh();
+        startupMenuClaim.running = true;
+    }
+
+    function finishStartupClaim(exitCode, output, diagnostic) {
+        if (exitCode !== 0) {
+            status = diagnostic.trim().split("\n")[0] || "Startup menu claim failed";
+            return;
+        }
+        try {
+            const reply = JSON.parse(output);
+            if (typeof reply.show !== "boolean")
+                throw new Error("invalid startup menu claim");
+            if (reply.show && !startupMenuUsed) {
+                startupMenuPending = true;
+                sessionService.invalidateContext(); // Discard pre-claim/in-flight status.
+            }
+        } catch (failure) {
+            status = String(failure);
+        }
+    }
+
+    function maybeShowStartupMenu() {
+        if (!startupMenuPending)
+            return;
+        startupMenuPending = false;
+        if (!startupMenuUsed && !menuVisible && !sessionService.busy
+                && !sessionService.stale && sessionService.contextConfirmed
+                && !activeId && !sessions.length && sessionService.displayedContext === "neutral")
+            showMenu();
+    }
 
     function refresh() {
         sessionService.refresh();
@@ -32,11 +66,13 @@ Scope {
     }
 
     function showMenu() {
+        startupMenuUsed = true;
+        startupMenuPending = false;
         menuVisible = true;
         pendingStop = "";
         initialSelectionPending = false;
         searchInput.text = "";
-        selectedSection = sessions.length ? "sessions" : "projects";
+        selectedSection = "projects";
         selectedProject = 0;
         selectedSession = 0;
         initialSelectionPending = true;
@@ -76,9 +112,8 @@ Scope {
         const previousSection = selectedSection;
         selectedProject = Math.max(0, Math.min(selectedProject, filteredProjects.length - 1));
         selectedSession = Math.max(0, Math.min(selectedSession, sessions.length - 1));
-        if (selectedSection === "projects" && !filteredProjects.length && !searchText && sessions.length)
-            selectedSection = "sessions";
-        else if (selectedSection === "sessions" && !sessions.length && filteredProjects.length)
+        // A loading/empty source list must not steal focus from creation search.
+        if (selectedSection === "sessions" && !sessions.length)
             selectedSection = "projects";
         if (menuVisible)
             Qt.callLater(function() {
@@ -134,8 +169,9 @@ Scope {
     Connections {
         target: menu.sessionService
         function onUpdated() {
+            menu.maybeShowStartupMenu();
             if (menu.menuVisible && menu.initialSelectionPending) {
-                menu.selectedSection = menu.sessions.length ? "sessions" : "projects";
+                menu.selectedSection = "projects";
                 menu.initialSelectionPending = false;
                 Qt.callLater(function() { menu.focusSelection(); });
             }
@@ -148,6 +184,16 @@ Scope {
                 menu.menuVisible = false;
                 menu.refresh();
             }
+        }
+    }
+
+    Process {
+        id: startupMenuClaim
+        command: [Quickshell.env("HOME") + "/.local/bin/session-startup", "--claim-menu"]
+        stdout: StdioCollector { id: startupClaimOutput }
+        stderr: StdioCollector { id: startupClaimError }
+        onExited: function(exitCode) {
+            menu.finishStartupClaim(exitCode, startupClaimOutput.text, startupClaimError.text);
         }
     }
 

@@ -68,19 +68,23 @@ require("inputs")
 package.loaded["keybinds"] = nil
 require("keybinds")
 
+-- Invalidate pending close work on reload and every workspace navigation.
+_G.__workflow_navigation_epoch = (_G.__workflow_navigation_epoch or 0) + 1
 -- React to windows closed by either SUPER+Q or the application itself.
 -- Keep shell process work out of the compositor event callback.
 _G.__workflow_window_close_subscription = hl.on("window.close", function(window)
     local workspace = window and window.workspace
     local id = workspace and workspace.id
-    if type(id) == "number" and id > 0 then
-        hl.dispatch(hl.dsp.exec_cmd([["$HOME/.local/bin/workspace-controller" closed ]] .. tostring(id)))
+    local address = window and window.address
+    if type(id) == "number" and id > 0 and type(address) == "string" and address:match("^0x%x+$") then
+        hl.dispatch(hl.dsp.exec_cmd([["$HOME/.local/bin/workspace-controller" closed-event ]] .. tostring(id) .. " " .. address .. " " .. tostring(_G.__workflow_navigation_epoch)))
     end
 end)
 
 -- Prune departed empty workspaces even for mouse/native/session switches.
 -- Cleanup is serialized with navigation and never focuses or moves a window.
 _G.__workflow_workspace_active_subscription = hl.on("workspace.active", function()
+    _G.__workflow_navigation_epoch = _G.__workflow_navigation_epoch + 1
     hl.dispatch(hl.dsp.exec_cmd([["$HOME/.local/bin/workspace-controller" cleanup]]))
 end)
 _G.__workflow_workspace_removed_subscription = hl.on("workspace.removed", function()

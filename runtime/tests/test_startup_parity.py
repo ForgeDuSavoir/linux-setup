@@ -93,9 +93,27 @@ class Environment:
 
 class Parity(unittest.TestCase):
     def test_cases(self):
-        for name,data in cases().items():
+        # Freeze historical oracles. These pre-reset refusal/deferred paths are
+        # still identical; successful bootstrap now intentionally has no Neutral.
+        unchanged=['04_deferred','05_failed','06_compositors','07_monitors','08_scoped','12_read_no_retry','13_uncertain_stop','14_crashed','18_invalid_marker','19_invalid_signature','21_first_failure_bar_then_blocked','failed_stop']
+        for name in unchanged:
+            data=cases()[name]
             with self.subTest(name=name),tempfile.TemporaryDirectory(prefix='r3-py-') as p,tempfile.TemporaryDirectory(prefix='r3-rust-') as r:
                 self.assertEqual(Environment(p,data).oracle(),Environment(r,data).rust(),name)
-        print(f'R3: {len(cases())} CLI/frozen startup scenarios passed (bar/logger are private fakes).')
+        print(f'R3: {len(unchanged)} unchanged refusal/deferred cases match frozen oracle; current empty-start contract checked separately.')
+    def test_current_empty_start_contract(self):
+        successes=['01_fresh','02_same_instance','03_relogin','09_global','10_read_retry','15_focus_fail','16_silent_focus','17_concurrent_session','22_bar_after_ready','fresh_race','next_login_after_deferred']
+        for name in successes:
+            with self.subTest(name=name),tempfile.TemporaryDirectory(prefix='empty-start-') as d:
+                e=Environment(d,cases()[name]);result=e.rust();w=result['world']
+                self.assertEqual(w['sessions'],[]);self.assertIsNone(w['selected'])
+                self.assertEqual(w.get('generation',0),0)
+                self.assertEqual(result['marker']['phase'],'ready')
+                self.assertEqual(result['marker']['startup_menu'],'pending')
+                self.assertNotIn('session_id',result['marker'])
+                self.assertFalse(any(event[0]=='focus' for event in w['events']))
+                self.assertFalse(any(event[0]=='request' and event[1][0]=='start' for event in w['events']))
+                self.assertEqual(set(result['state']['owners'].values()),{'neutral'})
+        print(f'Empty bootstrap: {len(successes)} success/reload/new-login/no implicit creation cases passed.')
 
 if __name__=='__main__':unittest.main()

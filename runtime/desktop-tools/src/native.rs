@@ -1,4 +1,5 @@
-//! Direct hyprctl argv. Preserve the reference's unbounded native waits in R1.
+//! Direct hyprctl argv. Ordinary calls retain R1 waits; startup-only readonly
+//! readiness probes use a separate bounded transport.
 use crate::Result;
 use serde_json::Value;
 use std::{process::Command, time::Duration};
@@ -9,12 +10,55 @@ pub trait Native {
         serde_json::from_str(&self.ctl(&[name, "-j"])?)
             .map_err(|e| format!("invalid native JSON: {e}"))
     }
+    /// Startup-only readonly probes. None means a recognized not-ready response.
+    fn startup_query(&mut self, name: &str, _timeout: Duration) -> Result<Option<Value>> {
+        self.query(name).map(Some)
+    }
     fn sleep(&mut self, duration: Duration) {
         std::thread::sleep(duration);
     }
 }
 pub struct Hyprctl;
+/// Narrow startup response classification: never normalize malformed JSON globally.
+pub(crate) fn startup_reply(name: &str, success: bool, stdout: &[u8]) -> Result<Option<Value>> {
+    let text = std::str::from_utf8(stdout)
+        .map_err(|_| format!("startup hyprctl {name}: invalid UTF-8"))?;
+    if !success {
+        if name == "monitors"
+            && text.trim_start().starts_with("Couldn't connect to ")
+            && text.contains("/.socket.sock")
+        {
+            return Ok(None);
+        }
+        return Err(format!(
+            "startup hyprctl {name} failed; refusing non-readiness retry"
+        ));
+    }
+    // Hyprctl 0.56.2 emits "\n]\n\n" (exit 0) for no complete instance lock.
+    if name == "instances" && text.trim() == "]" {
+        return Ok(None);
+    }
+    serde_json::from_str(text)
+        .map(Some)
+        .map_err(|e| format!("startup hyprctl {name}: invalid JSON: {e}"))
+}
 impl Native for Hyprctl {
+    fn startup_query(&mut self, name: &str, timeout: Duration) -> Result<Option<Value>> {
+        if !["instances", "monitors"].contains(&name) {
+            return Err("only readonly startup probes are allowed".into());
+        }
+        let result = crate::process::run(
+            Command::new("hyprctl").args([name, "-j"]),
+            None,
+            true,
+            Some(timeout),
+        );
+        match result {
+            Ok(output) => startup_reply(name, output.status.success(), &output.stdout),
+            Err(e) if e.starts_with("child deadline exceeded;") => Ok(None),
+            Err(e) => Err(format!("startup hyprctl {name}: {e}")),
+        }
+    }
     fn ctl(&mut self, args: &[&str]) -> Result<String> {
         let output = Command::new("hyprctl")
             .args(args)
@@ -45,6 +89,17 @@ pub fn focus(ws: i64, fresh: bool) -> String {
     } else {
         format!("hl.dsp.focus({{ workspace = {ws} }})")
     }
+}
+/// Session transitions only: style is read synchronously at animation start.
+pub fn session_focus(ws: i64, fresh: bool) -> String {
+    let body = if fresh {
+        focus(ws, true)
+    } else {
+        format!("hl.dispatch({})", focus(ws, false))
+    };
+    format!(
+        "local base = _G.__workflow_workspace_animation or {{leaf=\"workspaces\",enabled=true,speed=5,bezier=\"wind\",style=\"slidevert\"}}; local ok, why = pcall(function() hl.animation({{leaf=base.leaf,enabled=base.enabled,speed=base.speed,bezier=base.bezier,style=\"slidefade\"}}); {body} end); hl.animation(base); if not ok then error(why) end"
+    )
 }
 /// Read-only compositor acknowledgement, after focus and metadata finalization.
 /// No polling/sleep, and no second focus if another navigation has won.

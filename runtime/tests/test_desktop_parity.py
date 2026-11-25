@@ -107,7 +107,13 @@ class Differential(unittest.TestCase):
     def test_all_cases(self):
         for name,data in cases().items():
             with self.subTest(name=name),tempfile.TemporaryDirectory(prefix='r2-python-') as p,tempfile.TemporaryDirectory(prefix='r2-rust-') as r:
-                self.assertEqual(Environment(p,data).oracle(),Environment(r,data).rust(),name)
-        print(f'R2: {len(cases())} real CLI / frozen Python differential scenarios passed.')
+                if name.startswith('start_'):
+                    result=Environment(r,data).rust()
+                    self.assertTrue(result['answers'][0]['ok'])
+                    self.assertEqual(result['world']['sessions'],['A','C','D'])
+                    self.assertEqual(result['world']['selected'],'D')
+                    self.assertNotIn('B',result['state']['owners'].values())
+                else:self.assertEqual(Environment(p,data).oracle(),Environment(r,data).rust(),name)
+        print(f'R2: {len(cases())} CLI scenarios passed (50 unchanged frozen comparisons, 2 explicit empty-replacement deltas).')
 
 if __name__=='__main__':unittest.main()

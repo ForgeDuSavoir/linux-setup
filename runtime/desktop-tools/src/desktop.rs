@@ -136,6 +136,13 @@ impl<N: Native, S: Store, C: Core> Desktop<N, S, C> {
         }
     }
     fn guard_stop(&mut self, state: &State, id: &SessionId) -> Result<()> {
+        if self.session_empty(state, id)? {
+            Ok(())
+        } else {
+            Err("session has open windows; stop refused".into())
+        }
+    }
+    fn session_empty(&mut self, state: &State, id: &SessionId) -> Result<bool> {
         let owned: Vec<_> = state
             .order
             .iter()
@@ -157,10 +164,10 @@ impl<N: Native, S: Store, C: Core> Desktop<N, S, C> {
                     .and_then(Value::as_i64)
                     .is_some_and(|id| id > 0 && owned.contains(&id))
             {
-                return Err("session has open windows; stop refused".into());
+                return Ok(false);
             }
         }
-        Ok(())
+        Ok(true)
     }
     pub fn stop_fallback(before: &Sessions, id: &SessionId) -> Result<Option<SessionId>> {
         let index = before
@@ -202,7 +209,7 @@ impl<N: Native, S: Store, C: Core> Desktop<N, S, C> {
                 );
             }
             let (target, fresh) = self.pick_workspace(state, &target_id.0)?;
-            self.workspace.select(state, target, fresh, false)?;
+            self.workspace.select_session(state, target, fresh, false)?;
             if self.workspace.active()? != target || !self.visible_scratchpad()?.is_empty() {
                 return Err(
                     "fallback desktop not confirmed; original session was not stopped".into(),
@@ -231,13 +238,16 @@ impl<N: Native, S: Store, C: Core> Desktop<N, S, C> {
                 );
             }
         }
+        self.forget_session(state, id)?;
+        Ok(reply)
+    }
+    fn forget_session(&mut self, state: &mut State, id: &SessionId) -> Result<()> {
         state.owners.retain(|_, owner| *owner != id.0);
         state
             .order
             .retain(|ws| state.owners.contains_key(&ws.to_string()));
         state.preferred.remove(&id.0);
-        self.workspace.cleanup(state)?;
-        Ok(reply)
+        self.workspace.cleanup(state)
     }
     fn close_current(
         &mut self,
@@ -408,6 +418,7 @@ hl.dispatch(hl.dsp.window.close({{ window = "address:{address}" }}))
         if let Action::Close(expected) = action {
             return self.close_current(&mut state, &before, &before_raw, &special, expected);
         }
+        let original_ownership = state.clone();
         if !matches!(action, Action::Stop(_)) {
             self.workspace.cleanup(&mut state)?;
         }
@@ -415,6 +426,14 @@ hl.dispatch(hl.dsp.window.close({{ window = "address:{address}" }}))
         if current > 0 {
             state.preferred.insert(state.owner(current).into(), current);
         }
+        let previous = if matches!(action, Action::Start(_)) {
+            before
+                .active_session_id
+                .clone()
+                .filter(|id| current > 0 && state.owner(current) == id.0)
+        } else {
+            None
+        };
         self.hide_scratchpad(&special)?;
         if let Action::Stop(id) = &action {
             return self.stop_session(&mut state, id, fallback);
@@ -439,9 +458,35 @@ hl.dispatch(hl.dsp.window.close({{ window = "address:{address}" }}))
             _ => unreachable!(),
         };
         let (target, fresh) = self.pick_workspace(&mut state, &owner)?;
-        state.preferred.insert(owner, target);
+        state.preferred.insert(owner.clone(), target);
         self.workspace.store.save(&state)?;
-        self.workspace.select(&mut state, target, fresh, true)?;
+        self.workspace
+            .select_session(&mut state, target, fresh, true)?;
+        if let Some(old) = previous.filter(|id| id.0 != owner) {
+            if self.workspace.active()? != target || !self.visible_scratchpad()?.is_empty() {
+                return Err("new desktop not confirmed; previous session retained".into());
+            }
+            let live = Sessions::parse(&self.request(&["list"])?)?;
+            if live.active_session_id.as_ref().map(|id| id.0.as_str()) != Some(owner.as_str())
+                || !live.sessions.iter().any(|s| s.id.0 == owner)
+            {
+                return Err("new session not confirmed; previous session retained".into());
+            }
+            if live.contains(&old) && self.session_empty(&original_ownership, &old)? {
+                let stopped = self.request(&["stop", &old.0])?;
+                if stopped["stopped_session_id"].as_str() != Some(old.0.as_str()) {
+                    return Err("uncertain previous-session stop; no retry".into());
+                }
+                let after = Sessions::parse(&self.request(&["list"])?)?;
+                if after.contains(&old)
+                    || after.active_session_id.as_ref().map(|id| id.0.as_str())
+                        != Some(owner.as_str())
+                {
+                    return Err("replacement stop outcome changed; inspect state, no retry".into());
+                }
+                self.forget_session(&mut state, &old)?;
+            }
+        }
         Ok(reply)
     }
 }

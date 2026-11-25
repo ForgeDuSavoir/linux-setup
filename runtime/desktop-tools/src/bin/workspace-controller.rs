@@ -9,10 +9,20 @@ fn run() -> Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
     if args == ["--version"] {
         println!(
-            "workspace-controller {} (desktop metadata 3)",
+            "workspace-controller {} (desktop metadata 3) [new-workspace-v1]",
             env!("CARGO_PKG_VERSION")
         );
         return Ok(());
+    }
+    if let [command, target] = args.as_slice()
+        && command == "open-new"
+    {
+        return agora_desktop_tools::new_workspace::run(
+            agora_desktop_tools::new_workspace::Target::parse(target)?,
+        );
+    }
+    if args.first().is_some_and(|a| a == "closed-event") {
+        return agora_desktop_tools::close_event::run(&args[1..]);
     }
     let action = Action::parse(&args)?;
     let launcher = if action == Action::CreateEmptyAndLaunch {

@@ -91,7 +91,7 @@ fi
 echo "==> Installing ${APP_NAME} launchers..."
 mkdir -p "$BIN_DIR"
 install -m 0755 "$SOURCE_LAUNCHER_FILE" "$LAUNCHER_FILE"
-install -m 0755 "$SOURCE_EXTERNAL_EDITOR_FILE" "$EXTERNAL_EDITOR_FILE"
+python3 "${SCRIPT_DIR}/install_external_editor.py" --apply
 
 echo "==> Installing ${APP_NAME} extensions..."
 mkdir -p "$EXTENSIONS_DIR"
@@ -104,7 +104,7 @@ python3 "${SCRIPT_DIR}/../../../configs/pi/session-notifications/install.py" --a
 
 echo "==> Installing ${APP_NAME} keybindings..."
 mkdir -p "$AGENT_DIR"
-install -m 0644 "$SOURCE_KEYBINDINGS_FILE" "$KEYBINDINGS_FILE"
+python3 "${SCRIPT_DIR}/install_keybindings.py" --apply
 
 echo "==> Configuring ${APP_NAME} terminal rendering..."
 node - "$SETTINGS_FILE" <<'NODE'

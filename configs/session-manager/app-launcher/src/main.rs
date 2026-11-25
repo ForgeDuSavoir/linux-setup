@@ -160,14 +160,82 @@ impl Client {
         }
         Ok(())
     }
-    fn run(&self, browser: bool) -> Result<()> {
+    fn run(&self, browser: bool, youtube: bool) -> Result<()> {
         let mut snapshot = self.snapshot()?;
+        if youtube {
+            let overrides: Vec<_> = snapshot
+                .choices
+                .iter()
+                .filter(|c| {
+                    c.app.origin == Origin::Project
+                        && matches!(
+                            c.app.id.as_str(),
+                            "youtube.desktop" | "youtube-fds.desktop" | "youtube-qmk.desktop"
+                        )
+                })
+                .collect();
+            if overrides.len() > 1 {
+                return Err("ambiguous project YouTube entries".into());
+            }
+            if let Some(choice) = overrides.first() {
+                return self.launch_choice(&snapshot.binding, choice, None);
+            }
+            let choice = snapshot
+                .choices
+                .iter()
+                .find(|c| c.app.id == "firefox.desktop")
+                .ok_or("contextual Firefox unavailable for YouTube")?;
+            let entry = match choice.app.origin {
+                Origin::Installed => gio::DesktopAppInfo::new(&choice.app.id),
+                Origin::Project => gio::DesktopAppInfo::from_filename(
+                    snapshot
+                        .binding
+                        .project
+                        .as_ref()
+                        .ok_or("project missing")?
+                        .0
+                        .join(".session-manager/apps")
+                        .join(&choice.app.id),
+                ),
+            }
+            .ok_or("contextual Firefox desktop entry unavailable")?;
+            self.revalidate(&snapshot.binding, choice)?;
+            return entry
+                .launch_uris(
+                    &["https://www.youtube.com/"],
+                    None::<&gio::AppLaunchContext>,
+                )
+                .map_err(|e| e.to_string());
+        }
         if browser {
             let choice = snapshot
                 .choices
                 .iter()
                 .find(|c| c.app.id == "firefox.desktop")
                 .ok_or("Firefox is unavailable in the current context")?;
+            if self.expected.is_some() {
+                // Honor declared desktop actions rather than rewriting custom Exec.
+                let entry = match choice.app.origin {
+                    Origin::Installed => gio::DesktopAppInfo::new(&choice.app.id),
+                    Origin::Project => gio::DesktopAppInfo::from_filename(
+                        snapshot
+                            .binding
+                            .project
+                            .as_ref()
+                            .ok_or("project missing")?
+                            .0
+                            .join(".session-manager/apps")
+                            .join(&choice.app.id),
+                    ),
+                };
+                if let Some(entry) = entry
+                    && entry.list_actions().iter().any(|a| a == "new-window")
+                {
+                    self.revalidate(&snapshot.binding, choice)?;
+                    entry.launch_action("new-window", None::<&gio::AppLaunchContext>);
+                    return Ok(());
+                }
+            }
             return self.launch_choice(&snapshot.binding, choice, None);
         }
         if snapshot.choices.is_empty() {
@@ -360,22 +428,31 @@ fn entry() -> Result<()> {
     let args = std::env::args_os().skip(1).collect::<Vec<_>>();
     if args == ["--version"] {
         println!(
-            "session-app-launcher {} (Rust; project-local usage history v1) [expected-workspace-v1]",
+            "session-app-launcher {} (Rust; project-local usage history v1) [expected-workspace-v1] [expected-browser-v1] [youtube-v1] [expected-youtube-v1]",
             env!("CARGO_PKG_VERSION")
         );
         return Ok(());
     }
-    let browser = args == ["--browser"];
+    let browser = args.first().is_some_and(|arg| arg == "--browser");
     let expected = match args.as_slice() {
         [] => None,
-        [flag] if flag == "--browser" => None,
+        [flag] if flag == "--browser" || flag == "--youtube" => None,
+        [browser, flag, id, owner]
+            if (browser == "--browser" || browser == "--youtube")
+                && flag == "--expected-workspace" =>
+        {
+            Some(expected::Expected::parse(
+                id.to_str().ok_or("invalid workspace")?,
+                owner.to_str().ok_or("invalid owner")?,
+            )?)
+        }
         [flag, id, owner] if flag == "--expected-workspace" => Some(expected::Expected::parse(
             id.to_str().ok_or("invalid workspace")?,
             owner.to_str().ok_or("invalid owner")?,
         )?),
         _ => {
             return Err(
-                "usage: session-app-launcher [--browser | --expected-workspace ID OWNER]".into(),
+                "usage: session-app-launcher [--browser] [--expected-workspace ID OWNER]".into(),
             );
         }
     };
@@ -389,7 +466,7 @@ fn entry() -> Result<()> {
         expected,
         home,
     };
-    client.run(browser)
+    client.run(browser, args.first().is_some_and(|a| a == "--youtube"))
 }
 
 #[cfg(test)]

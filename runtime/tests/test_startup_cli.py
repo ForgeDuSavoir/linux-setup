@@ -62,8 +62,8 @@ class Cli(unittest.TestCase):
             finally:
                 for p in processes:
                     if p.poll() is None:p.kill();p.wait()
-        world=self.world();self.assertEqual(world['bar_phases'],['ready']);self.assertEqual(world['generation'],1)
-        self.assertEqual([e for e in world['events'] if e[0]=='request' and e[1][0] in ('stop','start')],[['request',['stop','A']],['request',['stop','B']],['request',['start','--neutral']]])
+        world=self.world();self.assertEqual(world['bar_phases'],['ready']);self.assertEqual(world.get('generation',0),0)
+        self.assertEqual([e for e in world['events'] if e[0]=='request' and e[1][0] in ('stop','start')],[['request',['stop','A']],['request',['stop','B']]])
     def test_backup_and_marker_private_and_old_bytes_preserved(self):
         before=self.e.metadata.read_bytes();r=self.call();self.assertEqual(r.returncode,0,r.stderr)
         backups=list(self.e.directory.glob('session-startup-backup-*'));self.assertEqual(len(backups),1);backup=backups[0]
@@ -76,6 +76,25 @@ class Cli(unittest.TestCase):
         world=self.world();world['flags']['lost_reply']=True;self.e.worldfile.write_text(json.dumps(world))
         r=self.call();self.assertEqual(r.returncode,0,r.stderr);after=self.world();self.assertEqual(after['bar_phases'],['failed']);self.assertEqual(json.loads(self.e.marker.read_text())['phase'],'failed')
         r=self.call();self.assertNotEqual(r.returncode,0);self.assertEqual(self.world(),after)
+    def test_menu_claim_is_once_per_ready_instance_under_lock(self):
+        marker={'version':1,'instance':'one','phase':'ready','startup_menu':'pending','keep':{'x':1}}
+        self.e.marker.write_text(json.dumps(marker));state=self.e.metadata.read_bytes()
+        processes=[subprocess.Popen([str(BIN),'--claim-menu'],env=self.env,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True) for _ in range(2)]
+        replies=[]
+        for p in processes:
+            out,err=p.communicate(timeout=4);self.assertEqual(p.returncode,0,err);replies.append(json.loads(out)['show'])
+        self.assertEqual(sorted(replies),[False,True])
+        self.assertEqual(json.loads(self.e.marker.read_text()),{**marker,'startup_menu':'consumed'})
+        self.assertEqual(self.e.metadata.read_bytes(),state);self.assertEqual(self.world()['events'],[])
+        self.assertNotIn('bar_phases',self.world())
+    def test_menu_claim_ignores_old_wrong_failed_deferred_and_absent_markers(self):
+        for marker in [None,{'version':1,'instance':'other','phase':'ready','startup_menu':'pending'}, {'version':1,'instance':'one','phase':'ready','session_id':'legacy'},*({'version':1,'instance':'one','phase':p,'startup_menu':'pending'} for p in ['initializing','failed','deferred'])]:
+            self.e.marker.unlink(missing_ok=True)
+            if marker is not None:self.e.marker.write_text(json.dumps(marker))
+            before=self.e.marker.read_bytes() if self.e.marker.exists() else None
+            r=self.call('--claim-menu');self.assertEqual(r.returncode,0,r.stderr);self.assertEqual(json.loads(r.stdout),{'show':False})
+            self.assertEqual(self.e.marker.read_bytes() if self.e.marker.exists() else None,before)
+        self.assertEqual(self.world()['events'],[]);self.assertNotIn('bar_phases',self.world())
     def test_symlink_marker_refuses_reset_and_does_not_overwrite_target(self):
         target=self.e.root/'preserve';contents=json.dumps({'version':1,'instance':'old','phase':'deferred'});target.write_text(contents);self.e.marker.symlink_to(target)
         self.call();self.assertEqual(target.read_text(),contents);self.assertEqual(self.world()['events'],[])
@@ -94,6 +113,6 @@ class Cli(unittest.TestCase):
         r=self.call(binary=installed/'session-startup');self.assertEqual(r.returncode,0,r.stderr);self.assertNotIn('bar_phases',self.world())
         world=self.world();world['instance']='next-login';self.e.worldfile.write_text(json.dumps(world))
         r=self.call(binary=installed/'session-startup',env={**self.env,'HYPRLAND_INSTANCE_SIGNATURE':'next-login'})
-        self.assertEqual(r.returncode,0,r.stderr);self.assertEqual(self.world()['bar_phases'],['ready']);self.assertEqual(self.world()['generation'],1)
+        self.assertEqual(r.returncode,0,r.stderr);self.assertEqual(self.world()['bar_phases'],['ready']);self.assertEqual(self.world().get('generation',0),0)
 
 if __name__=='__main__':unittest.main()

@@ -58,6 +58,180 @@ fn pure_admin_state_and_unknown_operation() {
     assert!(admin::run("unknown", Value::Null).is_err());
     assert!(admin::run("defer-marker", json!({"instance":"new","previous":{}})).is_err());
 }
+struct Readiness {
+    replies: VecDeque<(&'static str, Result<Option<Value>>)>,
+    calls: usize,
+    sleeps: usize,
+}
+impl Native for Readiness {
+    fn ctl(&mut self, _: &[&str]) -> Result<String> {
+        panic!("unbounded/mutating call during readiness")
+    }
+    fn startup_query(&mut self, name: &str, timeout: Duration) -> Result<Option<Value>> {
+        assert!(timeout > Duration::ZERO && timeout <= Duration::from_secs(2));
+        self.calls += 1;
+        let (expected, reply) = self.replies.pop_front().expect("unexpected probe/retry");
+        assert_eq!(name, expected);
+        reply
+    }
+    fn sleep(&mut self, d: Duration) {
+        assert!(d <= Duration::from_millis(100));
+        self.sleeps += 1;
+    }
+}
+fn ready_probe(replies: Vec<(&'static str, Result<Option<Value>>)>) -> Readiness {
+    Readiness {
+        replies: replies.into(),
+        calls: 0,
+        sleeps: 0,
+    }
+}
+#[test]
+fn startup_hyprctl_empty_registry_bug_is_narrowly_retryable() {
+    use crate::native::startup_reply;
+    assert_eq!(startup_reply("instances", true, b"\n]\n\n").unwrap(), None);
+    for (name, ok, text) in [
+        ("monitors", true, &b"\n]\n\n"[..]),
+        ("instances", false, &b"\n]\n\n"[..]),
+        ("instances", true, &b"{bad"[..]),
+        ("instances", true, &b"\xff"[..]),
+    ] {
+        assert!(startup_reply(name, ok, text).is_err());
+    }
+    assert_eq!(
+        startup_reply(
+            "monitors",
+            false,
+            b"Couldn't connect to /private/hypr/test/.socket.sock. (4)\n"
+        )
+        .unwrap(),
+        None
+    );
+    assert!(startup_reply("monitors", false, b"error: invalid configuration").is_err());
+}
+#[test]
+fn readiness_waits_for_registration_ipc_and_active_workspace() {
+    let instance = json!([{"instance":"one"}]);
+    let mut n = ready_probe(vec![
+        ("instances", Ok(None)),
+        ("instances", Ok(Some(json!([])))),
+        ("instances", Ok(Some(instance.clone()))),
+        ("monitors", Ok(None)),
+        ("instances", Ok(Some(instance.clone()))),
+        ("monitors", Ok(Some(json!([{"activeWorkspace":{"id":0}}])))),
+        ("instances", Ok(Some(instance))),
+        ("monitors", Ok(Some(json!([{"activeWorkspace":{"id":1}}])))),
+    ]);
+    startup::wait_for_compositor(&mut n, "one", Duration::from_secs(1)).unwrap();
+    assert_eq!(n.calls, 8);
+    assert_eq!(n.sleeps, 4);
+}
+#[test]
+fn readiness_exhaustion_never_dispatches_or_queries_core() {
+    let mut n = ready_probe(vec![("instances", Ok(None))]);
+    assert!(
+        startup::wait_for_compositor(&mut n, "one", Duration::ZERO)
+            .unwrap_err()
+            .contains("no reset performed")
+    );
+    assert_eq!(n.calls, 1);
+    assert_eq!(n.sleeps, 0);
+}
+#[test]
+fn wrong_ambiguous_or_malformed_readiness_is_not_retried() {
+    for value in [
+        json!(null),
+        json!([{"instance":"other"}]),
+        json!([{"instance":"one"},{"instance":"other"}]),
+    ] {
+        let mut n = ready_probe(vec![("instances", Ok(Some(value)))]);
+        assert!(startup::wait_for_compositor(&mut n, "one", Duration::from_secs(1)).is_err());
+        assert_eq!(n.calls, 1);
+        assert_eq!(n.sleeps, 0);
+    }
+    for value in [
+        json!(null),
+        json!([null]),
+        json!([{"activeWorkspace":{"id":"x"}}]),
+        json!([{}, {}]),
+    ] {
+        let mut n = ready_probe(vec![
+            ("instances", Ok(Some(json!([{"instance":"one"}])))),
+            ("monitors", Ok(Some(value))),
+        ]);
+        assert!(startup::wait_for_compositor(&mut n, "one", Duration::from_secs(1)).is_err());
+        assert_eq!(n.calls, 2);
+        assert_eq!(n.sleeps, 0);
+    }
+}
+struct MenuStore {
+    marker: Option<Value>,
+    writes: usize,
+    fail: bool,
+}
+impl Store for MenuStore {
+    fn read(&mut self) -> Result<Option<Value>> {
+        panic!("menu claim must not read workspace state")
+    }
+    fn save(&mut self, _: &crate::state::State) -> Result<()> {
+        panic!("menu claim must not write workspace state")
+    }
+}
+impl startup::StartupStore for MenuStore {
+    fn marker(&mut self) -> Result<Option<Value>> {
+        Ok(self.marker.clone())
+    }
+    fn write_marker(&mut self, m: &Marker) -> Result<()> {
+        if self.fail {
+            return Err("injected marker publication failure".into());
+        }
+        self.writes += 1;
+        self.marker = Some(serde_json::to_value(m).unwrap());
+        Ok(())
+    }
+    fn backup(&mut self, _: &Value) -> Result<()> {
+        panic!("menu claim is not initialization")
+    }
+}
+#[test]
+fn menu_claim_consumes_only_explicit_ready_request_and_preserves_fields() {
+    let raw = json!({"version":1,"instance":"one","phase":"ready","startup_menu":"pending","keep":{"x":1}});
+    let mut store = MenuStore {
+        marker: Some(raw.clone()),
+        writes: 0,
+        fail: false,
+    };
+    assert!(startup::claim_menu(&mut store, "one").unwrap());
+    let mut expected = raw;
+    expected["startup_menu"] = json!("consumed");
+    assert_eq!(store.marker, Some(expected));
+    assert!(!startup::claim_menu(&mut store, "one").unwrap());
+    assert_eq!(store.writes, 1);
+}
+#[test]
+fn failed_menu_claim_publication_never_authorizes_show() {
+    let raw = json!({"version":1,"instance":"one","phase":"ready","startup_menu":"pending"});
+    let mut store = MenuStore {
+        marker: Some(raw.clone()),
+        writes: 0,
+        fail: true,
+    };
+    assert!(startup::claim_menu(&mut store, "one").is_err());
+    assert_eq!(store.marker, Some(raw));
+    assert_eq!(store.writes, 0);
+}
+#[test]
+fn invalid_menu_request_is_not_repaired() {
+    let raw = json!({"version":1,"instance":"one","phase":"ready","startup_menu":true});
+    let mut store = MenuStore {
+        marker: Some(raw.clone()),
+        writes: 0,
+        fail: false,
+    };
+    assert!(startup::claim_menu(&mut store, "one").is_err());
+    assert_eq!(store.marker, Some(raw));
+    assert_eq!(store.writes, 0);
+}
 struct Memory;
 impl Store for Memory {
     fn read(&mut self) -> Result<Option<Value>> {

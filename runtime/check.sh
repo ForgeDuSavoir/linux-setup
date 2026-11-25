@@ -10,18 +10,28 @@ cargo +1.96.1 test --offline --locked
 cargo +1.96.1 clippy --offline --locked --all-targets -- -D warnings
 cargo +1.96.1 build --offline --locked --release --bins --examples
 python3 tests/test_workspace_parity.py
+python3 tests/test_shift_s.py
+python3 tests/test_retired_shortcuts.py
+python3 tests/test_close_event.py
 python3 tests/test_workspace_cli.py
 # SUPER+Tab pairs the controller with the guarded native application launcher.
 cargo +1.96.1 build --offline --locked --release --manifest-path ../configs/session-manager/app-launcher/Cargo.toml --target-dir ../configs/session-manager/app-launcher/target
 python3 tests/test_tab_launcher.py
+python3 tests/test_new_workspace.py
 python3 tests/test_desktop_parity.py
 python3 tests/test_desktop_cli.py
 python3 tests/test_desktop_private_core.py
+python3 tests/test_empty_replacement.py
+python3 tests/test_context_animations.py
+python3 tests/test_scratchpad_animation.py
+python3 tests/test_window_animation.py
 python3 tests/test_startup_parity.py
 python3 tests/test_startup_cli.py
+python3 tests/test_startup_readiness.py
 python3 tests/test_startup_private_core.py
 python3 tests/test_desktop_cohort.py
 python3 tests/test_desktop_cohort_modes.py
+python3 tests/test_visuals_mode.py
 python3 tests/test_notify_parity.py
 python3 tests/test_notify_install.py
 python3 tests/test_single_restore.py
@@ -49,6 +59,8 @@ python3 ../configs/session-manager/test-agora-workflow-config.py
 python3 ../configs/session-manager/test-agora-notify.py
 python3 ../configs/pi/session-notifications/test-install.py
 node --experimental-strip-types --test ../configs/pi/session-notifications/test.mjs
+node ../configs/session-manager/test-session-menu-keyboard.js
+python3 ../configs/session-manager/test-startup-menu-qml.py
 node ../configs/session-manager/test-session-service.js
 node ../configs/session-manager/test-session-attention.js
 python3 ../configs/session-manager/test-session-attention-qml.py

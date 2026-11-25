@@ -5,7 +5,15 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 TARGET_DIR="${HOME}/.local/bin"
 
-for script_name in dictation-start dictation-stop dictation-toggle text-insert clipboard-menu; do
+scripts=(dictation-start dictation-stop dictation-toggle text-insert clipboard-menu)
+if [[ $# -eq 1 && "$1" == --dictation-stop-only ]]; then
+    scripts=(dictation-stop)
+elif [[ $# -ne 0 ]]; then
+    echo "Usage: $0 [--dictation-stop-only]" >&2
+    exit 2
+fi
+
+for script_name in "${scripts[@]}"; do
     source_file="${SCRIPT_DIR}/${script_name}.sh"
     target_file="${TARGET_DIR}/${script_name}"
 
@@ -15,7 +23,12 @@ for script_name in dictation-start dictation-stop dictation-toggle text-insert c
     fi
 
     mkdir -p "${TARGET_DIR}"
-    install -m 0755 "${source_file}" "${target_file}"
+    [[ ! -L "${target_file}" ]] || { echo "Refusing symlinked target: ${target_file}" >&2; exit 1; }
+    temporary="$(mktemp "${TARGET_DIR}/.${script_name}.XXXXXXXX")"
+    trap 'rm -f -- "${temporary}"' EXIT
+    install -m 0755 "${source_file}" "${temporary}"
+    mv -f -- "${temporary}" "${target_file}"
+    trap - EXIT
 done
 
 echo "✓ Text tools scripts installed successfully."

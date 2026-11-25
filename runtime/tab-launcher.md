@@ -1,5 +1,10 @@
 # SUPER+Tab — confirmed empty workspace, then contextual launcher
 
+> Historical deployment: SUPER+Tab and SUPER+Shift+Tab were unbound in stage 3
+> on 2026-11-23. The CLI helpers remain for compatibility/regression testing, not
+> desktop shortcuts. Current replacements: [Shift launches](new-workspace-launch.md)
+> and [Shift+S](shift-s.md). The record below describes the former binding.
+
 ## Behavior
 
 SUPER+Tab now invokes `workspace-controller create-empty-and-launch`.

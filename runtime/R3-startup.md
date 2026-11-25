@@ -1,5 +1,68 @@
 # R3 — per-compositor startup and pure installer administration
 
+## Current bootstrap: empty state plus one-shot chooser — installed 2026-11-21
+
+The [current startup contract](../configs/session-manager/session-startup.md)
+replaces automatic Neutral-1 creation with zero sessions/no active UUID and a
+ready/pending menu request. Matching Quickshell consumes it through the marker-only
+`--claim-menu` mode, waits for fresh confirmed empty context and directly shows
+the project chooser once. No new workspace or arbitrary session; close/reload
+never replays initialization or automatic presentation. The readiness repair below
+is retained. Full tests pass (110 Rust total), including native concurrent claims,
+real private core/cohort and real offscreen menu/service/Process tests. Active
+cohort `999b39e6c553b811c08c6944`; authorized shell restart only, current ready marker,
+sessions/windows/metadata/history/index/core PID unchanged. Next-login visual
+acceptance remains open. Neutral-1 references below describe the historical policy.
+
+## 2026-11-21 cold-start readiness repair — installed
+
+Boot diagnosis: the user service was running at 09:54:37, but startup failed at
+09:54:40.563 with `invalid native JSON: expected value at line 2 column 1`.
+Hyprland's instance lock was completed at 09:54:40.579, approximately 16 ms later.
+The installed hyprctl 0.56.2 reproduces exit 0 with `"\\n]\\n\\n"` when no complete
+instance lock exists. The first instance query failed before reset/Neutral creation,
+and the legitimate failed-marker guard prevented unsafe same-login replay.
+
+Startup now keeps its one-attempt marker, then runs a bounded **readonly readiness
+gate** before ordinary guards, archive/ownership reset or core mutations:
+- Up to approximately 10 seconds; each instances/monitors child gets at most
+  two seconds (clamped to the remaining budget). No fixed startup sleep.
+- The exact known closing-bracket-only instances response, a valid empty instance
+  array, monitor socket-not-connected response, empty monitors, workspace ID zero
+  and probe deadlines are treated as not-ready. Recheck observations after at
+  most 100 ms, only while not ready.
+- Require one matching instance and one monitor with a valid positive ordinary
+  active workspace. Wrong/multiple instances, multiple monitors, malformed shapes,
+  unexpected invalid JSON/UTF-8 and other failures remain hard errors.
+- Production probes have bounded capture and kill/reap only their direct child.
+  Ordinary native query/mutation behavior is unchanged; no stop/start/focus retry.
+- Core availability still uses its existing separate readonly budget. Timeout
+  records failure and exposes the recovery bar once; failed/initializing
+  same-login markers still block every ordinary reentry.
+
+Four new Rust invariants bring the workspace to **107 tests** (77 desktop).
+Complete `runtime/check.sh`, strict Clippy/fmt/offline release and all existing
+23 startup differential / 11 CLI / real-private-core regressions pass.
+`tests/test_startup_readiness.py` covers actual CLI startup with registration/IPC
+races, no core request before readiness, malformed/wrong/multiple hard failures,
+lost mutation no replay and same-login markers. A real installed hyprctl is tested
+against a **private** partial lock and synthetic Unix IPC socket: malformed output
+then registration retry then valid monitors. A stuck real child is killed/reaped
+within the driver budget. No live initializer, reset, session or bar was tested.
+
+Installed through `install_desktop.py --apply --startup-only`:
+generation `1ad7c1e193fc74aa8d5c7bf0`, private cohort backup
+`~/.local/state/linux-setup/desktop-cohort/20261121T101746-kgost9d0`.
+Installed ELF equals the tested release. Exact current core/desktop snapshots,
+workspace state and **failed marker** preserved; shell/core PIDs, QML, keybinds,
+standalone helpers and Git index unchanged. No shell restart/notification RAM loss.
+
+The current failed login is deliberately **not** reinitialized: existing sessions
+are retained. The fix applies at the next genuine graphical login/new compositor,
+not a core/Hyprland config/Quickshell reload. Actual next-login Neutral-1 acceptance
+remains user validation. The original R3 delivery record below is historical.
+
+
 Implemented and isolated-tested on 2026-11-19. **No live installation/activation,
 logout, core reset or real bar launch.** The three Rust runtime components are
 now implemented; R8 must still convert the actual installers/callers and activate

@@ -101,8 +101,18 @@ pub fn capture(home: &Path, expected: Option<&str>) -> Context {
     }
 }
 pub fn launch(home: &Path, plan: &Plan, context: &Context) -> Result<()> {
+    launch_scoped(home, plan, context, false)
+}
+pub fn launch_in_new_workspace(home: &Path, plan: &Plan, context: &Context) -> Result<()> {
+    launch_scoped(home, plan, context, true)
+}
+fn launch_scoped(home: &Path, plan: &Plan, context: &Context, new_workspace: bool) -> Result<()> {
     let context = context.label();
-    let status = Command::new(home.join(".local/bin/launch-terminal-command"))
+    let mut command = Command::new(home.join(".local/bin/launch-terminal-command"));
+    if new_workspace {
+        command.env_remove("HL_INITIAL_WORKSPACE_TOKEN");
+    }
+    let status = command
         .arg(&plan.directory)
         .args([
             "env",

@@ -130,21 +130,70 @@ personal history was seeded for validation. See [contracts, build, tests and tar
 
 ### Fresh graphical login — installed for the next connection
 
+The 2026-11-21 [cold-start readiness repair](runtime/R3-startup.md#2026-11-21-cold-start-readiness-repair--installed)
+handles Hyprland's late instance registration and malformed empty `hyprctl instances -j`
+output. Bounded readonly probes now precede the reset; unexpected errors still fail
+closed and mutating requests are never replayed. Installed startup-only without
+reinitializing the current failed login or restarting Quickshell. Next-login
+Neutral-1 creation remains normal user acceptance.
+
 Each new Hyprland instance (PC boot or logout/login) now forgets old open logical
-sessions through the existing core API and creates exactly one Neutral-1 on a
-fresh empty workspace before starting Quickshell. Reused compositor IDs never
-inherit old UUID ownership. No project/application is restored or window moved.
-Config/Quickshell/core reload within the same login does not reset sessions.
-Current live sessions were explicitly deferred during installation; the shell,
-core and notification history were left untouched. See [the startup policy,
-installer and isolated tests](configs/session-manager/session-startup.md).
+sessions through the existing core API and leaves **zero sessions/no active UUID**.
+No default Neutral or extra workspace is created. Quickshell consumes a matching
+one-shot marker request and opens the session chooser with project search focused.
+Closing the chooser leaves the desktop unowned; manual SUPER+ESC remains available.
+Existing windows are not moved/adopted/restored, and reloads never reset sessions
+or reopen a consumed startup request. Matching native/QML deployment was applied
+with authorized Quickshell restart/history reset, preserving current sessions and
+the existing marker. See [policy, guards, tests and installation](configs/session-manager/session-startup.md).
+
+### Shift application shortcuts — deployed
+
+SUPER+Shift+B/P/E/Enter/D now opens the browser/Pi/files/terminal/app menu after
+creating a fresh workspace immediately after the current one, within its exact
+session owner (or unowned). Creation also occurs from an empty workspace.
+Preparation/atomic source guard/confirmed focus/expected-owner launch replace any
+sleep or command chaining. Existing project/profile/directory/Pi continuation
+routing is preserved, with supported new-window requests and no forced movement
+of reused windows. Only plain SUPER+D records usage. Cancellation leaves an empty
+workspace, not a rollback. Plain shortcuts and both Tab bindings remain
+unchanged except for the subsequent retirement of both Super+Tab shortcuts;
+[Shift+S was revised in stage 2](runtime/shift-s.md). Matching launcher/native cohort installed via reduced update, no
+Quickshell reload or notification loss. [Contract, limits, tests and backups](runtime/new-workspace-launch.md).
+
+### Empty current session replacement — deployed
+
+Starting a new project/Neutral session now retires the previous active UUID only
+**after** successful new-session focus/core confirmation, if one post-focus check
+finds no ordinary or scoped-scratchpad windows in the old session. Nonempty or
+unconfirmed old context remains; Switch never triggers replacement. No upfront
+emptiness probe or inactive-session sweep. [Contract, concurrency limits and tests](runtime/empty-session-replacement.md).
+
+### Window opening and closing — applied
+
+Windows use full **popin** at opening and its centered contraction at closing,
+both about 300 ms with no-overshoot ease-out. Movement/fade/context/scratchpad
+animations remain unchanged.
+[Validation, backups and GNOME-style comparison](configs/hypr/window-animations.md).
+
+### Context-dependent workspace animations — applied
+
+Ordinary workspace transitions use **slidevert**, session transitions temporarily
+use **slidefade**, and scratchpads use **slidefadevert**, entering/retracting from
+the top in about 300 ms with a no-overshoot ease-out curve. Workspace/session
+durations/curves unchanged;
+session dispatch and exception-safe style restoration share one Lua evaluation,
+without timers or background restore. Visuals-only coordinated deployment, no
+Quickshell reload. [Implementation, validation and backups](runtime/context-animations.md).
 
 ### Single workspaces — deployed
 
 The desktop controller now removes the two-row column model: SUPER+S cycles
-session workspaces, SUPER+Tab inserts/focuses a fresh empty workspace after an
-occupied current one or returns to the preceding workspace when the current one is empty, SUPER+Shift+Tab isolates or joins the preceding occupied workspace without wrap,
-and SUPER+Shift+S moves to the next existing workspace with wrap. Temporary
+session workspaces. SUPER+Tab and SUPER+Shift+Tab are now unbound (stage 3);
+the five SUPER+Shift application shortcuts replace workspace creation, and
+SUPER+Shift+S moves to the next same-owner workspace; at the last, a shared
+window splits into a fresh workspace, while a lone window wraps to the first.
+A lone window in its only workspace stays put. [Stage 2 contract/tests](runtime/shift-s.md). Temporary
 vertical animation switching remains removed. Existing real workspace
 IDs/windows are preserved; explicit list order replaces ID arithmetic. Empty
 workspaces are forgotten when left without stopping logical sessions.
@@ -213,9 +262,11 @@ session's columns, and refuse graphical stop while session windows/scratchpads
 remain. Graphical stop also refuses the last open session; stopping the active one first selects/focuses the next survivor in opening order, wrapping, rather than returning to the unowned desktop. Explicit Deselect session and direct core CLI/API behavior are unchanged. A visible scratchpad is hidden before a menu action; its windows stay
 open, and a nonempty session still cannot be stopped through the menu. The menu
 closes after success and stays open to display an action error. In the menu,
-open sessions receive keyboard focus first, with a fallback to projects if none
-are open. Tab moves to the launch-source search field; typing there filters projects
-only (not the built-in Neutral row or open sessions).
+the creation-first menu always focuses the launch-source search field,
+even with sessions already open or sources still loading. Activated with explicit
+Quickshell reload/RAM-history reset approval on 2026-11-22. Search filters every launch source by name, including Neutral; empty/whitespace
+search retains Neutral first, and open sessions remain unaffected. This filter
+change was activated with separate Quickshell reload/RAM-history reset approval.
 Up/Down select an item, Tab switches between projects and open sessions, and
 Enter starts/switches the selected item; the selection scrolls into view.
 The five scratchpad names are scoped by session UUID; pre-existing `session-*` scratchpads

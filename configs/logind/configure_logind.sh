@@ -2,6 +2,12 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+if [[ "${1:-}" == --sleep-key-only && "$#" == 1 ]]; then
+    exec sudo bash "${SCRIPT_DIR}/configure_sleep_key.sh"
+elif [[ "$#" != 0 ]]; then
+    echo "Usage: $0 [--sleep-key-only]" >&2; exit 2
+fi
 TARGET_FILE="/etc/systemd/logind.conf.d/ignore-lid.conf"
 TEMP_FILE="$(mktemp)"
 trap 'rm -f "$TEMP_FILE"' EXIT
@@ -22,4 +28,4 @@ else
     echo "✓ Lid switch configured to be ignored."
 fi
 
-echo "⚠ A restart is required for systemd-logind to apply this configuration."
+sudo bash "${SCRIPT_DIR}/configure_sleep_key.sh"

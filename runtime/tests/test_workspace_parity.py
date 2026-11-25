@@ -151,6 +151,9 @@ class Parity(unittest.TestCase):
                 # Invalid projections leave the unvalidated Python raw object in a
                 # local variable, whereas Rust returns no typed state. No IO happened.
                 if not reference['ok'] and not actual['ok'] and reference['state'] is None:actual['state']=None
+                if name=='15_other_windows_noop':
+                    self.assertEqual(actual['sleeps'],0)
+                    reference['sleeps']=0 # Explicit CLOSE-WAIT-001 fix; frozen oracle unchanged.
                 for key in ['ok','output','raw','world','sleeps']:
                     self.assertEqual(actual[key],reference[key],(name,key,actual.get('error')))
                 if reference['ok'] or reference['raw'] is not None:
