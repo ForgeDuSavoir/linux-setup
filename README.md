@@ -625,6 +625,13 @@ The repository currently manages:
 * Linux services
 * personal workflow tooling
 
+The [Hyprland config installer](configs/hypr/install_hyprland_config.sh) installs
+Fit Scroller v0.1.1 and enables SUPER+left-drag tile reordering in order mode.
+When replacing an older or untracked Fit Scroller installation, it saves the old
+layout under `~/.config/hypr/layouts/fit-scroller-backup.*/fit-scroller/`.
+Reapply any personal settings to the new `config.lua` rather than copying the
+v0.1.0 config file wholesale.
+
 It may later expand toward:
 
 * dotfiles

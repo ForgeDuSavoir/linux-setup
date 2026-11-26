@@ -40,7 +40,7 @@ require("startup")
 ---- LOOK AND FEEL ----
 -----------------------
 
-dofile(os.getenv("HOME") .. "/.config/hypr/layouts/fit-scroller/init.lua")
+local fit_scroller = dofile(os.getenv("HOME") .. "/.config/hypr/layouts/fit-scroller/init.lua")
 require("visuals")
 
 
@@ -67,6 +67,7 @@ require("inputs")
 
 package.loaded["keybinds"] = nil
 require("keybinds")
+fit_scroller.bind_order_drag("SUPER + mouse:272")
 
 -- Invalidate pending close work on reload and every workspace navigation.
 _G.__workflow_navigation_epoch = (_G.__workflow_navigation_epoch or 0) + 1
